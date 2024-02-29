@@ -3,7 +3,7 @@ import threading
 import sys
 import struct
 from Options.Ops import Server_ops
-from Crypt.Crypt import Crypt
+from Crypt.crypt_main import Crypt
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:

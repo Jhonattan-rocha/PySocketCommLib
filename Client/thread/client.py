@@ -2,7 +2,7 @@ import socket
 import threading
 import struct
 from Options.Ops import Client_ops
-from Crypt.Crypt import Crypt
+from Crypt.crypt_main import Crypt
 
 class Client(threading.Thread):
     def __init__(self, Options: Client_ops) -> None:
