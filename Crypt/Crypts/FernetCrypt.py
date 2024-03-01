@@ -1,10 +1,10 @@
-from Abstracts import SyncCrypts
+from Abstracts.SyncCrypts import SyncCrypts
 from Options.Ops import SyncCrypt_ops
 from cryptography.fernet import Fernet
 
 class FernetCrypt(SyncCrypts):
     def __init__(self, Options: SyncCrypt_ops) -> None:
-        self.sync_key: bytes = Options.sync_key
+        self.sync_key: bytes = Options.sync_key if Options.sync_key else Fernet.generate_key()
         try:
             self.sync_crypt = Fernet(self.sync_key)
         except Exception as e:

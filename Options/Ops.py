@@ -10,11 +10,9 @@ class AsyncCrypt_ops:
         self.private_key = private_key
         
 class Crypt_ops:
-    def __init__(self, sync_crypt_ops: SyncCrypt_ops, async_crypt_ops: AsyncCrypt_ops) -> None:
-        if sync_crypt_ops:
-            self.sync_crypt_ops = sync_crypt_ops
-        if async_crypt_ops: 
-            self.async_crypt_ops = async_crypt_ops
+    def __init__(self, sync_crypt_ops: SyncCrypt_ops=None, async_crypt_ops: AsyncCrypt_ops=None) -> None:
+        self.sync_crypt_ops = sync_crypt_ops
+        self.async_crypt_ops = async_crypt_ops
         
 class Server_ops:
     def __init__(self, host: str="127.0.0.1", port: int=8080, bytes: bytes=2048, enable_crypt: bool=True) -> None:    

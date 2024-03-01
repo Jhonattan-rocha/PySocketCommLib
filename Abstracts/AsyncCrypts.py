@@ -1,9 +1,9 @@
 from abc import ABC, abstractclassmethod
-from Options.Ops import AsyncCrypy
+from Options.Ops import AsyncCrypt_ops
 
 class AsyncCrypts(ABC):
     @abstractclassmethod
-    def __init__(self, Options: AsyncCrypy) -> None:
+    def __init__(self, Options: AsyncCrypt_ops) -> None:
         pass
     @abstractclassmethod
     def load_public_key(self, public_key_bytes: bytes) -> None:
