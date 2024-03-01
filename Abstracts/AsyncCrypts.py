@@ -6,7 +6,10 @@ class AsyncCrypts(ABC):
     def __init__(self, Options: AsyncCrypt_ops) -> None:
         pass
     @abstractclassmethod
-    def load_public_key(self, public_key_bytes: bytes) -> None:
+    def load_public_key(self, public_key_bytes: bytes) -> object:
+        pass
+    @abstractclassmethod
+    def public_key_to_bytes(self) -> bytes:
         pass
     @abstractclassmethod
     def generate_key_pair(self) -> None:

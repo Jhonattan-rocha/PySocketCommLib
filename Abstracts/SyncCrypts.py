@@ -14,4 +14,9 @@ class SyncCrypts(ABC):
     @abstractclassmethod
     def generate_key(self, size: int) -> None:
         pass
-    
+    @abstractclassmethod
+    def get_key() -> bytes:
+        pass
+    @abstractclassmethod
+    def set_key() -> None:
+        pass

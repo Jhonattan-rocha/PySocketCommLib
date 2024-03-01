@@ -11,8 +11,8 @@ import random
 class AESCrypt(SyncCrypts):
     
     def __init__(self, Options: SyncCrypt_ops) -> None:
-        self.key = Options.sync_key
-        if not self.key:
+        self.__key = Options.sync_key
+        if not self.__key:
             self.generate_key(16)
     
     def encrypt_message(self, message: bytes) -> bytes:
@@ -24,7 +24,7 @@ class AESCrypt(SyncCrypts):
         padded_data = padder.update(message) + padder.finalize()
 
         # Crie um objeto de cifra AES com a chave e o modo CBC
-        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=default_backend())
+        cipher = Cipher(algorithms.AES(self.__key), modes.CFB(iv), backend=default_backend())
 
         # Crie um objeto de contexto de cifra
         encryptor = cipher.encryptor()
@@ -45,7 +45,7 @@ class AESCrypt(SyncCrypts):
         iv = encrypted_blocks[:16]
 
         # Crie um objeto de cifra AES com a chave e o modo CBC
-        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=default_backend())
+        cipher = Cipher(algorithms.AES(self.__key), modes.CFB(iv), backend=default_backend())
 
         # Crie um objeto de contexto de cifra
         decryptor = cipher.decryptor()
@@ -62,5 +62,8 @@ class AESCrypt(SyncCrypts):
     def generate_key(self, size: int) -> None:
         text = string.ascii_letters + string.ascii_lowercase + string.ascii_uppercase + string.hexdigits
         key = "".join(random.choice(text) for _ in range(size))
-        self.key = key.encode()
-        
+        self.__key = key.encode()
+    
+    def get_key(self) -> bytes:
+        return self.__key
+    

@@ -12,12 +12,18 @@ class RSACrypt(AsyncCrypts):
         if not Options.public_key or not Options.private_key:
             self.generate_key_pair()
         
-    def load_public_key(self, public_key_bytes: bytes):
+    def load_public_key(self, public_key_bytes: bytes) -> object:
         public_key = serialization.load_pem_public_key(
             public_key_bytes,
             backend=default_backend()
         )
         return public_key
+    
+    def public_key_to_bytes(self) -> bytes:
+        return self.public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
     
     def generate_key_pair(self):
         private_key = rsa.generate_private_key(

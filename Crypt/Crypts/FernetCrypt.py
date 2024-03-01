@@ -6,12 +6,12 @@ from cryptography.fernet import Fernet
 
 class FernetCrypt(SyncCrypts):
     def __init__(self, Options: SyncCrypt_ops) -> None:
-        self.sync_key: bytes = Options.sync_key if Options.sync_key else Fernet.generate_key()
+        self.__sync_key: bytes = Options.sync_key if Options.sync_key else Fernet.generate_key()
         try:
-            self.sync_crypt = Fernet(self.sync_key)
+            self.sync_crypt = Fernet(self.__sync_key)
         except Exception as e:
-            self.sync_key = Fernet.generate_key()
-            self.sync_crypt = Fernet(self.sync_key)
+            self.__sync_key = Fernet.generate_key()
+            self.sync_crypt = Fernet(self.__sync_key)
             print(f"Devido ao erro: {e}, foi gerado uma nova chave")
         
     def encrypt_message(self, message: bytes):
@@ -31,10 +31,15 @@ class FernetCrypt(SyncCrypts):
     def generate_key(self, size: int) -> None:
         text = string.ascii_letters + string.ascii_lowercase + string.ascii_uppercase + string.hexdigits
         key = "".join(random.choice(text) for _ in range(size))
+        self.set_key(key)
+    
+    def set_key(self, key: bytes) -> None:
         try:
-            self.sync_key = key.encode()
-            self.sync_crypt = Fernet(self.sync_key)
+            self.__sync_key = key
+            self.sync_crypt = Fernet(self.__sync_key)
         except Exception as e:
-            self.sync_key = Fernet.generate_key()
-            self.sync_crypt = Fernet(self.sync_key)
-            
+            self.__sync_key = Fernet.generate_key()
+            self.sync_crypt = Fernet(self.__sync_key)
+    
+    def get_key(self) -> bytes:
+        return self.__sync_key

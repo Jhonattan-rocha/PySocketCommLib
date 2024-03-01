@@ -5,7 +5,7 @@ texto = b"Nada a se fazer"
 print(texto)
 
 crypt = Crypt() 
-crypt.configure(Crypt_ops(sync_crypt_ops=SyncCrypt_ops("fernet")))
+crypt.configure(Crypt_ops(sync_crypt_ops=SyncCrypt_ops("aes")))
 
 enc = crypt.sync_crypt.encrypt_message(texto)
 print(enc)
