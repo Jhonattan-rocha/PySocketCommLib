@@ -11,4 +11,7 @@ class SyncCrypts(ABC):
     @abstractclassmethod
     def decrypt_message(self, encrypted_blocks: bytes) -> bytes:
         pass
+    @abstractclassmethod
+    def generate_key(self, size: int) -> None:
+        pass
     

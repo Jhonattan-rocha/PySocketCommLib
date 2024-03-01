@@ -1,3 +1,5 @@
+import random
+import string
 from Abstracts.SyncCrypts import SyncCrypts
 from Options.Ops import SyncCrypt_ops
 from cryptography.fernet import Fernet
@@ -25,3 +27,14 @@ class FernetCrypt(SyncCrypts):
         except Exception as e:
             print(e)
             return b""
+        
+    def generate_key(self, size: int) -> None:
+        text = string.ascii_letters + string.ascii_lowercase + string.ascii_uppercase + string.hexdigits
+        key = "".join(random.choice(text) for _ in range(size))
+        try:
+            self.sync_key = key.encode()
+            self.sync_crypt = Fernet(self.sync_key)
+        except Exception as e:
+            self.sync_key = Fernet.generate_key()
+            self.sync_crypt = Fernet(self.sync_key)
+            

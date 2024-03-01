@@ -1,3 +1,4 @@
 from Crypt.Crypts.RSACrypt import RSACrypt
+from Abstracts.AsyncCrypts import AsyncCrypts
 
-Async = {"rsa": RSACrypt}
+Async: dict[str, type[AsyncCrypts]] = {"rsa": RSACrypt}
