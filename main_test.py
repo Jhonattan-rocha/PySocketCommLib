@@ -1,12 +1,12 @@
 from Crypt.crypt_main import Crypt
-from Options.Ops import SyncCrypt_ops, Crypt_ops
+from Options.Ops import SyncCrypt_ops, AsyncCrypt_ops, Crypt_ops
 
-texto = b"Nada a se fazer"
+texto = b"Nada a se fazeraaaaaaaaaaaaaaaaaaaaaa"
 
 crypt = Crypt()
-crypt.configure(Crypt_ops(sync_crypt_ops=SyncCrypt_ops("fernet")))
+crypt.configure(Crypt_ops(async_crypt_ops=AsyncCrypt_ops("rsa")))
 
-enc_texto = crypt.sync_crypt.encrypt_message(texto)
-dec_texto = crypt.sync_crypt.decrypt_message(enc_texto)
+enc_texto = crypt.async_crypt.encrypt_with_public_key(texto)
+dec_texto = crypt.async_crypt.decrypt_with_private_key(texto)
 
 print(texto, enc_texto, dec_texto)

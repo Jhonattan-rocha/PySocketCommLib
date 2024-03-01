@@ -30,7 +30,8 @@ class RSACrypt(AsyncCrypts):
         self.public_key = public_key
         self.private_key = private_key
 
-    def encrypt_with_public_key(self, data, public_key):
+    def encrypt_with_public_key(self, data:bytes, public_key=None):
+        public_key = public_key if public_key else self.public_key
         encrypted_data = public_key.encrypt(
             data,
             padding.OAEP(
@@ -41,7 +42,8 @@ class RSACrypt(AsyncCrypts):
         )
         return encrypted_data
 
-    def decrypt_with_private_key(self, data, private_key):
+    def decrypt_with_private_key(self, data:bytes, private_key=None):
+        private_key = private_key if private_key else self.private_key
         decrypted_data = private_key.decrypt(
             data,
             padding.OAEP(
