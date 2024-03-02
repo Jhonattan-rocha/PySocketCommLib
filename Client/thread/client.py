@@ -1,6 +1,6 @@
+import re
 import socket
 import threading
-import struct
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
 
@@ -12,19 +12,19 @@ class Client(threading.Thread):
         self.BYTES = Options.bytes
         self.__running: bool = True
         self.connection = None
-        if Options.encypt_configs:
+        if Options.encrypt_configs:
             self.crypt = Crypt()
-            self.crypt.configure(Options.encypt_configs)
+            self.crypt.configure(Options.encrypt_configs)
     
-    def receive_message(self, sock: socket.socket):
-        raw_msglen = sock.recv(1024)
+    def receive_message(self, client: socket.socket):
+        raw_msglen = client.recv(1024)
         if not raw_msglen:
             return None
-        msglen = int(raw_msglen.decode())
+        msglen = int(re.sub(r"\D+", "", raw_msglen.decode()))
         chunks = []
         bytes_received = 0
         while bytes_received < msglen:
-            chunk = sock.recv(min(msglen - bytes_received, 2048))
+            chunk = client.recv(min(msglen - bytes_received, 2048))
             if not chunk:
                 raise RuntimeError('Conexão interrompida')
             chunks.append(chunk)
@@ -36,16 +36,16 @@ class Client(threading.Thread):
         except Exception as e:
             return message
 
-    def send_message(self, sock: socket.socket, message: bytes):
+    def send_message(self, client: socket.socket, message: bytes):
         try:
             message = self.crypt.sync_crypt.encrypt_message(message)
         except Exception as e:
             pass
         msglen = len(message)
-        sock.sendall(str(msglen).encode())
+        client.sendall(str(msglen).encode())
         offset = 0
         while offset < msglen:
-            sent = sock.send(message[offset:offset+2048])
+            sent = client.send(message[offset:offset+2048])
             if not sent:
                 raise RuntimeError('Conexão interrompida')
             offset += sent
@@ -64,15 +64,19 @@ class Client(threading.Thread):
             if not self.connection:
                 self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.connection.connect((self.HOST, self.PORT))
-                self.sync_crypt_key(self.connection)
+                try:
+                    if self.crypt.async_crypt and self.crypt.sync_crypt:
+                        self.sync_crypt_key(self.connection)
+                except Exception as ex:
+                    pass
                 
-                self.send_message(self.connection, self.crypt.sync_crypt.encrypt_message(b"Hellow world"))
+                self.send_message(self.connection, b"Hellow world")
                 return self.connection
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")
         except Exception as e:
             print(e)
-
+            
 if __name__ == "__main__":
     client = Client()
     client.run()

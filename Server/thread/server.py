@@ -1,9 +1,10 @@
 import socket
 import threading
 import sys
-import struct
+import re
 from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
+from Client.Thread.Client import Client
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:
@@ -11,21 +12,22 @@ class Server(threading.Thread):
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.BYTES: bytes = Options.bytes
-        self.__clients: list = []
+        self.__clients: list[str, type[list[type[tuple], type[Client]]]] = []
         self.__running: bool = True
-        if Options.encypt_configs:
+        self.crypt = None
+        if Options.encrypt_configs:
             self.crypt = Crypt()
-            self.crypt.configure(Options.encypt_configs)
+            self.crypt.configure(Options.encrypt_configs)
             
-    def receive_message(self, sock: socket.socket) -> bytes:
-        raw_msglen = sock.recv(4)
+    def receive_message(self, client: socket.socket) -> bytes:
+        raw_msglen = client.recv(1024)
         if not raw_msglen:
             return None
-        msglen = int(raw_msglen.decode())
+        msglen = int(re.sub(r"\D+", "", raw_msglen.decode()))
         chunks = []
         bytes_received = 0
         while bytes_received < msglen:
-            chunk = sock.recv(min(msglen - bytes_received, 2048))
+            chunk = client.recv(min(msglen - bytes_received, 2048))
             if not chunk:
                 raise RuntimeError('Conexão interrompida')
             chunks.append(chunk)
@@ -37,16 +39,16 @@ class Server(threading.Thread):
         except Exception as e:
             return message
 
-    def send_message(self, sock: socket.socket, message: bytes) -> None:
+    def send_message(self, client: socket.socket, message: bytes) -> None:
         try:
             message = self.crypt.sync_crypt.encrypt_message(message)
         except Exception as e:
             pass
         msglen = len(message)
-        sock.sendall(str(msglen).encode())
+        client.sendall(str(msglen).encode())
         offset = 0
         while offset < msglen:
-            sent = sock.send(message[offset:offset+2048])
+            sent = client.send(message[offset:offset+2048])
             if not sent:
                 raise RuntimeError('Conexão interrompida')
             offset += sent
@@ -74,13 +76,18 @@ class Server(threading.Thread):
             while self.__running:
                 try:
                     (client, address) = server.accept()
-                    self.sync_crypt_key(client)
+                    
+                    try:
+                        if self.crypt.async_crypt and self.crypt.sync_crypt:
+                            self.sync_crypt_key(client)
+                    except Exception as ex:
+                        pass
                     
                     print(f"Conexão com o cliente do address {address}")
                     
                     mes = self.receive_message(client)
                     
-                    print(mes, self.crypt.sync_crypt.decrypt_message(mes))
+                    print(mes, mes)
                     
                     client.close()
                     
@@ -88,7 +95,7 @@ class Server(threading.Thread):
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:
-                    print(e)
+                    print(e, 'Sever')
                     sys.exit(1)
 
 if __name__ == '__main__':

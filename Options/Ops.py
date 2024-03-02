@@ -15,15 +15,15 @@ class Crypt_ops:
         self.async_crypt_ops = async_crypt_ops
         
 class Server_ops:
-    def __init__(self, host: str="127.0.0.1", port: int=8080, bytes: bytes=2048, encypt_configs: Crypt_ops=None) -> None:    
+    def __init__(self, host: str="127.0.0.1", port: int=8080, bytes: bytes=2048, encrypt_configs: Crypt_ops=None) -> None:    
         self.host = host
         self.port = port
         self.bytes = bytes
-        self.encypt_configs = encypt_configs
+        self.encrypt_configs = encrypt_configs
 
 class Client_ops:
-    def __init__(self, host: str="127.0.0.1", port: int=8080, bytes: bytes=2048, encypt_configs: Crypt_ops=None) -> None:    
+    def __init__(self, host: str="127.0.0.1", port: int=8080, bytes: bytes=2048, encrypt_configs: Crypt_ops=None) -> None:    
         self.host = host
         self.port = port
         self.bytes = bytes
-        self.encypt_configs = encypt_configs
+        self.encrypt_configs = encrypt_configs

@@ -1,3 +1,5 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from Abstracts.AsyncCrypts import AsyncCrypts
 from Options.Ops import AsyncCrypt_ops
 from cryptography.hazmat.primitives import serialization
@@ -59,4 +61,34 @@ class RSACrypt(AsyncCrypts):
             )
         )
         return decrypted_data
+    
+    async def async_load_public_key(self, public_key_bytes: bytes) -> object:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            res = await loop.run_in_executor(executor, self.load_public_key, public_key_bytes)
+        return res
+    
+    async def async_public_key_to_bytes(self) -> bytes:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            res = await loop.run_in_executor(executor, self.public_key_to_bytes)
+        return res
+    
+    async def async_generate_key_pair(self) -> None:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            res = await loop.run_in_executor(executor, self.generate_key_pair)
+        return res
+    
+    async def async_encrypt_with_public_key(self, data:bytes, public_key=None) -> bytes:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            res = await loop.run_in_executor(executor, self.encrypt_with_public_key, data, public_key)
+        return res
+    
+    async def async_decrypt_with_private_key(self, data:bytes, private_key=None) -> bytes:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            res = await loop.run_in_executor(executor, self.decrypt_with_private_key, data, private_key)
+        return res
     
