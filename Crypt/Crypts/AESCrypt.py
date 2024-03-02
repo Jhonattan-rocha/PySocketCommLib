@@ -10,17 +10,23 @@ import random
 
 class AESCrypt(SyncCrypts):
     
-    def __init__(self, Options: SyncCrypt_ops) -> None:
-        self.__key = Options.sync_key
-        if not self.__key:
+    def __init__(self, Options: SyncCrypt_ops) -> None:        
+        self.__key = 0
+        self.__padding = 0
+        if not Options.sync_key:
             self.generate_key(16)
+        else:
+            key_len = len(Options.sync_key)
+            if key_len != 16 and key_len != 24 and key_len != 32: 
+                raise AttributeError("A chave só pode ter 16, 24 e 32 byes")
+            self.set_key(Options.sync_key)
     
     def encrypt_message(self, message: bytes) -> bytes:
         # Gere um vetor de inicialização (IV) aleatório
         iv = os.urandom(16)
 
         # Padronize o texto antes da criptografia
-        padder = padding.PKCS7(128).padder()
+        padder = padding.PKCS7(self.__padding).padder()
         padded_data = padder.update(message) + padder.finalize()
 
         # Crie um objeto de cifra AES com a chave e o modo CBC
@@ -54,7 +60,7 @@ class AESCrypt(SyncCrypts):
         decrypted_data = decryptor.update(encrypted_blocks[16:]) + decryptor.finalize()
 
         # Remova o preenchimento
-        unpadder = padding.PKCS7(128).unpadder()
+        unpadder = padding.PKCS7(self.__padding).unpadder()
         plaintext = unpadder.update(decrypted_data) + unpadder.finalize()
 
         return plaintext
@@ -62,8 +68,15 @@ class AESCrypt(SyncCrypts):
     def generate_key(self, size: int) -> None:
         text = string.ascii_letters + string.ascii_lowercase + string.ascii_uppercase + string.hexdigits
         key = "".join(random.choice(text) for _ in range(size))
-        self.__key = key.encode()
+        self.set_key(key.encode())
     
     def get_key(self) -> bytes:
         return self.__key
     
+    def set_key(self, key: bytes) -> None:
+        key_len = len(key)
+        if key_len not in {16, 24, 32}:
+            raise AttributeError("A chave só pode ter 16, 24 e 32 bytes")
+
+        self.__key = key
+        self.__padding = key_len * 8

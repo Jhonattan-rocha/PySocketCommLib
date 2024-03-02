@@ -65,6 +65,8 @@ class Client(threading.Thread):
                 self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.connection.connect((self.HOST, self.PORT))
                 self.sync_crypt_key(self.connection)
+                
+                self.send_message(self.connection, self.crypt.sync_crypt.encrypt_message(b"Hellow world"))
                 return self.connection
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")

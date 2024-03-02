@@ -21,7 +21,7 @@ class Server(threading.Thread):
         raw_msglen = sock.recv(4)
         if not raw_msglen:
             return None
-        msglen = struct.unpack('>I', raw_msglen)[0]
+        msglen = int(raw_msglen.decode())
         chunks = []
         bytes_received = 0
         while bytes_received < msglen:
@@ -43,7 +43,7 @@ class Server(threading.Thread):
         except Exception as e:
             pass
         msglen = len(message)
-        sock.sendall(struct.pack('>I', msglen))
+        sock.sendall(str(msglen).encode())
         offset = 0
         while offset < msglen:
             sent = sock.send(message[offset:offset+2048])
@@ -77,7 +77,14 @@ class Server(threading.Thread):
                     self.sync_crypt_key(client)
                     
                     print(f"Conexão com o cliente do address {address}")
-
+                    
+                    mes = self.receive_message(client)
+                    
+                    print(mes, self.crypt.sync_crypt.decrypt_message(mes))
+                    
+                    client.close()
+                    
+                    break
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:

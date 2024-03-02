@@ -1,14 +1,9 @@
-from Options.Ops import SyncCrypt_ops, Crypt_ops
-from Crypt.Crypt_main import Crypt
+from Client.thread.client import Client
+from Server.thread.server import Server
+from Options.Ops import Server_ops, Client_ops, Crypt_ops, SyncCrypt_ops, AsyncCrypt_ops
 
-texto = b"Nada a se fazer"
-print(texto)
+server = Server(Server_ops(encypt_configs=Crypt_ops(SyncCrypt_ops('fernet'), AsyncCrypt_ops("rsa"))))
+server.start()
 
-crypt = Crypt() 
-crypt.configure(Crypt_ops(sync_crypt_ops=SyncCrypt_ops("aes")))
-
-enc = crypt.sync_crypt.encrypt_message(texto)
-print(enc)
-
-dec = crypt.sync_crypt.decrypt_message(enc)
-print(dec)
+client = Client(Client_ops(encypt_configs=Crypt_ops(SyncCrypt_ops('fernet'), AsyncCrypt_ops("rsa"))))
+client.connect()
