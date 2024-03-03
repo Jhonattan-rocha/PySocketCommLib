@@ -6,6 +6,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from base64 import b64encode, b64decode
+from typing import Callable, Any
 import os
 import string
 import random
@@ -83,33 +84,8 @@ class AESCrypt(SyncCrypts):
         self.__key = key
         self.__padding = key_len * 8
 
-    async def async_encrypt_message(self, message: bytes) -> bytes:
+    async def async_execute(self, Call: Callable[..., Any], *args):
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, self.encrypt_message, message)
+            res = await loop.run_in_executor(executor, Call, *args)
         return res
-    
-    async def async_decrypt_message(self, encrypted_blocks: bytes) -> bytes:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, self.decrypt_message, encrypted_blocks)
-        return res
-    
-    async def async_generate_key(self, size: int) -> None:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, self.generate_key, size)
-        return res
-    
-    async def async_get_key(self) -> bytes:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, self.get_key)
-        return res
-    
-    async def async_set_key(self, key: bytes) -> None:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(None, self.set_key, key)
-        return res
-    

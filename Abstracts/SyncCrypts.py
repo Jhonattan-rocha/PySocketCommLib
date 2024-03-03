@@ -1,4 +1,5 @@
 from abc import ABC, abstractclassmethod
+from typing import Any, Callable
 from Options.Ops import SyncCrypt_ops
 import asyncio
 
@@ -23,17 +24,5 @@ class SyncCrypts(ABC):
         pass
     # --async
     @abstractclassmethod
-    async def async_encrypt_message(self, message: bytes) -> bytes:
-        pass
-    @abstractclassmethod
-    async def async_decrypt_message(self, encrypted_blocks: bytes) -> bytes:
-        pass
-    @abstractclassmethod
-    async def async_generate_key(self, size: int) -> None:
-        pass
-    @abstractclassmethod
-    async def async_get_key(self) -> bytes:
-        pass
-    @abstractclassmethod
-    async def async_set_key(self, key: bytes) -> None:
+    async def async_execute(self, Call: Callable[..., Any], *args):
         pass

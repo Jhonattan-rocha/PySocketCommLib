@@ -6,6 +6,7 @@ from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
 from Connection_type.Types import Types
+from Files.File import File
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:
@@ -20,7 +21,27 @@ class Server(threading.Thread):
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
-            
+    
+    def send_file(self, file: File, client: socket.socket) -> None:
+        lenght = file.size()
+        
+        self.send_message(client, re.sub(r"\D+", "", str(lenght)).encode())
+        
+        while True:
+            chunk = File.read()
+            if not chunk:
+                break
+            self.send_message(client, chunk)
+    
+    def recive_file(self, client: socket.socket) -> None:
+        lenght = self.receive_message(client)
+        chunks = 0
+        while chunks < lenght:
+            chunk = self.receive_message(client)
+            if not chunk:
+                break
+            chunks += chunk
+        
     def receive_message(self, client: socket.socket) -> bytes:
         raw_msglen = client.recv(1024)
         if not raw_msglen:

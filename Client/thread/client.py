@@ -1,6 +1,7 @@
 import re
 import socket
 import threading
+from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
 from Connection_type.Types import Types
@@ -17,6 +18,26 @@ class Client(threading.Thread):
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+    
+    def send_file(self, file: File, client: socket.socket) -> None:
+        lenght = file.size()
+        
+        self.send_message(client, re.sub(r"\D+", "", str(lenght)).encode())
+        
+        while True:
+            chunk = File.read()
+            if not chunk:
+                break
+            self.send_message(client, chunk)
+    
+    def recive_file(self, client: socket.socket) -> None:
+        lenght = self.receive_message(client)
+        chunks = 0
+        while chunks < lenght:
+            chunk = self.receive_message(client)
+            if not chunk:
+                break
+            chunks += chunk
     
     def receive_message(self, client: socket.socket):
         raw_msglen = client.recv(1024)
