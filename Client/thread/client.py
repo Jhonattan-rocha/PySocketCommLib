@@ -24,23 +24,30 @@ class Client(threading.Thread):
         
         self.send_message(client, re.sub(r"\D+", "", str(lenght)).encode())
         
-        while True:
-            chunk = File.read()
+        for chunk in file.read(2048):
             if not chunk:
                 break
             self.send_message(client, chunk)
     
-    def recive_file(self, client: socket.socket) -> None:
+    def recive_file(self, client: socket.socket) -> File:
         lenght = self.receive_message(client)
-        chunks = 0
-        while chunks < lenght:
+        lenght = int(re.sub(r"\D+", "", lenght.decode()))
+        
+        chunks = b""
+        bytes_rec = 0
+        while bytes_rec < lenght:
             chunk = self.receive_message(client)
             if not chunk:
                 break
             chunks += chunk
+            bytes_rec += len(chunk)
+        
+        file = File()
+        file.setFile(chunks)
+        return file
     
     def receive_message(self, client: socket.socket):
-        raw_msglen = client.recv(1024)
+        raw_msglen = client.recv(4)
         if not raw_msglen:
             return None
         msglen = int(re.sub(r"\D+", "", raw_msglen.decode()))
@@ -93,7 +100,9 @@ class Client(threading.Thread):
                 except Exception as ex:
                     pass
                 
-                self.send_message(self.connection, b"Hellow world")
+                file = File(r"C:\Users\Jhinattan Rocha\Pictures\nada.jpeg", 'rb')
+                file.open()
+                self.send_file(file, self.connection)
                 return self.connection
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")

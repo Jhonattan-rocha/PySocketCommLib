@@ -1,4 +1,6 @@
 import asyncio
+import re
+from Files.File import File
 
 from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
@@ -16,6 +18,33 @@ class Server:
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+
+    async def send_file(self, file: File, writer: asyncio.StreamWriter) -> None:
+        lenght = await file.async_executor(file.size)
+        
+        await self.send_message(re.sub(r"\D+", "", str(lenght)).encode(), writer)
+        
+        for chunk in await file.async_executor(file.read, 2048):
+            if not chunk:
+                break
+            await self.send_message(chunk, writer)
+    
+    async def recive_file(self, reader: asyncio.StreamReader) -> File:
+        lenght = await self.recive_message(reader)
+        lenght = int(re.sub(r"\D+", "", lenght.decode()))
+        
+        chunks = b""
+        bytes_rec = 0
+        while bytes_rec < lenght:
+            chunk = await self.recive_message(reader)
+            if not chunk:
+                break
+            chunks += chunk
+            bytes_rec += len(chunk)
+        
+        file = File()
+        await file.async_executor(file.setFile, chunks)
+        return file
 
     async def send_message(self, message: bytes, writer: asyncio.StreamWriter) -> None:
         try:
@@ -59,7 +88,9 @@ class Server:
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         print(f"Cliente conectado")
         await self.sync_crypt_key(reader, writer)
-        await self.send_message(b"Hellow Async World", writer)
+        file = File(r"C:\Users\Jhinattan Rocha\Pictures\nada.jpeg", "rb")
+        await file.async_executor(file.open)
+        await self.send_file(file, writer)
 
     async def start(self) -> None:
         # Criação do servidor

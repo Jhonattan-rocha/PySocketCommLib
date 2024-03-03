@@ -1,4 +1,6 @@
 import asyncio
+import re
+from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
 
@@ -14,6 +16,33 @@ class Client:
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+    
+    async def send_file(self, file: File) -> None:
+        lenght = await file.async_executor(file.size)
+        
+        await self.send_message(re.sub(r"\D+", "", str(lenght)).encode())
+        
+        for chunk in await file.async_executor(file.read, 2048):
+            if not chunk:
+                break
+            await self.send_message(chunk)
+    
+    async def recive_file(self) -> File:
+        lenght = await self.recive_message()
+        lenght = int(re.sub(r"\D+", "", lenght.decode()))
+        
+        chunks = b""
+        bytes_rec = 0
+        while bytes_rec < lenght:
+            chunk = await self.recive_message()
+            if not chunk:
+                break
+            chunks += chunk
+            bytes_rec += len(chunk)
+        
+        file = File()
+        await file.async_executor(file.setFile, chunks)
+        return file
 
     async def sync_crypt_key(self):
         key_to_send = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.public_key_to_bytes)
@@ -56,8 +85,9 @@ class Client:
                 await self.sync_crypt_key()
 
                 print(b"Conectado")
-                mes = await self.recive_message()
-                print(mes)
+                file = await self.recive_file()
+                await file.async_executor(file.set_full_path, "./nada.jpeg")
+                await file.async_executor(file.save)
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
         except Exception as e:

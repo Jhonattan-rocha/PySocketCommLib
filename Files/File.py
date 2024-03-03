@@ -2,23 +2,35 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import asyncio
 from typing import Callable, Any
+import io
 
 class File:
-    def __init__(self, path: str, mode: str) -> None:
+    def __init__(self, path: str="", mode: str="+ab", encoding: str="utf8") -> None:
         self.path = path
         self.mode = mode
         self.file = None
+        self.encoding = encoding
+        
+    def save(self):
+        if self.path and not os.path.exists(self.path):
+            with open(self.path, "wb") as file:
+                file.write(self.file.read())
 
+    def get_name_ext(self) -> str:
+        return os.path.splitext(self.path)
+    
+    def setFile(self, bytes: bytes):
+        self.file = io.BytesIO(bytes)
+        
     def open(self):
         try:
-            if self.file is None:
-                if os.path.exists(self.path) and os.path.isfile(self.path):
+            if os.path.exists(self.path) and os.path.isfile(self.path):
+                if 'b' in self.mode:
                     self.file = open(self.path, self.mode)
-                    return self.file
                 else:
-                    raise FileNotFoundError(f"Arquivo não encontrado: {self.path}")
+                    self.file = open(self.path, self.mode, encoding=self.encoding)
             else:
-                raise RuntimeError(f"O arquivo já está aberto: {self.path}")
+                raise FileNotFoundError(f"Arquivo não encontrado: {self.path}")
         except OSError as ose:
             raise OSError(f"Erro ao abrir o arquivo: {ose}")
 
@@ -59,6 +71,10 @@ class File:
         else:
             raise FileNotFoundError("O arquivo não existe.")
 
+    def set_full_path(self, path: str):
+        if not os.path.exists(path):
+            self.path = path
+    
     def get_full_path(self):
         return os.path.realpath(self.path)
 
@@ -67,3 +83,10 @@ class File:
         with ThreadPoolExecutor() as executor:
             res = await loop.run_in_executor(executor, Call, *args)
         return res
+
+if __name__ == "__main__":
+    file = File(r"C:\\Users\\Jhinattan Rocha\\Pictures\\nada.jpeg", "rb")
+    file.open()
+
+    print(file.size())
+    
