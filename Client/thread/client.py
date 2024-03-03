@@ -3,6 +3,7 @@ import socket
 import threading
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
+from Connection_type.Types import Types
 
 class Client(threading.Thread):
     def __init__(self, Options: Client_ops) -> None:
@@ -12,6 +13,7 @@ class Client(threading.Thread):
         self.BYTES = Options.bytes
         self.__running: bool = True
         self.connection = None
+        self.conn_type: Types|tuple = Options.conn_type
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
@@ -62,7 +64,7 @@ class Client(threading.Thread):
     def connect(self, ignore_err=False) -> socket.socket:
         try:
             if not self.connection:
-                self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.connection = socket.socket(*self.conn_type)
                 self.connection.connect((self.HOST, self.PORT))
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
@@ -76,6 +78,9 @@ class Client(threading.Thread):
                 raise RuntimeError("Conexão já extabelecida")
         except Exception as e:
             print(e)
+    
+    def run(self) -> None:
+        self.connect(False)
             
 if __name__ == "__main__":
     client = Client()

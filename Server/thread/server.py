@@ -5,6 +5,7 @@ import re
 from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
+from Connection_type.Types import Types
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:
@@ -12,6 +13,7 @@ class Server(threading.Thread):
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.BYTES: bytes = Options.bytes
+        self.conn_type: Types|tuple = Options.conn_type
         self.__clients: list[str, type[list[type[tuple], type[Client]]]] = []
         self.__running: bool = True
         self.crypt = None
@@ -67,7 +69,7 @@ class Server(threading.Thread):
         client.sendall(enc_key)
 
     def run(self) -> None:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        with socket.socket(*self.conn_type) as server:
 
             server.bind((self.HOST, self.PORT))
             server.listen()
