@@ -47,7 +47,7 @@ class FernetCrypt(SyncCrypts):
     def get_key(self) -> bytes:
         return self.__sync_key
 
-    async def async_execute(self, Call: Callable[..., Any], *args):
+    async def async_executor(self, Call: Callable[..., Any], *args):
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
             res = await loop.run_in_executor(executor, Call, *args)

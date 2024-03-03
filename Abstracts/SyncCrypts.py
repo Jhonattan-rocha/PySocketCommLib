@@ -24,5 +24,5 @@ class SyncCrypts(ABC):
         pass
     # --async
     @abstractclassmethod
-    async def async_execute(self, Call: Callable[..., Any], *args):
+    async def async_executor(self, Call: Callable[..., Any], *args):
         pass

@@ -84,7 +84,7 @@ class AESCrypt(SyncCrypts):
         self.__key = key
         self.__padding = key_len * 8
 
-    async def async_execute(self, Call: Callable[..., Any], *args):
+    async def async_executor(self, Call: Callable[..., Any], *args):
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
             res = await loop.run_in_executor(executor, Call, *args)

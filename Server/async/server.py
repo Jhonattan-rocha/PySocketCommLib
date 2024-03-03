@@ -19,7 +19,7 @@ class Server:
 
     async def send_message(self, message: bytes, writer: asyncio.StreamWriter) -> None:
         try:
-            message = await self.crypt.sync_crypt.async_execute(self.crypt.sync_crypt.encrypt_message, message)
+            message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
             pass
         
@@ -36,7 +36,7 @@ class Server:
         res = await reader.read(length)
         
         try:
-            return await self.crypt.sync_crypt.async_execute(self.crypt.sync_crypt.decrypt_message, res)
+            return await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
         except Exception as e:
             return res
         
@@ -49,10 +49,10 @@ class Server:
     
     async def sync_crypt_key(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         client_public_key = await reader.read(2048)        
-        client_public_key_obj = await self.crypt.async_crypt.async_execute(self.crypt.async_crypt.load_public_key, client_public_key)
+        client_public_key_obj = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.load_public_key, client_public_key)
         
-        sync_key = await self.crypt.sync_crypt.async_execute(self.crypt.sync_crypt.get_key)
-        enc_key = await self.crypt.async_crypt.async_execute(self.crypt.async_crypt.encrypt_with_public_key, sync_key, client_public_key_obj)
+        sync_key = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.get_key)
+        enc_key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.encrypt_with_public_key, sync_key, client_public_key_obj)
         writer.write(enc_key)
         await writer.drain()
         

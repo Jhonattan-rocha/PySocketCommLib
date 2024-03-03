@@ -62,7 +62,7 @@ class File:
     def get_full_path(self):
         return os.path.realpath(self.path)
 
-    async def async_execute(self, Call: Callable[..., Any], *args):
+    async def async_executor(self, Call: Callable[..., Any], *args):
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
             res = await loop.run_in_executor(executor, Call, *args)

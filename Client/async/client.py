@@ -16,20 +16,20 @@ class Client:
             self.crypt.configure(Options.encrypt_configs)
 
     async def sync_crypt_key(self):
-        key_to_send = await self.crypt.async_crypt.async_execute(self.crypt.async_crypt.public_key_to_bytes)
+        key_to_send = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.public_key_to_bytes)
         self.writer.write(key_to_send)
         await self.writer.drain()
 
         enc_key = await self.reader.read(2048)
-        key = await self.crypt.async_crypt.async_execute(self.crypt.async_crypt.decrypt_with_private_key, enc_key)
-        await self.crypt.sync_crypt.async_execute(self.crypt.sync_crypt.set_key, key)
+        key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.decrypt_with_private_key, enc_key)
+        await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.set_key, key)
     
     async def is_running(self) -> bool:
         return self.__running
     
     async def send_message(self, message):
         try:
-            message = await self.crypt.sync_crypt.async_execute(self.crypt.sync_crypt.encrypt_message, message)
+            message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
             pass
         
@@ -45,7 +45,7 @@ class Client:
         length = int.from_bytes(length_bytes, byteorder='big')
         res = await self.reader.read(length)
         try:
-            return await self.crypt.sync_crypt.async_execute(self.crypt.sync_crypt.decrypt_message, res)
+            return await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
         except Exception as e:
             return res
     
