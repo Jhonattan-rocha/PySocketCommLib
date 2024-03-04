@@ -17,6 +17,17 @@ class Client:
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+    
+    async def send_file(self, file: File, bytes_block_length: int=2048) -> None:
+        await file.async_executor(file.compress_file)
+        await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]), bytes_block_length)
+    
+    async def recive_file(self, bytes_block_length: int=2048) -> File:
+        file = File()
+        bytes_recv = await self.recive_message(bytes_block_length)
+        await file.async_executor(file.setBytes, bytes_recv)
+        await file.async_executor(file.decompress_bytes)
+        return file
 
     async def sync_crypt_key(self):
         key_to_send = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.public_key_to_bytes)
@@ -76,8 +87,8 @@ class Client:
                     pass
                 
                 print(b"Conectado")
-                file = open(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb").read()
-                await self.send_message(file, 4*1024*1024)
+                file = File(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb")
+                await self.send_file(file, 4*1024*1024)
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
         except Exception as e:

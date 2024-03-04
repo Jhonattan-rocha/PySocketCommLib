@@ -3,6 +3,7 @@ import os
 import asyncio
 from typing import Callable, Any
 import io
+import gzip
 
 class File:
     def __init__(self, path: str="", mode: str="+ab", encoding: str="utf8") -> None:
@@ -10,8 +11,16 @@ class File:
         self.mode = mode
         self.file = None
         self.encoding = encoding
+    
+    def compress_file(self):
+        bytes_c = gzip.compress(self.file.read())
+        self.file = io.BytesIO(bytes_c)
+
+    def decompress_bytes(self):
+        bytes_d = gzip.decompress(self.file.read())
+        self.file = io.BytesIO(bytes_d)
         
-    def save(self, override: bool):
+    def save(self, override: bool=False):
         if self.path and (not os.path.exists(self.path) or override):
             with open(self.path, "wb") as file:
                 file.write(self.file.read())
@@ -19,7 +28,7 @@ class File:
     def get_name_ext(self) -> str:
         return os.path.splitext(self.path)
     
-    def setFile(self, bytes: bytes):
+    def setBytes(self, bytes: bytes):
         self.file = io.BytesIO(bytes)
         
     def open(self):
@@ -34,7 +43,7 @@ class File:
         except OSError as ose:
             raise OSError(f"Erro ao abrir o arquivo: {ose}")
 
-    def read(self, chunk_size: int = 4 * 1024):
+    def read(self, chunk_size: int = 4 * 1024 * 1024):
         try:
             while True:
                 chunk = self.file.read(chunk_size)

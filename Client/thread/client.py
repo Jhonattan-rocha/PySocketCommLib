@@ -20,6 +20,17 @@ class Client(threading.Thread):
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
     
+    def send_file(self, client: socket.socket, file: File, bytes_block_length: int=2048) -> None:
+        file.compress_file()
+        self.send_message(client, b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
+    
+    def recive_file(self, client: socket.socket, bytes_block_length: int=2048) -> File:
+        file = File()
+        bytes_recv = self.receive_message(client, bytes_block_length)
+        file.setBytes(bytes_recv)
+        file.decompress_bytes()
+        return file
+    
     def receive_message(self, client: socket.socket, recv_bytes: int=2048) -> bytes:
         raw_msglen = client.recv(8)
         if not raw_msglen:
@@ -74,9 +85,9 @@ class Client(threading.Thread):
                 except Exception as ex:
                     pass
                 
-                file = open(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb").read()
-                self.send_message(self.connection, file, 4*1024*1024)
-                
+                file = File(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb")
+                file.open()
+                self.send_file(self.connection, file, 4*1024*1024)               
                 return self.connection
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")

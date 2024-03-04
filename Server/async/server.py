@@ -19,6 +19,17 @@ class Server:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
 
+    async def send_file(self, writer: asyncio.StreamWriter, file: File, bytes_block_length: int=2048) -> None:
+        await file.async_executor(file.compress_file)
+        await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]), bytes_block_length, writer)
+    
+    async def recive_file(self, reader: asyncio.StreamReader, bytes_block_length: int=2048) -> File:
+        file = File()
+        bytes_recv = await self.recive_message(bytes_block_length, reader)
+        await file.async_executor(file.setBytes, bytes_recv)
+        await file.async_executor(file.decompress_bytes)
+        return file
+
     async def send_message(self, message: bytes, sent_bytes: int=2048, writer: asyncio.StreamWriter=None):
         try:
             message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
@@ -76,12 +87,9 @@ class Server:
                 await self.sync_crypt_key(reader, writer)
         except Exception as e:
             pass
-        mes = await self.recive_message(4*1024*1024, reader)
-        file = File()
+        file = await self.recive_file(reader, 4*1024*1024)
         await file.async_executor(file.set_full_path, "./teste.mp4")
-        await file.async_executor(file.setFile, mes)
         await file.async_executor(file.save)
-        print(len(mes))
 
     async def start(self) -> None:
         # Criação do servidor
