@@ -20,26 +20,26 @@ class Client(threading.Thread):
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
     
-    def send_file(self, client: socket.socket, file: File, bytes_block_length: int=2048) -> None:
+    def send_file(self, file: File, bytes_block_length: int=2048) -> None:
         file.compress_file()
-        self.send_message(client, b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
+        self.send_message(b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
     
-    def recive_file(self, client: socket.socket, bytes_block_length: int=2048) -> File:
+    def recive_file(self, bytes_block_length: int=2048) -> File:
         file = File()
-        bytes_recv = self.receive_message(client, bytes_block_length)
+        bytes_recv = self.receive_message(bytes_block_length)
         file.setBytes(bytes_recv)
         file.decompress_bytes()
         return file
     
-    def receive_message(self, client: socket.socket, recv_bytes: int=2048) -> bytes:
-        raw_msglen = client.recv(8)
+    def receive_message(self, recv_bytes: int=2048) -> bytes:
+        raw_msglen = self.connection.recv(8)
         if not raw_msglen:
             return None
         msglen = struct.unpack("!Q", raw_msglen)[0]
         chunks = []
         bytes_received = 0
         while bytes_received < msglen:
-            chunk = client.recv(recv_bytes)
+            chunk = self.connection.recv(recv_bytes)
             if not chunk:
                 raise RuntimeError('Conexão interrompida')
             chunks.append(chunk)
@@ -51,30 +51,30 @@ class Client(threading.Thread):
         except Exception as e:
             return message
 
-    def send_message(self, client: socket.socket, message: bytes, sent_bytes: int = 2048) -> None:
+    def send_message(self, message: bytes, sent_bytes: int = 2048) -> None:
         try:
             message = self.crypt.sync_crypt.encrypt_message(message)
         except Exception as e:
             pass
         msglen = len(message)
-        client.sendall(struct.pack("!Q", msglen))
+        self.connection.sendall(struct.pack("!Q", msglen))
         offset = 0
         while offset < msglen:
-            sent = client.send(message[offset:offset + sent_bytes])
+            sent = self.connection.send(message[offset:offset + sent_bytes])
             if not sent:
                 raise RuntimeError('Conexão interrompida')
             offset += sent
     
-    def sync_crypt_key(self, client: socket.socket):
-        client.sendall(self.crypt.async_crypt.public_key_to_bytes())
-        enc_key = client.recv(2048)
+    def sync_crypt_key(self):
+        self.connection.sendall(self.crypt.async_crypt.public_key_to_bytes())
+        enc_key = self.connection.recv(2048)
         key = self.crypt.async_crypt.decrypt_with_private_key(enc_key)
         self.crypt.sync_crypt.set_key(key)
     
     def is_running(self) -> bool:
         return self.__running
     
-    def connect(self, ignore_err=False) -> socket.socket:
+    def connect(self, ignore_err=False) -> None:
         try:
             if not self.connection:
                 self.connection = socket.socket(*self.conn_type)
@@ -83,12 +83,7 @@ class Client(threading.Thread):
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
                         self.sync_crypt_key(self.connection)
                 except Exception as ex:
-                    pass
-                
-                file = File(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb")
-                file.open()
-                self.send_file(self.connection, file, 4*1024*1024)               
-                return self.connection
+                    pass           
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")
         except Exception as e:

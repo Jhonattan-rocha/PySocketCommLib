@@ -16,7 +16,7 @@ class Server(threading.Thread):
         self.PORT: int = Options.port
         self.BYTES: bytes = Options.bytes
         self.conn_type: Types|tuple = Options.conn_type
-        self.__clients: list[str, type[list[type[tuple], type[Client]]]] = []
+        self.__clients: list[list[type[Client], tuple]] = []
         self.__running: bool = True
         self.crypt = None
         if Options.encrypt_configs:
@@ -98,12 +98,7 @@ class Server(threading.Thread):
                     except Exception as ex:
                         pass
                     
-                    print(f"Conexão com o cliente do address {address}")
-                    
-                    file = self.recive_file(client, 4*1024*1024)
-                    file.set_full_path("./teste.mp4")
-                    file.save()
-                    client.close()
+                    self.save_clients([client, address])
                     
                     break
                 except KeyboardInterrupt:
