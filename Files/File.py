@@ -11,8 +11,8 @@ class File:
         self.file = None
         self.encoding = encoding
         
-    def save(self):
-        if self.path and not os.path.exists(self.path):
+    def save(self, override: bool):
+        if self.path and (not os.path.exists(self.path) or override):
             with open(self.path, "wb") as file:
                 file.write(self.file.read())
 
