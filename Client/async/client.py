@@ -1,5 +1,6 @@
 import asyncio
 import re
+import struct
 from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
@@ -16,33 +17,6 @@ class Client:
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
-    
-    async def send_file(self, file: File) -> None:
-        lenght = await file.async_executor(file.size)
-        
-        await self.send_message(re.sub(r"\D+", "", str(lenght)).encode())
-        
-        for chunk in await file.async_executor(file.read, 2048):
-            if not chunk:
-                break
-            await self.send_message(chunk)
-    
-    async def recive_file(self) -> File:
-        lenght = await self.recive_message()
-        lenght = int(re.sub(r"\D+", "", lenght.decode()))
-        
-        chunks = b""
-        bytes_rec = 0
-        while bytes_rec < lenght:
-            chunk = await self.recive_message()
-            if not chunk:
-                break
-            chunks += chunk
-            bytes_rec += len(chunk)
-        
-        file = File()
-        await file.async_executor(file.setFile, chunks)
-        return file
 
     async def sync_crypt_key(self):
         key_to_send = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.public_key_to_bytes)
@@ -56,23 +30,35 @@ class Client:
     async def is_running(self) -> bool:
         return self.__running
     
-    async def send_message(self, message):
+    async def send_message(self, message: bytes, sent_bytes: int=2048):
         try:
             message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
             pass
         
         lng = len(message)
-        self.writer.write(lng.to_bytes(4, byteorder='big'))
+        self.writer.write(struct.pack("!Q", lng))
         await self.writer.drain()
         
-        self.writer.write(message)
-        await self.writer.drain()
+        offset = 0
+        while offset < lng:
+            self.writer.write(message[offset:offset + sent_bytes])
+            await self.writer.drain()
+            offset += sent_bytes
 
-    async def recive_message(self):
-        length_bytes = await self.reader.read(4)
-        length = int.from_bytes(length_bytes, byteorder='big')
-        res = await self.reader.read(length)
+    async def recive_message(self, recv_bytes: int=2048):
+        length = struct.unpack("!Q", await self.reader.read(8))[0]
+
+        chunks = []
+        bytes_received = 0
+        while bytes_received < length:
+            chunk = await self.reader.read(recv_bytes)
+            if not chunk:
+                raise RuntimeError('Conexão interrompida')
+            chunks.append(chunk)
+            bytes_received += len(chunk)
+
+        res = b"".join(chunks)
         try:
             return await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
         except Exception as e:
@@ -82,12 +68,16 @@ class Client:
         try:
             if not self.reader and not self.writer:
                 self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT)
-                await self.sync_crypt_key()
-
+                
+                try:
+                    if self.crypt.async_crypt and self.crypt.sync_crypt:
+                        await self.sync_crypt_key()
+                except Exception as e:
+                    pass
+                
                 print(b"Conectado")
-                file = await self.recive_file()
-                await file.async_executor(file.set_full_path, "./nada.jpeg")
-                await file.async_executor(file.save)
+                file = open(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb").read()
+                await self.send_message(file, 4*1024*1024)
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
         except Exception as e:
