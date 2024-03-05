@@ -1,6 +1,7 @@
 import asyncio
 import re
 import struct
+from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
@@ -11,6 +12,7 @@ class Client:
         self.PORT = Options.port
         self.BYTES = Options.bytes
         self.loop = asyncio.get_event_loop()
+        self.events = Events()
         self.__running: bool = True
         self.reader = None
         self.writer = None
@@ -71,8 +73,12 @@ class Client:
 
         res = b"".join(chunks)
         try:
-            return await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
+            dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
+            if await self.events.async_executor(self.events.size) > 0:
+                await self.events.async_executor(self.events.scam, dec)
+            return dec
         except Exception as e:
+            print(e)
             return res
     
     async def connect(self, ignore_err=False) -> None:
@@ -86,9 +92,8 @@ class Client:
                 except Exception as e:
                     pass
                 
-                print(b"Conectado")
-                file = File(r"C:\Users\Jhinattan Rocha\Documents\Documentos meus\VID_20211102_150812642.mp4", "rb")
-                await self.send_file(file, 4*1024*1024)
+                mes = await self.recive_message(4*1024*1024)
+                print(mes, 2)
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
         except Exception as e:

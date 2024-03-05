@@ -1,6 +1,7 @@
 import asyncio
 import re
 import struct
+from Events.Events import Events
 from Files.File import File
 from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
@@ -12,6 +13,7 @@ class Server:
         self.PORT: int = Options.port
         self.BYTES: bytes = Options.bytes
         self.loop = asyncio.get_running_loop()
+        self.events = Events()
         self.__clients: list[str, type[list[type[tuple], type[Client]]]] = []
         self.__running: bool = True
         self.crypt = None
@@ -60,8 +62,12 @@ class Server:
 
         res = b"".join(chunks)
         try:
-            return await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
+            dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
+            if await self.events.async_executor(self.events.size) > 0:
+                await asyncio.create_task(self.events.async_scam(dec))
+            return dec
         except Exception as e:
+            print(e)
             return res
         
     async def is_running(self) -> bool:
@@ -87,10 +93,9 @@ class Server:
                 await self.sync_crypt_key(reader, writer)
         except Exception as e:
             pass
-        file = await self.recive_file(reader, 4*1024*1024)
-        await file.async_executor(file.set_full_path, "./teste.mp4")
-        await file.async_executor(file.save)
-
+        
+        await self.send_message(b"!{message}:{Mensagem enviada do servidor para o cliente}!", 4*1024*1024, writer)
+        
     async def start(self) -> None:
         # Criação do servidor
         server = await asyncio.start_server(

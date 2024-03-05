@@ -3,6 +3,7 @@ import struct
 import threading
 import sys
 import re
+from Events.Events import Events
 from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
@@ -16,6 +17,7 @@ class Server(threading.Thread):
         self.PORT: int = Options.port
         self.BYTES: bytes = Options.bytes
         self.conn_type: Types|tuple = Options.conn_type
+        self.events = Events()
         self.__clients: list[list[type[Client], tuple]] = []
         self.__running: bool = True
         self.crypt = None
@@ -50,7 +52,10 @@ class Server(threading.Thread):
 
         message = b"".join(chunks)
         try:
-            return self.crypt.sync_crypt.decrypt_message(message)
+            dec_message = self.crypt.sync_crypt.decrypt_message(message)
+            if self.events.size() > 0:
+                self.events.scam(dec_message)
+            return dec_message
         except Exception as e:
             return message
 
@@ -71,7 +76,7 @@ class Server(threading.Thread):
     def is_running(self) -> bool:
         return self.__running
 
-    def save_clients(self, client) -> None:
+    def save_clients(self, client: list[list[type[Client], tuple]]) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
     
@@ -100,6 +105,9 @@ class Server(threading.Thread):
                     
                     self.save_clients([client, address])
                     
+                    self.send_message(client, b"!{message}:{Mensagem enviada do servidor}!")
+                    
+                    client.close()
                     break
                 except KeyboardInterrupt:
                     sys.exit(1)

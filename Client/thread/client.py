@@ -2,6 +2,7 @@ import re
 import socket
 import struct
 import threading
+from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
@@ -13,6 +14,7 @@ class Client(threading.Thread):
         self.HOST = Options.host
         self.PORT = Options.port
         self.BYTES = Options.bytes
+        self.events = Events()
         self.__running: bool = True
         self.connection = None
         self.conn_type: Types|tuple = Options.conn_type
@@ -47,8 +49,12 @@ class Client(threading.Thread):
 
         message = b"".join(chunks)
         try:
-            return self.crypt.sync_crypt.decrypt_message(message)
+            dec_message = self.crypt.sync_crypt.decrypt_message(message)
+            if self.events.size() > 0:
+                self.events.scam(dec_message)
+            return dec_message
         except Exception as e:
+            print(e)
             return message
 
     def send_message(self, message: bytes, sent_bytes: int = 2048) -> None:
@@ -81,7 +87,13 @@ class Client(threading.Thread):
                 self.connection.connect((self.HOST, self.PORT))
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
-                        self.sync_crypt_key(self.connection)
+                        self.sync_crypt_key()
+                    
+                    mes = self.receive_message()
+                    
+                    print(mes, 2)
+                    
+                    return
                 except Exception as ex:
                     pass           
             if not ignore_err:
