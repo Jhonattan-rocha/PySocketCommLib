@@ -64,7 +64,7 @@ class Server:
         try:
             dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
             if await self.events.async_executor(self.events.size) > 0:
-                await asyncio.create_task(self.events.async_scam(dec))
+                await self.events.async_executor(self.events.scam, dec)
             return dec
         except Exception as e:
             print(e)
