@@ -5,6 +5,7 @@ from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
+from TaskManager.AsyncTaskManager import AsyncTaskManager
 
 class Client:
     def __init__(self, Options: Client_ops) -> None:
@@ -13,6 +14,7 @@ class Client:
         self.BYTES = Options.bytes
         self.loop = asyncio.get_event_loop()
         self.events = Events()
+        self.taskManager = AsyncTaskManager()
         self.__running: bool = True
         self.reader = None
         self.writer = None

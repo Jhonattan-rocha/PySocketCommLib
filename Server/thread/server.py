@@ -9,6 +9,7 @@ from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
 from Connection_type.Types import Types
 from Files.File import File
+from TaskManager.TaskManager import TaskManager
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:
@@ -18,6 +19,7 @@ class Server(threading.Thread):
         self.BYTES: bytes = Options.bytes
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
+        self.taskManager = TaskManager()
         self.__clients: list[list[type[Client], tuple]] = []
         self.__running: bool = True
         self.crypt = None

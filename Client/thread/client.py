@@ -7,6 +7,7 @@ from Files.File import File
 from Options.Ops import Client_ops
 from Crypt.Crypt_main import Crypt
 from Connection_type.Types import Types
+from TaskManager.TaskManager import TaskManager
 
 class Client(threading.Thread):
     def __init__(self, Options: Client_ops) -> None:
@@ -15,6 +16,7 @@ class Client(threading.Thread):
         self.PORT = Options.port
         self.BYTES = Options.bytes
         self.events = Events()
+        self.taskManager = TaskManager()
         self.__running: bool = True
         self.connection = None
         self.conn_type: Types|tuple = Options.conn_type

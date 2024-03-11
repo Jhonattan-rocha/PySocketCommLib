@@ -7,7 +7,7 @@ import asyncio
 def teste(x):
     print(f"{x}, esse print veio do evento")
     time.sleep(5)
-
+    print(f"{x}, esse print veio do evento depois de 5 segundos")
 async def main():
     try:
         client = Client(Client_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa"))))

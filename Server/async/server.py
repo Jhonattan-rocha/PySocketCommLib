@@ -6,6 +6,7 @@ from Files.File import File
 from Options.Ops import Server_ops
 from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
+from TaskManager.AsyncTaskManager import AsyncTaskManager
 
 class Server:
     def __init__(self, Options: Server_ops) -> None:
@@ -14,7 +15,8 @@ class Server:
         self.BYTES: bytes = Options.bytes
         self.loop = asyncio.get_running_loop()
         self.events = Events()
-        self.__clients: list[str, type[list[type[tuple], type[Client]]]] = []
+        self.taskManager = AsyncTaskManager()
+        self.__clients: list[list[type[Client], tuple]] = []
         self.__running: bool = True
         self.crypt = None
         if Options.encrypt_configs:
