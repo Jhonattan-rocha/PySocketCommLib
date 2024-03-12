@@ -1,4 +1,4 @@
-from TaskManager.AsyncTask import AsyncTask 
+from Abstracts.AsyncTask import AsyncTask 
 import asyncio
 
 class AsyncTaskManager:
@@ -10,18 +10,15 @@ class AsyncTaskManager:
         self.__tasks.append(task)
 
     async def run_all_tasks(self) -> None:
-        aux = []
-        for task in self.__tasks:
-            aux.append(asyncio.create_task(task.start()))
-        
-        self.results = await asyncio.gather(aux)
+        futures = [asyncio.create_task(task.start()) for task in self.__tasks]
+        for completed_task in asyncio.as_completed(futures):
+            result = await completed_task
+            self.results.append(result)
 
     async def stop_all_tasks(self) -> None:
-        aux = []
-        for task in self.__tasks:
-            aux.append(asyncio.create_task(task.stop()))
-        
-        await asyncio.gather(aux)
+        futures = [asyncio.create_task(task.stop()) for task in self.__tasks]
+        for completed_task in asyncio.as_completed(futures):
+            await completed_task
     
     async def get_task(self, uuid: str) -> AsyncTask | None:
         for task in self.__tasks:
