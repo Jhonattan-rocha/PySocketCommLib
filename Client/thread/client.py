@@ -82,6 +82,9 @@ class Client(threading.Thread):
     def is_running(self) -> bool:
         return self.__running
     
+    def disconnect(self) -> None:
+        self.connection.close()
+    
     def connect(self, ignore_err=False) -> None:
         try:
             if not self.connection:

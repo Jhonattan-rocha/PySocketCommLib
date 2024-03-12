@@ -1,6 +1,7 @@
 import asyncio
 import re
 import struct
+import sys
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Server_ops
@@ -16,7 +17,7 @@ class Server:
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
-        self.__clients: list[list[type[Client], tuple]] = []
+        self.__clients: list[tuple] = []
         self.__running: bool = True
         self.crypt = None
         if Options.encrypt_configs:
@@ -75,7 +76,7 @@ class Server:
     async def is_running(self) -> bool:
         return self.__running
 
-    async def save_clients(self, client) -> None:
+    async def save_clients(self, client: tuple) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
     
@@ -93,10 +94,15 @@ class Server:
         try:
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)
+            self.save_clients((reader, writer))
         except Exception as e:
-            pass
-        
-        await self.send_message(b"!{message}:{Mensagem enviada do servidor para o cliente}!", 4*1024*1024, writer)
+            pass        
+    
+    async def break_server(self):
+        for client in self.__clients:
+            client[1].close()
+            await client[1].wait_closed()
+        sys.exit(0)
         
     async def start(self) -> None:
         # Criação do servidor

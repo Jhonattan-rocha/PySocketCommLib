@@ -20,7 +20,7 @@ class Server(threading.Thread):
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
         self.taskManager = TaskManager()
-        self.__clients: list[list[type[Client], tuple]] = []
+        self.__clients: list[tuple] = []
         self.__running: bool = True
         self.crypt = None
         if Options.encrypt_configs:
@@ -78,7 +78,7 @@ class Server(threading.Thread):
     def is_running(self) -> bool:
         return self.__running
 
-    def save_clients(self, client: list[list[type[Client], tuple]]) -> None:
+    def save_clients(self, client: tuple) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
     
@@ -88,6 +88,12 @@ class Server(threading.Thread):
         enc_key = self.crypt.async_crypt.encrypt_with_public_key(self.crypt.sync_crypt.get_key(), client_public_key_obj)
         client.sendall(enc_key)
 
+    def break_server(self):
+        for client in self.__clients:
+            client[0].close()
+        self.__running = False
+        sys.exit(0)
+    
     def run(self) -> None:
         with socket.socket(*self.conn_type) as server:
 
@@ -105,12 +111,7 @@ class Server(threading.Thread):
                     except Exception as ex:
                         pass
                     
-                    self.save_clients([client, address])
-                    
-                    self.send_message(client, b"!{message}:{Mensagem enviada do servidor}!")
-                    
-                    client.close()
-                    break
+                    self.save_clients((client, *address))
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:

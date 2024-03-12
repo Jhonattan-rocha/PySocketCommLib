@@ -83,6 +83,10 @@ class Client:
             print(e)
             return res
     
+    async def disconnect(self):
+        self.writer.close()
+        await self.writer.wait_closed()
+    
     async def connect(self, ignore_err=False) -> None:
         try:
             if not self.reader and not self.writer:
