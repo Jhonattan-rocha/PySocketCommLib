@@ -4,7 +4,7 @@ import threading
 import sys
 import re
 from Events.Events import Events
-from Options.Ops import Server_ops
+from Options.Ops import Server_ops, Client_ops, Crypt_ops
 from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
 from Connection_type.Types import Types
@@ -19,9 +19,9 @@ class Server(threading.Thread):
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
         self.taskManager = TaskManager()
-        self.__clients: list[tuple] = []
+        self.__clients: list[Client] = []
         self.__running: bool = True
-        self.crypt = None
+        self.crypt: Crypt = None
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
@@ -59,6 +59,13 @@ class Server(threading.Thread):
             return dec_message
         except Exception as e:
             return message
+    
+    def send_message_all_clients(self, message: bytes, sent_bytes: int=2048):
+        try:
+            for client in self.__clients:
+                self.send_message(client.connection, message, sent_bytes)
+        except Exception as e:
+            print(e)
 
     def send_message(self, client: socket.socket, message: bytes, sent_bytes: int = 2048) -> None:
         try:
@@ -77,7 +84,7 @@ class Server(threading.Thread):
     def is_running(self) -> bool:
         return self.__running
 
-    def save_clients(self, client: tuple) -> None:
+    def save_clients(self, client: Client) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
     
@@ -110,7 +117,9 @@ class Server(threading.Thread):
                     except Exception as ex:
                         pass
                     
-                    self.save_clients((client, *address))
+                    cliente = Client(Client_ops(host=self.HOST, port=self.PORT, encrypt_configs=self.crypt.crypt_options, conn_type=self.conn_type))
+                    cliente.connection = client
+                    self.save_clients(cliente)
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:

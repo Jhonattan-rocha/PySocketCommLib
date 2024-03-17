@@ -1,6 +1,7 @@
 import asyncio
 import re
 import struct
+import uuid
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops
@@ -11,12 +12,14 @@ class Client:
     def __init__(self, Options: Client_ops) -> None:
         self.HOST = Options.host
         self.PORT = Options.port
+        self.uuid = uuid.uuid4()
         self.loop = asyncio.get_event_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
         self.__running: bool = True
         self.reader = None
         self.writer = None
+        self.crypt: Crypt = None
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
@@ -85,6 +88,7 @@ class Client:
     async def disconnect(self):
         self.writer.close()
         await self.writer.wait_closed()
+        self.__running = False
     
     async def connect(self, ignore_err=False) -> None:
         try:
@@ -96,9 +100,12 @@ class Client:
                         await self.sync_crypt_key()
                 except Exception as e:
                     pass
+
+                self.__running = True
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
         except Exception as e:
+            self.__running = False
             print(e)
 
     async def start(self) -> None:

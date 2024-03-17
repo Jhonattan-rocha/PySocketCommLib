@@ -4,9 +4,9 @@ import struct
 import sys
 from Events.Events import Events
 from Files.File import File
-from Options.Ops import Server_ops
+from Options.Ops import Client_ops, Server_ops
 from Crypt.Crypt_main import Crypt
-from Client.Thread.Client import Client
+from Client.Async.Client import Client
 from TaskManager.AsyncTaskManager import AsyncTaskManager
 
 class Server:
@@ -16,9 +16,9 @@ class Server:
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
-        self.__clients: list[tuple] = []
+        self.__clients: list[Client] = []
         self.__running: bool = True
-        self.crypt = None
+        self.crypt: Crypt = None
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
@@ -33,6 +33,10 @@ class Server:
         await file.async_executor(file.setBytes, bytes_recv)
         await file.async_executor(file.decompress_bytes)
         return file
+
+    async def send_message_all_clients(self, message: bytes, sent_bytes: int=2048):
+        for client in self.__clients:
+            await self.send_message(message, sent_bytes, client.writer)
 
     async def send_message(self, message: bytes, sent_bytes: int=2048, writer: asyncio.StreamWriter=None):
         try:
@@ -75,7 +79,7 @@ class Server:
     async def is_running(self) -> bool:
         return self.__running
 
-    async def save_clients(self, client: tuple) -> None:
+    async def save_clients(self, client: Client) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
     
@@ -93,26 +97,36 @@ class Server:
         try:
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)
-            self.save_clients((reader, writer))
+            
+            client = Client(Client_ops(host=self.HOST, port=self.PORT, encrypt_configs=self.crypt.crypt_options, conn_type=self.conn_type))
+            client.reader = reader
+            client.writer = writer
+            self.save_clients(client)
         except Exception as e:
-            pass        
+            pass   
     
     async def break_server(self):
         for client in self.__clients:
             client[1].close()
             await client[1].wait_closed()
+        self.__running = False
         sys.exit(0)
         
     async def start(self) -> None:
-        # Criação do servidor
-        server = await asyncio.start_server(
-            self.run, self.HOST, self.PORT)
+        try:
+            # Criação do servidor
+            server = await asyncio.start_server(
+                self.run, self.HOST, self.PORT)
 
-        addr = server.sockets[0].getsockname()
-        print(f'Server rodando no endereço:{addr}')
+            addr = server.sockets[0].getsockname()
+            print(f'Server rodando no endereço:{addr}')
 
-        async with server:
-            await server.serve_forever()
+            self.__running = True
+            async with server:
+                await server.serve_forever()
+        except Exception as e:
+            self.__running = False
+            print(e)
     
 if __name__ == '__main__':
     server = Server(Options=Server_ops())

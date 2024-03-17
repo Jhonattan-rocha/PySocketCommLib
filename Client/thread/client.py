@@ -2,6 +2,7 @@ import re
 import socket
 import struct
 import threading
+import uuid
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops
@@ -14,11 +15,13 @@ class Client(threading.Thread):
         threading.Thread.__init__(self)
         self.HOST = Options.host
         self.PORT = Options.port
+        self.uuid = uuid.uuid4()
         self.events = Events()
         self.taskManager = TaskManager()
         self.__running: bool = True
         self.connection = None
         self.conn_type: Types|tuple = Options.conn_type
+        self.crypt: Crypt = None
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
@@ -83,6 +86,7 @@ class Client(threading.Thread):
     
     def disconnect(self) -> None:
         self.connection.close()
+        self.__running = False
     
     def connect(self, ignore_err=False) -> None:
         try:
@@ -94,14 +98,14 @@ class Client(threading.Thread):
                         self.sync_crypt_key()
                 except Exception as ex:
                     pass
+                
+                self.__running = True
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")
         except Exception as e:
+            self.__running = False
             print(e)
     
-    def run(self) -> None:
-        self.connect(False)
-            
 if __name__ == "__main__":
     client = Client()
-    client.run()
+    client.connect(False)
