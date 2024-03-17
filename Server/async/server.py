@@ -13,7 +13,6 @@ class Server:
     def __init__(self, Options: Server_ops) -> None:
         self.HOST: str = Options.host
         self.PORT: int = Options.port
-        self.BYTES: bytes = Options.bytes
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()

@@ -11,7 +11,6 @@ class Client:
     def __init__(self, Options: Client_ops) -> None:
         self.HOST = Options.host
         self.PORT = Options.port
-        self.BYTES = Options.bytes
         self.loop = asyncio.get_event_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
@@ -97,9 +96,6 @@ class Client:
                         await self.sync_crypt_key()
                 except Exception as e:
                     pass
-                
-                mes = await self.recive_message(4*1024*1024)
-                print(mes, 2)
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
         except Exception as e:

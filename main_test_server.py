@@ -7,8 +7,8 @@ async def main():
     try:
         server = Server(Server_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa"))))
         server_task = server.start()
-        
-        await server_task
+                
+        await server_task        
     except Exception as e:
         print(f"Erro na execução: {e}")
 

@@ -11,7 +11,6 @@ def teste(x):
 async def main():
     try:
         client = Client(Client_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa"))))
-        client.events.on("message", lambda x: teste(x))
         client_task = client.start()
 
         await client_task

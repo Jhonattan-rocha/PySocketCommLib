@@ -9,10 +9,10 @@ class Events:
     def __init__(self) -> None:
         self.__events = {}
                 
-    # {flag}:{arg, arg, arg}    
+    # !{flag}:{arg, arg, arg}!
     def scam(self, data: bytes):
         texto = data.decode()
-        regex = re.compile(r'\{([^}]*)\}\:\{([^}]*)\}', re.I)
+        regex = re.compile(r'\!\{([^}]*)\}\:\{([^}]*)\}\!', re.I)
         events = regex.findall(texto)
         
         for event in events:

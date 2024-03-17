@@ -16,7 +16,6 @@ class Server(threading.Thread):
         threading.Thread.__init__(self)
         self.HOST: str = Options.host
         self.PORT: int = Options.port
-        self.BYTES: bytes = Options.bytes
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
         self.taskManager = TaskManager()

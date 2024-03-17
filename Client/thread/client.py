@@ -14,7 +14,6 @@ class Client(threading.Thread):
         threading.Thread.__init__(self)
         self.HOST = Options.host
         self.PORT = Options.port
-        self.BYTES = Options.bytes
         self.events = Events()
         self.taskManager = TaskManager()
         self.__running: bool = True
@@ -93,14 +92,8 @@ class Client(threading.Thread):
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
                         self.sync_crypt_key()
-                    
-                    mes = self.receive_message()
-                    
-                    print(mes, 2)
-                    
-                    return
                 except Exception as ex:
-                    pass           
+                    pass
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")
         except Exception as e:
