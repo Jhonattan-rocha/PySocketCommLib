@@ -1,3 +1,4 @@
+import ssl
 from Connection_type.Types import Types
 
 class SyncCrypt_ops:
@@ -15,17 +16,27 @@ class Crypt_ops:
     def __init__(self, sync_crypt_ops: SyncCrypt_ops=None, async_crypt_ops: AsyncCrypt_ops=None) -> None:
         self.sync_crypt_ops = sync_crypt_ops
         self.async_crypt_ops = async_crypt_ops
+
+class SSLContextOps:
+    def __init__(self, ssl_context: ssl.SSLContext=None, SERVER_CERTFILE: str="", CERTFILE: str="", KEYFILE: str="", check_hostname: bool=True) -> None:
+        self.ssl_context = ssl_context
+        self.CERTFILE = CERTFILE
+        self.KEYFILE = KEYFILE
+        self.SERVER_CERTFILE = SERVER_CERTFILE
+        self.check_hostname = check_hostname
         
 class Server_ops:
-    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4) -> None:    
+    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4, ssl_ops: SSLContextOps=None) -> None:    
         self.host = host
         self.port = port
         self.conn_type = conn_type
+        self.ssl_ops = ssl_ops
         self.encrypt_configs = encrypt_configs
 
 class Client_ops:
-    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4) -> None:    
+    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4, ssl_ops: SSLContextOps=None) -> None:    
         self.host = host
         self.port = port
         self.conn_type = conn_type
+        self.ssl_ops = ssl_ops
         self.encrypt_configs = encrypt_configs

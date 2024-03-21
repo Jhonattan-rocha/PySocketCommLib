@@ -9,6 +9,5 @@ class Crypt:
                 self.sync_crypt = Sync[str(Options.sync_crypt_ops.sync_crypt_select).lower()](Options.sync_crypt_ops)
             if Options.async_crypt_ops:
                 self.async_crypt = Async[str(Options.async_crypt_ops.async_crypt_select).lower()](Options.async_crypt_ops)
-            self.crypt_options = Options
         except Exception as e:
             raise TypeError("Criptografia não encontrada ou não mapeada")

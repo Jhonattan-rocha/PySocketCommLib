@@ -1,5 +1,8 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import http.client
 import http.server
+from typing import Any, Callable
 
 class HttpProtocol:
     def __init__(self, host: str='localhost', port: int=8080) -> None:
@@ -57,3 +60,9 @@ class HttpProtocol:
             self._http_server_methods[method] = func
             return func
         return decorator
+
+    async def async_executor(self, Call: Callable[..., Any], *args):
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            res = await loop.run_in_executor(executor, Call, *args)
+        return res

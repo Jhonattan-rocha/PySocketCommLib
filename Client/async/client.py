@@ -1,28 +1,47 @@
 import asyncio
 import re
+import ssl
 import struct
 import uuid
 from Events.Events import Events
 from Files.File import File
-from Options.Ops import Client_ops
+from Options.Ops import Client_ops, SSLContextOps
 from Crypt.Crypt_main import Crypt
 from TaskManager.AsyncTaskManager import AsyncTaskManager
+from Protocols.configure import config
 
 class Client:
     def __init__(self, Options: Client_ops) -> None:
+        self.client_options = Options
         self.HOST = Options.host
         self.PORT = Options.port
         self.uuid = uuid.uuid4()
         self.loop = asyncio.get_event_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
+        self.configureProtocol = config
+        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.__running: bool = True
         self.reader = None
         self.writer = None
         self.crypt: Crypt = None
+        
+        if not Options.ssl_ops:
+            self.ssl_configure(Options.ssl_ops)
+        
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+    
+    def ssl_configure(self, ssl_ops: SSLContextOps):
+        # Define o contexto SSL
+        self.ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
+        self.ssl_context.check_hostname = ssl_ops.check_hostname
+
+        if ssl_ops.SERVER_CERTFILE:
+            # Carrega manualmente o certificado do servidor
+            self.ssl_context.load_verify_locations(cafile=ssl_ops.SERVER_CERTFILE)
     
     async def send_file(self, file: File, bytes_block_length: int=2048) -> None:
         await file.async_executor(file.compress_file)
@@ -93,7 +112,7 @@ class Client:
     async def connect(self, ignore_err=False) -> None:
         try:
             if not self.reader and not self.writer:
-                self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT)
+                self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT, ssl=self.ssl_context)
                 
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:

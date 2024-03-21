@@ -1,30 +1,44 @@
 import socket
+import ssl
 import struct
 import threading
 import sys
 import re
 from Events.Events import Events
-from Options.Ops import Server_ops, Client_ops, Crypt_ops
+from Options.Ops import Server_ops, Client_ops, SSLContextOps
 from Crypt.Crypt_main import Crypt
 from Client.Thread.Client import Client
 from Connection_type.Types import Types
 from Files.File import File
 from TaskManager.TaskManager import TaskManager
+from Protocols.configure import config
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:
         threading.Thread.__init__(self)
+        self.server_options = Options
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
+        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.taskManager = TaskManager()
+        self.configureProtocol = config
         self.__clients: list[Client] = []
         self.__running: bool = True
         self.crypt: Crypt = None
+        
+        if not Options.ssl_ops:
+            self.ssl_configure(Options.ssl_ops)
+        
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+    
+    def ssl_configure(self, ssl_ops: SSLContextOps):
+        self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.ssl_context.check_hostname = ssl_ops.check_hostname
+        self.ssl_context.load_cert_chain(certfile=self.CERTFILE, keyfile=self.KEYFILE)
     
     def send_file(self, client: socket.socket, file: File, bytes_block_length: int=2048) -> None:
         """
@@ -40,7 +54,7 @@ class Server(threading.Thread):
     
     def recive_file(self, client: socket.socket, bytes_block_length: int=2048) -> File:
         """
-            Receive file of client
+        Receive file of client
             
         Args:
             client (socket.socket): client connection
@@ -130,12 +144,17 @@ class Server(threading.Thread):
                     (client, address) = server.accept()
                     
                     try:
+                        client = self.ssl_context.wrap_socket(client, server_side=True)
+                    except Exception as ex:
+                        pass
+                    
+                    try:
                         if self.crypt.async_crypt and self.crypt.sync_crypt:
                             self.sync_crypt_key(client)
                     except Exception as ex:
                         pass
                     
-                    cliente = Client(Client_ops(host=self.HOST, port=self.PORT, encrypt_configs=self.crypt.crypt_options, conn_type=self.conn_type))
+                    cliente = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs, conn_type=self.conn_type))
                     cliente.connection = client
                     self.save_clients(cliente)
                 except KeyboardInterrupt:

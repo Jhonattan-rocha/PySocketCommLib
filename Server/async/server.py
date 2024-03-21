@@ -1,28 +1,42 @@
 import asyncio
 import re
+import ssl
 import struct
 import sys
 from Events.Events import Events
 from Files.File import File
-from Options.Ops import Client_ops, Server_ops
+from Options.Ops import Client_ops, SSLContextOps, Server_ops
 from Crypt.Crypt_main import Crypt
 from Client.Async.Client import Client
 from TaskManager.AsyncTaskManager import AsyncTaskManager
+from Protocols.configure import config
 
 class Server:
     def __init__(self, Options: Server_ops) -> None:
+        self.server_options = Options
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
+        self.configureProtocol = config
+        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.__clients: list[Client] = []
         self.__running: bool = True
         self.crypt: Crypt = None
+        
+        if not Options.ssl_ops:
+            self.ssl_configure(Options.ssl_ops)
+        
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
 
+    def ssl_configure(self, ssl_ops: SSLContextOps):
+        self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.ssl_context.check_hostname = ssl_ops.check_hostname
+        self.ssl_context.load_cert_chain(certfile=self.CERTFILE, keyfile=self.KEYFILE)
+    
     async def send_file(self, writer: asyncio.StreamWriter, file: File, bytes_block_length: int=2048) -> None:
         await file.async_executor(file.compress_file)
         await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]), bytes_block_length, writer)
@@ -98,7 +112,7 @@ class Server:
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)
             
-            client = Client(Client_ops(host=self.HOST, port=self.PORT, encrypt_configs=self.crypt.crypt_options, conn_type=self.conn_type))
+            client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs, conn_type=self.conn_type))
             client.reader = reader
             client.writer = writer
             self.save_clients(client)
@@ -116,7 +130,7 @@ class Server:
         try:
             # Criação do servidor
             server = await asyncio.start_server(
-                self.run, self.HOST, self.PORT)
+                self.run, self.HOST, self.PORT, ssl=self.ssl_context)
 
             addr = server.sockets[0].getsockname()
             print(f'Server rodando no endereço:{addr}')
