@@ -27,10 +27,28 @@ class Server(threading.Thread):
             self.crypt.configure(Options.encrypt_configs)
     
     def send_file(self, client: socket.socket, file: File, bytes_block_length: int=2048) -> None:
+        """
+        Sent file to client
+
+        Args:
+            client (socket.socket): client connection
+            file (File): file opened with File class
+            bytes_block_length (int, optional): block length for read. Defaults to 2048.
+        """
         file.compress_file()
         self.send_message(client, b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
     
     def recive_file(self, client: socket.socket, bytes_block_length: int=2048) -> File:
+        """
+            Receive file of client
+            
+        Args:
+            client (socket.socket): client connection
+            bytes_block_length (int, optional): block length for read. Defaults to 2048.
+
+        Returns:
+            File: Received file
+        """
         file = File()
         bytes_recv = self.receive_message(client, bytes_block_length)
         file.setBytes(bytes_recv)
@@ -96,7 +114,7 @@ class Server(threading.Thread):
 
     def break_server(self):
         for client in self.__clients:
-            client[0].close()
+            client.disconnect()
         self.__running = False
         sys.exit(0)
     
@@ -123,7 +141,7 @@ class Server(threading.Thread):
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:
-                    print(e, 'Sever')
+                    print(e)
                     sys.exit(1)
 
 if __name__ == '__main__':

@@ -19,4 +19,4 @@ def main():
     except Exception as e:
         print(f"Erro na execução: {e}")
     
-main()    
+main()
