@@ -4,6 +4,7 @@ import ssl
 import struct
 import threading
 import uuid
+from Abstracts.Auth import Auth
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops, SSLContextOps
@@ -18,6 +19,7 @@ class Client(threading.Thread):
         self.client_options = Options
         self.HOST = Options.host
         self.PORT = Options.port
+        self.auth: Auth = Options.auth
         self.uuid = uuid.uuid4()
         self.events = Events()
         self.taskManager = TaskManager()
@@ -124,6 +126,12 @@ class Client(threading.Thread):
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
                         self.sync_crypt_key()
                 except Exception as ex:
+                    pass
+                
+                try:
+                    if self.auth and not self.auth.validate_token(self):
+                        self.disconnect()
+                except Exception as e:
                     pass
                 
                 self.__running = True

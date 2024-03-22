@@ -13,7 +13,7 @@ async def main():
     try:
         ssl = SSLContextOps(None, './server.crt', './server.crt', './server.key', False)
         
-        server = Server(Server_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa"))))
+        server = Server(Server_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa")), ssl_ops=ssl))
         servidor_task = asyncio.create_task(server.start())
         
         await asyncio.sleep(10)

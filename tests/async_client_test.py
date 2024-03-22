@@ -12,7 +12,7 @@ import asyncio
 async def main():
     try:
         ssl = SSLContextOps(None, './server.crt', './client.crt', './client.key', False)
-        client = Client(Client_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa"))))
+        client = Client(Client_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa")), ssl_ops=ssl))
         client_task = asyncio.create_task(client.start())
         
         await client_task

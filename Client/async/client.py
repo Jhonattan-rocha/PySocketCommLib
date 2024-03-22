@@ -9,12 +9,14 @@ from Options.Ops import Client_ops, SSLContextOps
 from Crypt.Crypt_main import Crypt
 from TaskManager.AsyncTaskManager import AsyncTaskManager
 from Protocols.configure import config
+from Abstracts.Auth import Auth
 
 class Client:
     def __init__(self, Options: Client_ops) -> None:
         self.client_options = Options
         self.HOST = Options.host
         self.PORT = Options.port
+        self.auth = Options.auth
         self.uuid = uuid.uuid4()
         self.loop = asyncio.get_event_loop()
         self.events = Events()
@@ -121,7 +123,13 @@ class Client:
                         await self.sync_crypt_key()
                 except Exception as e:
                     pass
-
+                
+                try:
+                    if self.auth and not self.auth.validate_token(self):
+                        await self.disconnect()
+                except Exception as e:
+                    pass
+                
                 self.__running = True
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")

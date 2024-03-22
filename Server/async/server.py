@@ -3,6 +3,7 @@ import re
 import ssl
 import struct
 import sys
+from Abstracts.Auth import Auth
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops, SSLContextOps, Server_ops
@@ -16,6 +17,7 @@ class Server:
         self.server_options = Options
         self.HOST: str = Options.host
         self.PORT: int = Options.port
+        self.auth: Auth = Options.auth
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
@@ -117,6 +119,14 @@ class Server:
             client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs))
             client.reader = reader
             client.writer = writer
+            
+            try:
+                if self.auth and not await self.auth.async_executor(self.auth.validate_token, client):
+                    await client.disconnect()
+                    return
+            except Exception as e:
+                pass
+            
             await self.save_clients(client)
         except Exception as e:
             print(e)

@@ -4,6 +4,7 @@ import struct
 import threading
 import sys
 import re
+from Abstracts.Auth import Auth
 from Events.Events import Events
 from Options.Ops import Server_ops, Client_ops, SSLContextOps
 from Crypt.Crypt_main import Crypt
@@ -19,6 +20,7 @@ class Server(threading.Thread):
         self.server_options = Options
         self.HOST: str = Options.host
         self.PORT: int = Options.port
+        self.auth: Auth = Options.auth
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
         self.taskManager = TaskManager()
@@ -42,7 +44,7 @@ class Server(threading.Thread):
         self.ssl_context.check_hostname = ssl_ops.check_hostname
         self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
     
-    def send_file(self, client: socket.socket, file: File, bytes_block_length: int=2048) -> None:
+    def send_file(self, client: socket.socket | ssl.SSLSocket, file: File, bytes_block_length: int=2048) -> None:
         """
         Sent file to client
 
@@ -54,7 +56,7 @@ class Server(threading.Thread):
         file.compress_file()
         self.send_message(client, b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
     
-    def recive_file(self, client: socket.socket, bytes_block_length: int=2048) -> File:
+    def recive_file(self, client: socket.socket | ssl.SSLSocket, bytes_block_length: int=2048) -> File:
         """
         Receive file of client
             
@@ -71,7 +73,7 @@ class Server(threading.Thread):
         file.decompress_bytes()
         return file
     
-    def receive_message(self, client: socket.socket, recv_bytes: int=2048) -> bytes:
+    def receive_message(self, client: socket.socket | ssl.SSLSocket, recv_bytes: int=2048) -> bytes:
         raw_msglen = client.recv(8)
         if not raw_msglen:
             return None
@@ -101,7 +103,7 @@ class Server(threading.Thread):
         except Exception as e:
             print(e)
 
-    def send_message(self, client: socket.socket, message: bytes, sent_bytes: int = 2048) -> None:
+    def send_message(self, client: socket.socket | ssl.SSLSocket, message: bytes, sent_bytes: int = 2048) -> None:
         try:
             message = self.crypt.sync_crypt.encrypt_message(message)
         except Exception as e:
@@ -122,7 +124,7 @@ class Server(threading.Thread):
         if client not in self.__clients:
             self.__clients.append(client)
     
-    def sync_crypt_key(self, client: socket.socket):
+    def sync_crypt_key(self, client: socket.socket | ssl.SSLSocket):
         client_public_key = client.recv(2048)
         client_public_key_obj = self.crypt.async_crypt.load_public_key(client_public_key)
         enc_key = self.crypt.async_crypt.encrypt_with_public_key(self.crypt.sync_crypt.get_key(), client_public_key_obj)
@@ -158,6 +160,14 @@ class Server(threading.Thread):
                     
                     cliente = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs, conn_type=self.conn_type))
                     cliente.connection = client
+                    
+                    try:
+                        if self.auth and not self.auth.validate_token(cliente):
+                            cliente.disconnect()
+                            continue
+                    except Exception as e:
+                        pass
+                    
                     self.save_clients(cliente)
                 except KeyboardInterrupt:
                     sys.exit(1)
