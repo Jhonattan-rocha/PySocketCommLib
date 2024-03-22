@@ -21,15 +21,17 @@ class Server(threading.Thread):
         self.PORT: int = Options.port
         self.conn_type: Types|tuple = Options.conn_type
         self.events = Events()
-        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.taskManager = TaskManager()
         self.configureProtocol = config
         self.__clients: list[Client] = []
         self.__running: bool = True
         self.crypt: Crypt = None
+        self.ssl_context: ssl.SSLContext = None
         
-        if not Options.ssl_ops:
-            self.ssl_configure(Options.ssl_ops)
+        if Options.ssl_ops:
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
+                self.ssl_configure(Options.ssl_ops)
         
         if Options.encrypt_configs:
             self.crypt = Crypt()
@@ -38,7 +40,7 @@ class Server(threading.Thread):
     def ssl_configure(self, ssl_ops: SSLContextOps):
         self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         self.ssl_context.check_hostname = ssl_ops.check_hostname
-        self.ssl_context.load_cert_chain(certfile=self.CERTFILE, keyfile=self.KEYFILE)
+        self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
     
     def send_file(self, client: socket.socket, file: File, bytes_block_length: int=2048) -> None:
         """
@@ -160,7 +162,7 @@ class Server(threading.Thread):
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:
-                    print(e)
+                    print(e, 'caiu aqui')
                     sys.exit(1)
 
 if __name__ == '__main__':

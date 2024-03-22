@@ -22,14 +22,16 @@ class Client(threading.Thread):
         self.events = Events()
         self.taskManager = TaskManager()
         self.configureProtocol = config
-        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.__running: bool = True
         self.connection: socket.socket | ssl.SSLSocket = None
         self.conn_type: Types|tuple = Options.conn_type
         self.crypt: Crypt = None
+        self.ssl_context: ssl.SSLContext = None
         
-        if not Options.ssl_ops:
-            self.ssl_configure(Options.ssl_ops)
+        if Options.ssl_ops:
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
+                self.ssl_configure(Options.ssl_ops)
         
         if Options.encrypt_configs:
             self.crypt = Crypt()

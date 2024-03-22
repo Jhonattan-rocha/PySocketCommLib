@@ -7,11 +7,13 @@ sys.path.append(project_dir)
 
 import time
 from Server.Thread.Server import Server
-from Options.Ops import Server_ops, Crypt_ops, SyncCrypt_ops, AsyncCrypt_ops
+from Options.Ops import Server_ops, Crypt_ops, SyncCrypt_ops, AsyncCrypt_ops, SSLContextOps
 
 def main():
     try:
-        server = Server(Server_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa"))))
+        ssl = SSLContextOps(None, './server.crt', './server.crt', './server.key', False)
+        
+        server = Server(Server_ops(encrypt_configs=Crypt_ops(SyncCrypt_ops('aes'), AsyncCrypt_ops("rsa")), ssl_ops=ssl))
         server.start()
         
         time.sleep(10)

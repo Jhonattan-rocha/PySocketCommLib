@@ -16,7 +16,7 @@ class HttpProtocol:
             'DELETE': None
         }
     
-    def request(self, method: str, url: str, headers: dict[str, str]=None, body: http.client._DataType | str | None=None) -> http.client.HTTPResponse:
+    def request(self, method: str, url: str, headers: dict[str, str]=None, body: str | None=None) -> http.client.HTTPResponse:
         url_parts = http.client.urlsplit(url)
         host = url_parts.netloc
         path = url_parts.path

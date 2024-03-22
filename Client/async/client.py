@@ -20,14 +20,16 @@ class Client:
         self.events = Events()
         self.taskManager = AsyncTaskManager()
         self.configureProtocol = config
-        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.__running: bool = True
         self.reader = None
         self.writer = None
         self.crypt: Crypt = None
+        self.ssl_context: ssl.SSLContext = None
         
-        if not Options.ssl_ops:
-            self.ssl_configure(Options.ssl_ops)
+        if Options.ssl_ops:
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
+                self.ssl_configure(Options.ssl_ops)
         
         if Options.encrypt_configs:
             self.crypt = Crypt()
@@ -49,7 +51,7 @@ class Client:
     
     async def recive_file(self, bytes_block_length: int=2048) -> File:
         file = File()
-        bytes_recv = await self.recive_message(bytes_block_length)
+        bytes_recv = await self.receive_message(bytes_block_length)
         await file.async_executor(file.setBytes, bytes_recv)
         await file.async_executor(file.decompress_bytes)
         return file
@@ -82,9 +84,9 @@ class Client:
             await self.writer.drain()
             offset += sent_bytes
 
-    async def recive_message(self, recv_bytes: int=2048):
-        length = struct.unpack("!Q", await self.reader.read(8))[0]
-
+    async def receive_message(self, recv_bytes: int=2048):
+        lng = await self.reader.read(8)
+        length = struct.unpack("!Q", lng)[0]
         chunks = []
         bytes_received = 0
         while bytes_received < length:

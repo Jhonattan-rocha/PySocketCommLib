@@ -20,13 +20,15 @@ class Server:
         self.events = Events()
         self.taskManager = AsyncTaskManager()
         self.configureProtocol = config
-        self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
         self.__clients: list[Client] = []
         self.__running: bool = True
         self.crypt: Crypt = None
+        self.ssl_context: ssl.SSLContext = None
         
-        if not Options.ssl_ops:
-            self.ssl_configure(Options.ssl_ops)
+        if Options.ssl_ops:
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
+                self.ssl_configure(Options.ssl_ops)
         
         if Options.encrypt_configs:
             self.crypt = Crypt()
@@ -35,7 +37,7 @@ class Server:
     def ssl_configure(self, ssl_ops: SSLContextOps):
         self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         self.ssl_context.check_hostname = ssl_ops.check_hostname
-        self.ssl_context.load_cert_chain(certfile=self.CERTFILE, keyfile=self.KEYFILE)
+        self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
     
     async def send_file(self, writer: asyncio.StreamWriter, file: File, bytes_block_length: int=2048) -> None:
         await file.async_executor(file.compress_file)
@@ -43,7 +45,7 @@ class Server:
     
     async def recive_file(self, reader: asyncio.StreamReader, bytes_block_length: int=2048) -> File:
         file = File()
-        bytes_recv = await self.recive_message(bytes_block_length, reader)
+        bytes_recv = await self.receive_message(bytes_block_length, reader)
         await file.async_executor(file.setBytes, bytes_recv)
         await file.async_executor(file.decompress_bytes)
         return file
@@ -53,11 +55,11 @@ class Server:
             await self.send_message(message, sent_bytes, client.writer)
 
     async def send_message(self, message: bytes, sent_bytes: int=2048, writer: asyncio.StreamWriter=None):
+        print(message)
         try:
             message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
             pass
-        
         lng = len(message)
         writer.write(struct.pack("!Q", lng))
         await writer.drain()
@@ -68,7 +70,7 @@ class Server:
             await writer.drain()
             offset += sent_bytes
 
-    async def recive_message(self, recv_bytes: int=2048, reader: asyncio.StreamReader=None):
+    async def receive_message(self, recv_bytes: int=2048, reader: asyncio.StreamReader=None):
         length = struct.unpack("!Q", await reader.read(8))[0]
 
         chunks = []
@@ -96,7 +98,7 @@ class Server:
     async def save_clients(self, client: Client) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
-    
+        
     async def sync_crypt_key(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         client_public_key = await reader.read(2048)        
         client_public_key_obj = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.load_public_key, client_public_key)
@@ -112,12 +114,12 @@ class Server:
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)
             
-            client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs, conn_type=self.conn_type))
+            client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs))
             client.reader = reader
             client.writer = writer
-            self.save_clients(client)
+            await self.save_clients(client)
         except Exception as e:
-            pass   
+            print(e)
     
     async def break_server(self):
         for client in self.__clients:

@@ -26,7 +26,7 @@ class SSLContextOps:
         self.check_hostname = check_hostname
         
 class Server_ops:
-    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4, ssl_ops: SSLContextOps=None) -> None:    
+    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4, ssl_ops: SSLContextOps=SSLContextOps()) -> None:    
         self.host = host
         self.port = port
         self.conn_type = conn_type
@@ -34,7 +34,7 @@ class Server_ops:
         self.encrypt_configs = encrypt_configs
 
 class Client_ops:
-    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4, ssl_ops: SSLContextOps=None) -> None:    
+    def __init__(self, host: str="127.0.0.1", port: int=8080, encrypt_configs: Crypt_ops=None, conn_type: Types|tuple|None=Types.TCP_IPV4, ssl_ops: SSLContextOps=SSLContextOps()) -> None:    
         self.host = host
         self.port = port
         self.conn_type = conn_type
