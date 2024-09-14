@@ -53,7 +53,7 @@ class Client(threading.Thread):
         file.compress_file()
         self.send_message(b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
     
-    def recive_file(self, bytes_block_length: int=2048) -> File:
+    def receive_file(self, bytes_block_length: int=2048) -> File:
         file = File()
         bytes_recv = self.receive_message(bytes_block_length)
         file.setBytes(bytes_recv)

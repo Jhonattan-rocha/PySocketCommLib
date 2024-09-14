@@ -1,27 +1,34 @@
-from abc import ABC, abstractclassmethod
+from abc import ABC
 from typing import Any, Callable
 from Options.Ops import SyncCrypt_ops
 
-class SyncCrypts(ABC):    
-    @abstractclassmethod
-    def __init__(self, Options: SyncCrypt_ops) -> None:
+
+class SyncCrypts(ABC):
+    @classmethod
+    def __init__(cls, Options: SyncCrypt_ops) -> None:
         pass
-    @abstractclassmethod
-    def encrypt_message(self, message: bytes) -> bytes:
+
+    @classmethod
+    def encrypt_message(cls, message: bytes) -> bytes:
         pass
-    @abstractclassmethod
-    def decrypt_message(self, encrypted_blocks: bytes) -> bytes:
+
+    @classmethod
+    def decrypt_message(cls, encrypted_blocks: bytes) -> bytes:
         pass
-    @abstractclassmethod
-    def generate_key(self, size: int) -> None:
+
+    @classmethod
+    def generate_key(cls, size: int) -> None:
         pass
-    @abstractclassmethod
-    def get_key(self) -> bytes:
+
+    @classmethod
+    def get_key(cls) -> bytes:
         pass
-    @abstractclassmethod
-    def set_key(self, key: bytes) -> None:
+
+    @classmethod
+    def set_key(cls, key: bytes) -> None:
         pass
+
     # --async
-    @abstractclassmethod
-    async def async_executor(self, Call: Callable[..., Any], *args):
+    @classmethod
+    async def async_executor(cls, Call: Callable[..., Any], *args):
         pass

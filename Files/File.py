@@ -5,13 +5,14 @@ from typing import Callable, Any
 import io
 import gzip
 
+
 class File:
-    def __init__(self, path: str="", mode: str="+ab", encoding: str="utf8") -> None:
+    def __init__(self, path: str = "", mode: str = "+ab", encoding: str = "utf8") -> None:
         self.path = path
         self.mode = mode
         self.file = None
         self.encoding = encoding
-    
+
     def compress_file(self):
         bytes_c = gzip.compress(self.file.read())
         self.file = io.BytesIO(bytes_c)
@@ -19,18 +20,18 @@ class File:
     def decompress_bytes(self):
         bytes_d = gzip.decompress(self.file.read())
         self.file = io.BytesIO(bytes_d)
-        
-    def save(self, override: bool=False):
+
+    def save(self, override: bool = False):
         if self.path and (not os.path.exists(self.path) or override):
             with open(self.path, "wb") as file:
                 file.write(self.file.read())
 
-    def get_name_ext(self) -> str:
+    def get_name_ext(self) -> tuple[str, str]:
         return os.path.splitext(self.path)
-    
+
     def setBytes(self, bytes: bytes):
         self.file = io.BytesIO(bytes)
-        
+
     def open(self):
         try:
             if os.path.exists(self.path) and os.path.isfile(self.path):
@@ -83,7 +84,7 @@ class File:
     def set_full_path(self, path: str):
         if not os.path.exists(path):
             self.path = path
-    
+
     def get_full_path(self):
         return os.path.realpath(self.path)
 
@@ -93,9 +94,9 @@ class File:
             res = await loop.run_in_executor(executor, Call, *args)
         return res
 
+
 if __name__ == "__main__":
     file = File(r"C:\\Users\\Jhinattan Rocha\\Pictures\\nada.jpeg", "rb")
     file.open()
 
     print(file.size())
-    

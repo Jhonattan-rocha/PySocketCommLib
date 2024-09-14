@@ -51,7 +51,7 @@ class Client:
         await file.async_executor(file.compress_file)
         await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]), bytes_block_length)
     
-    async def recive_file(self, bytes_block_length: int=2048) -> File:
+    async def receive_file(self, bytes_block_length: int=2048) -> File:
         file = File()
         bytes_recv = await self.receive_message(bytes_block_length)
         await file.async_executor(file.setBytes, bytes_recv)
