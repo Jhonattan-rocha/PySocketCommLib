@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 from typing import Protocol
@@ -18,24 +18,24 @@ class Auth(ABC):
     def __init__(self, token: str) -> None:
         self.token = token
 
-    @classmethod
-    def send_token(cls, client: Client) -> str:
+    @abstractmethod
+    def send_token(self, client: Client) -> str:
         pass
 
-    @classmethod
-    def get_token(cls, client: Client) -> str:
+    @abstractmethod
+    def get_token(self, client: Client) -> str:
         pass
 
-    @classmethod
-    def set_token(cls, client: Client) -> str:
+    @abstractmethod
+    def set_token(self, client: Client) -> str:
         pass
 
-    @classmethod
-    def validate_token(cls, client: Client) -> bool:
+    @abstractmethod
+    def validate_token(self, client: Client) -> bool:
         pass
 
-    @classmethod
-    def generate_token(cls) -> str:
+    @abstractmethod
+    def generate_token(self) -> str:
         pass
 
     @staticmethod

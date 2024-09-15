@@ -1,4 +1,3 @@
-import re
 import socket
 import ssl
 import struct
@@ -13,6 +12,7 @@ from Connection_type.Types import Types
 from TaskManager.TaskManager import TaskManager
 from Protocols.configure import config
 
+
 class Client(threading.Thread):
     def __init__(self, Options: Client_ops) -> None:
         threading.Thread.__init__(self)
@@ -25,20 +25,20 @@ class Client(threading.Thread):
         self.taskManager = TaskManager()
         self.configureProtocol = config
         self.__running: bool = True
-        self.connection: socket.socket | ssl.SSLSocket = None
-        self.conn_type: Types|tuple = Options.conn_type
-        self.crypt: Crypt = None
-        self.ssl_context: ssl.SSLContext = None
-        
+        self.connection: socket.socket | ssl.SSLSocket | None = None
+        self.conn_type: Types | tuple = Options.conn_type
+        self.crypt: Crypt | None = None
+        self.ssl_context: ssl.SSLContext | None = None
+
         if Options.ssl_ops:
-            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
             if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
                 self.ssl_configure(Options.ssl_ops)
-        
+
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
-    
+
     def ssl_configure(self, ssl_ops: SSLContextOps):
         # Define o contexto SSL
         self.ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
@@ -48,22 +48,22 @@ class Client(threading.Thread):
         if ssl_ops.SERVER_CERTFILE:
             # Carrega manualmente o certificado do servidor
             self.ssl_context.load_verify_locations(cafile=ssl_ops.SERVER_CERTFILE)
-    
-    def send_file(self, file: File, bytes_block_length: int=2048) -> None:
+
+    def send_file(self, file: File, bytes_block_length: int = 2048) -> None:
         file.compress_file()
         self.send_message(b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
-    
-    def receive_file(self, bytes_block_length: int=2048) -> File:
+
+    def receive_file(self, bytes_block_length: int = 2048) -> File:
         file = File()
         bytes_recv = self.receive_message(bytes_block_length)
         file.setBytes(bytes_recv)
         file.decompress_bytes()
         return file
-    
-    def receive_message(self, recv_bytes: int=2048) -> bytes:
+
+    def receive_message(self, recv_bytes: int = 2048) -> bytes:
         raw_msglen = self.connection.recv(8)
         if not raw_msglen:
-            return None
+            return b""
         msglen = struct.unpack("!Q", raw_msglen)[0]
         chunks = []
         bytes_received = 0
@@ -97,50 +97,51 @@ class Client(threading.Thread):
             if not sent:
                 raise RuntimeError('Conexão interrompida')
             offset += sent
-    
+
     def sync_crypt_key(self):
         self.connection.sendall(self.crypt.async_crypt.public_key_to_bytes())
         enc_key = self.connection.recv(2048)
         key = self.crypt.async_crypt.decrypt_with_private_key(enc_key)
         self.crypt.sync_crypt.set_key(key)
-    
+
     def is_running(self) -> bool:
         return self.__running
-    
+
     def disconnect(self) -> None:
         self.connection.close()
         self.__running = False
-    
+
     def connect(self, ignore_err=False) -> None:
         try:
             if not self.connection:
                 self.connection = socket.socket(*self.conn_type)
-                
+
                 try:
                     self.connection = self.ssl_context.wrap_socket(self.connection, server_hostname=self.HOST)
                 except Exception as e:
                     pass
-                
+
                 self.connection.connect((self.HOST, self.PORT))
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
                         self.sync_crypt_key()
                 except Exception as ex:
                     pass
-                
+
                 try:
                     if self.auth and not self.auth.validate_token(self):
                         self.disconnect()
                 except Exception as e:
                     pass
-                
+
                 self.__running = True
             if not ignore_err:
                 raise RuntimeError("Conexão já extabelecida")
         except Exception as e:
             self.__running = False
             print(e)
-    
+
+
 if __name__ == "__main__":
     client = Client()
     client.connect(False)

@@ -1,5 +1,4 @@
 import asyncio
-import re
 import ssl
 import struct
 import uuid
@@ -9,7 +8,7 @@ from Options.Ops import Client_ops, SSLContextOps
 from Crypt.Crypt_main import Crypt
 from TaskManager.AsyncTaskManager import AsyncTaskManager
 from Protocols.configure import config
-from Abstracts.Auth import Auth
+
 
 class Client:
     def __init__(self, Options: Client_ops) -> None:
@@ -25,18 +24,18 @@ class Client:
         self.__running: bool = True
         self.reader = None
         self.writer = None
-        self.crypt: Crypt = None
-        self.ssl_context: ssl.SSLContext = None
-        
+        self.crypt: Crypt | None = None
+        self.ssl_context: ssl.SSLContext | None = None
+
         if Options.ssl_ops:
-            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
             if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
                 self.ssl_configure(Options.ssl_ops)
-        
+
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
-    
+
     def ssl_configure(self, ssl_ops: SSLContextOps):
         # Define o contexto SSL
         self.ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
@@ -46,12 +45,13 @@ class Client:
         if ssl_ops.SERVER_CERTFILE:
             # Carrega manualmente o certificado do servidor
             self.ssl_context.load_verify_locations(cafile=ssl_ops.SERVER_CERTFILE)
-    
-    async def send_file(self, file: File, bytes_block_length: int=2048) -> None:
+
+    async def send_file(self, file: File, bytes_block_length: int = 2048) -> None:
         await file.async_executor(file.compress_file)
-        await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]), bytes_block_length)
-    
-    async def receive_file(self, bytes_block_length: int=2048) -> File:
+        await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]),
+                                bytes_block_length)
+
+    async def receive_file(self, bytes_block_length: int = 2048) -> File:
         file = File()
         bytes_recv = await self.receive_message(bytes_block_length)
         await file.async_executor(file.setBytes, bytes_recv)
@@ -66,27 +66,27 @@ class Client:
         enc_key = await self.reader.read(2048)
         key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.decrypt_with_private_key, enc_key)
         await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.set_key, key)
-    
+
     async def is_running(self) -> bool:
         return self.__running
-    
-    async def send_message(self, message: bytes, sent_bytes: int=2048):
+
+    async def send_message(self, message: bytes, sent_bytes: int = 2048):
         try:
             message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
             pass
-        
+
         lng = len(message)
         self.writer.write(struct.pack("!Q", lng))
         await self.writer.drain()
-        
+
         offset = 0
         while offset < lng:
             self.writer.write(message[offset:offset + sent_bytes])
             await self.writer.drain()
             offset += sent_bytes
 
-    async def receive_message(self, recv_bytes: int=2048):
+    async def receive_message(self, recv_bytes: int = 2048):
         lng = await self.reader.read(8)
         length = struct.unpack("!Q", lng)[0]
         chunks = []
@@ -107,29 +107,29 @@ class Client:
         except Exception as e:
             print(e)
             return res
-    
+
     async def disconnect(self):
         self.writer.close()
         await self.writer.wait_closed()
         self.__running = False
-    
+
     async def connect(self, ignore_err=False) -> None:
         try:
             if not self.reader and not self.writer:
                 self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT, ssl=self.ssl_context)
-                
+
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
                         await self.sync_crypt_key()
                 except Exception as e:
                     pass
-                
+
                 try:
                     if self.auth and not self.auth.validate_token(self):
                         await self.disconnect()
                 except Exception as e:
                     pass
-                
+
                 self.__running = True
             elif not ignore_err:
                 raise RuntimeError("Conexão já estabelecida")
@@ -139,6 +139,7 @@ class Client:
 
     async def start(self) -> None:
         await self.connect(False)
+
 
 if __name__ == "__main__":
     client = Client()

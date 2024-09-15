@@ -1,4 +1,5 @@
-from Protocols.protocols.httpProtocol import HttpProtocol
+from Protocols.protocols.httpServerProtocol import HttpServerProtocol
+
 
 def config(proto: str):
     """Protocols
@@ -9,6 +10,6 @@ def config(proto: str):
     Returns:
         Protocol Class: A class of protocol
     """
-    protocols = {"http": HttpProtocol}
+    protocols = {"http": HttpServerProtocol}
 
     return protocols[proto.lower()]

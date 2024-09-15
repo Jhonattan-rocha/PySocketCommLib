@@ -11,19 +11,20 @@ import os
 import string
 import random
 
+
 class AESCrypt(SyncCrypts):
-    
-    def __init__(self, Options: SyncCrypt_ops) -> None:        
-        self.__key = 0
+
+    def __init__(self, Options: SyncCrypt_ops) -> None:
+        self.__key = b""
         self.__padding = 0
         if not Options.sync_key:
             self.generate_key(16)
         else:
             key_len = len(Options.sync_key)
-            if key_len != 16 and key_len != 24 and key_len != 32: 
+            if key_len != 16 and key_len != 24 and key_len != 32:
                 raise AttributeError("A chave só pode ter 16, 24 e 32 byes")
             self.set_key(Options.sync_key)
-    
+
     def encrypt_message(self, message: bytes) -> bytes:
         # Gere um vetor de inicialização (IV) aleatório
         iv = os.urandom(16)
@@ -43,9 +44,9 @@ class AESCrypt(SyncCrypts):
 
         # Combine o IV e o texto cifrado e base64encode
         encrypted_message = b64encode(iv + ciphertext)
-        
+
         return encrypted_message
-    
+
     def decrypt_message(self, encrypted_blocks: bytes) -> bytes:
         # Decode a mensagem base64
         encrypted_blocks = b64decode(encrypted_blocks)
@@ -72,10 +73,10 @@ class AESCrypt(SyncCrypts):
         text = string.ascii_letters + string.ascii_lowercase + string.ascii_uppercase + string.hexdigits
         key = "".join(random.choice(text) for _ in range(size))
         self.set_key(key.encode())
-    
+
     def get_key(self) -> bytes:
         return self.__key
-    
+
     def set_key(self, key: bytes) -> None:
         key_len = len(key)
         if key_len not in {16, 24, 32}:

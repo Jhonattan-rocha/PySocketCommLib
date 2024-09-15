@@ -1,34 +1,34 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, Callable
 from Options.Ops import AsyncCrypt_ops
 
 
 class AsyncCrypts(ABC):
-    @classmethod
-    def __init__(cls, Options: AsyncCrypt_ops) -> None:
+    @abstractmethod
+    def __init__(self, Options: AsyncCrypt_ops) -> None:
         pass
 
-    @classmethod
-    def load_public_key(cls, public_key_bytes: bytes) -> object:
+    @abstractmethod
+    def load_public_key(self, public_key_bytes: bytes) -> object:
         pass
 
-    @classmethod
-    def public_key_to_bytes(cls) -> bytes:
+    @abstractmethod
+    def public_key_to_bytes(self) -> bytes:
         pass
 
-    @classmethod
-    def generate_key_pair(cls) -> None:
+    @abstractmethod
+    def generate_key_pair(self) -> None:
         pass
 
-    @classmethod
-    def encrypt_with_public_key(cls, data: bytes, public_key=None) -> bytes:
+    @abstractmethod
+    def encrypt_with_public_key(self, data: bytes, public_key=None) -> bytes:
         pass
 
-    @classmethod
-    def decrypt_with_private_key(cls, data: bytes, private_key=None) -> bytes:
+    @abstractmethod
+    def decrypt_with_private_key(self, data: bytes, private_key=None) -> bytes:
         pass
 
     #--async
-    @classmethod
-    async def async_executor(cls, Call: Callable[..., Any], *args):
+    @abstractmethod
+    async def async_executor(self, Call: Callable[..., Any], *args):
         pass

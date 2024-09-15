@@ -34,7 +34,7 @@ class FernetCrypt(SyncCrypts):
     def generate_key(self, size: int) -> None:
         text = string.ascii_letters + string.ascii_lowercase + string.ascii_uppercase + string.hexdigits
         key = "".join(random.choice(text) for _ in range(size))
-        self.set_key(key)
+        self.set_key(key.encode())
     
     def set_key(self, key: bytes) -> None:
         try:

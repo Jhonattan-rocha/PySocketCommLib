@@ -1,6 +1,6 @@
 import uuid
 from typing import Callable, Any
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class AsyncTask(ABC):
@@ -9,12 +9,12 @@ class AsyncTask(ABC):
         self._running = True
         self._task = [call, [*args]]
 
-    @classmethod
-    async def start(cls) -> None:
+    @abstractmethod
+    async def start(self) -> None:
         pass
 
-    @classmethod
-    async def stop(cls) -> None:
+    @abstractmethod
+    async def stop(self) -> None:
         pass
 
     async def task_id(self) -> str:

@@ -1,5 +1,4 @@
 import asyncio
-import re
 import ssl
 import struct
 import sys
@@ -11,6 +10,7 @@ from Crypt.Crypt_main import Crypt
 from Client.Async.Client import Client
 from TaskManager.AsyncTaskManager import AsyncTaskManager
 from Protocols.configure import config
+
 
 class Server:
     def __init__(self, Options: Server_ops) -> None:
@@ -24,14 +24,14 @@ class Server:
         self.configureProtocol = config
         self.__clients: list[Client] = []
         self.__running: bool = True
-        self.crypt: Crypt = None
-        self.ssl_context: ssl.SSLContext = None
-        
+        self.crypt: Crypt | None = None
+        self.ssl_context: ssl.SSLContext | None = None
+
         if Options.ssl_ops:
-            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context            
+            self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
             if Options.ssl_ops.KEYFILE and Options.ssl_ops.CERTFILE:
                 self.ssl_configure(Options.ssl_ops)
-        
+
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
@@ -40,24 +40,24 @@ class Server:
         self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         self.ssl_context.check_hostname = ssl_ops.check_hostname
         self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
-    
-    async def send_file(self, writer: asyncio.StreamWriter, file: File, bytes_block_length: int=2048) -> None:
+
+    async def send_file(self, writer: asyncio.StreamWriter, file: File, bytes_block_length: int = 2048) -> None:
         await file.async_executor(file.compress_file)
-        await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]), bytes_block_length, writer)
-    
-    async def receive_file(self, reader: asyncio.StreamReader, bytes_block_length: int=2048) -> File:
+        await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]),
+                                bytes_block_length, writer)
+
+    async def receive_file(self, reader: asyncio.StreamReader, bytes_block_length: int = 2048) -> File:
         file = File()
         bytes_recv = await self.receive_message(bytes_block_length, reader)
         await file.async_executor(file.setBytes, bytes_recv)
         await file.async_executor(file.decompress_bytes)
         return file
 
-    async def send_message_all_clients(self, message: bytes, sent_bytes: int=2048):
+    async def send_message_all_clients(self, message: bytes, sent_bytes: int = 2048):
         for client in self.__clients:
             await self.send_message(message, sent_bytes, client.writer)
 
-    async def send_message(self, message: bytes, sent_bytes: int=2048, writer: asyncio.StreamWriter=None):
-        print(message)
+    async def send_message(self, message: bytes, sent_bytes: int = 2048, writer: asyncio.StreamWriter = None):
         try:
             message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
@@ -65,14 +65,14 @@ class Server:
         lng = len(message)
         writer.write(struct.pack("!Q", lng))
         await writer.drain()
-        
+
         offset = 0
         while offset < lng:
             writer.write(message[offset:offset + sent_bytes])
             await writer.drain()
             offset += sent_bytes
 
-    async def receive_message(self, recv_bytes: int=2048, reader: asyncio.StreamReader=None):
+    async def receive_message(self, recv_bytes: int = 2048, reader: asyncio.StreamReader = None):
         length = struct.unpack("!Q", await reader.read(8))[0]
 
         chunks = []
@@ -93,51 +93,53 @@ class Server:
         except Exception as e:
             print(e)
             return res
-        
+
     async def is_running(self) -> bool:
         return self.__running
 
     async def save_clients(self, client: Client) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
-        
+
     async def sync_crypt_key(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        client_public_key = await reader.read(2048)        
-        client_public_key_obj = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.load_public_key, client_public_key)
-        
+        client_public_key = await reader.read(2048)
+        client_public_key_obj = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.load_public_key,
+                                                                            client_public_key)
+
         sync_key = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.get_key)
-        enc_key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.encrypt_with_public_key, sync_key, client_public_key_obj)
+        enc_key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.encrypt_with_public_key, sync_key,
+                                                              client_public_key_obj)
         writer.write(enc_key)
         await writer.drain()
-        
+
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         print(f"Cliente conectado")
         try:
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)
-            
-            client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops, encrypt_configs=self.server_options.encrypt_configs))
+
+            client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
+                                       encrypt_configs=self.server_options.encrypt_configs))
             client.reader = reader
             client.writer = writer
-            
+
             try:
                 if self.auth and not await self.auth.async_executor(self.auth.validate_token, client):
                     await client.disconnect()
                     return
             except Exception as e:
                 pass
-            
+
             await self.save_clients(client)
         except Exception as e:
             print(e)
-    
+
     async def break_server(self):
         for client in self.__clients:
-            client[1].close()
-            await client[1].wait_closed()
+            await client.disconnect()
         self.__running = False
         sys.exit(0)
-        
+
     async def start(self) -> None:
         try:
             # Criação do servidor
@@ -153,7 +155,8 @@ class Server:
         except Exception as e:
             self.__running = False
             print(e)
-    
+
+
 if __name__ == '__main__':
     server = Server(Options=Server_ops())
     server.start()

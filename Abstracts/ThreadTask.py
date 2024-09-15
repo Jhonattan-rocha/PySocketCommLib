@@ -4,13 +4,14 @@ from typing import Callable, Any
 from abc import ABC, abstractmethod
 import queue
 
+
 class ThreadTask(ABC, threading.Thread):
     def __init__(self, call: Callable[..., Any], *args):
         super().__init__()
         self._uuid = uuid.uuid4()
         self._running = threading.Event()
         self._task = [call, [*args]]
-        self.result_queue: queue.Queue = None
+        self.result_queue: queue.Queue | None = None
 
     def set_result_queue(self, result_queue: queue.Queue) -> None:
         self.result_queue = result_queue

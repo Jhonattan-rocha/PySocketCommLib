@@ -3,7 +3,6 @@ import ssl
 import struct
 import threading
 import sys
-import re
 from Abstracts.Auth import Auth
 from Events.Events import Events
 from Options.Ops import Server_ops, Client_ops, SSLContextOps
@@ -28,8 +27,8 @@ class Server(threading.Thread):
         self.configureProtocol = config
         self.__clients: list[Client] = []
         self.__running: bool = True
-        self.crypt: Crypt = None
-        self.ssl_context: ssl.SSLContext = None
+        self.crypt: Crypt | None = None
+        self.ssl_context: ssl.SSLContext | None = None
 
         if Options.ssl_ops:
             self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
@@ -77,7 +76,7 @@ class Server(threading.Thread):
     def receive_message(self, client: socket.socket | ssl.SSLSocket, recv_bytes: int = 2048) -> bytes:
         raw_msglen = client.recv(8)
         if not raw_msglen:
-            return None
+            return b""
         msglen = struct.unpack("!Q", raw_msglen)[0]
         chunks = []
         bytes_received = 0
