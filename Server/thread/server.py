@@ -6,8 +6,8 @@ import sys
 from Abstracts.Auth import Auth
 from Events.Events import Events
 from Options.Ops import Server_ops, Client_ops, SSLContextOps
-from Crypt.Crypt_main import Crypt
-from Client.Thread.Client import Client
+from Crypt.crypt_main import Crypt
+from Client.thread.client import Client
 from Connection_type.Types import Types
 from Files.File import File
 from TaskManager.TaskManager import TaskManager

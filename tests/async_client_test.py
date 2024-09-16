@@ -5,7 +5,7 @@ project_dir = os.path.abspath(os.path.join(current_dir, '..'))
 
 sys.path.append(project_dir)
 
-from Client.Async.Client import Client
+from Client.asyncli.client import Client
 from Options.Ops import Client_ops, Crypt_ops, SyncCrypt_ops, AsyncCrypt_ops, SSLContextOps
 import asyncio
 

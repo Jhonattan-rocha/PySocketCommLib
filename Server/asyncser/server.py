@@ -6,8 +6,8 @@ from Abstracts.Auth import Auth
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops, SSLContextOps, Server_ops
-from Crypt.Crypt_main import Crypt
-from Client.Async.Client import Client
+from Crypt.crypt_main import Crypt
+from Client.asyncli.client import Client
 from TaskManager.AsyncTaskManager import AsyncTaskManager
 from Protocols.configure import config
 
