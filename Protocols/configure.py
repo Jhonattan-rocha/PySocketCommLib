@@ -6,7 +6,6 @@ def config(proto: str):
     """Protocols
     Args:
         proto (str): name of protocol
-
     Returns:
         Protocol Class: A class of protocol
     """

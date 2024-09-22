@@ -6,7 +6,7 @@ from Abstracts.Auth import Auth
 from Events.Events import Events
 from Files.File import File
 from Options.Ops import Client_ops, SSLContextOps, Server_ops
-from Crypt.crypt_main import Crypt
+from Crypt.Crypt_main import Crypt
 from Client.asyncli.client import Client
 from TaskManager.AsyncTaskManager import AsyncTaskManager
 from Protocols.configure import config
@@ -111,6 +111,13 @@ class Server:
                                                               client_public_key_obj)
         writer.write(enc_key)
         await writer.drain()
+
+    async def get_client(self, uuid: str = "") -> Client:
+        if not uuid and len(self.__clients):
+            return self.__clients.pop()
+        for client in self.__clients:
+            if str(client.uuid) == uuid:
+                return client
 
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         print(f"Cliente conectado")

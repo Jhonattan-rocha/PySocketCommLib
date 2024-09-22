@@ -11,6 +11,20 @@
     <p id="response"></p>
 
     <script>
+        // Função para empacotar um número inteiro de 64 bits (big-endian)
+        function packUInt64BE(value) {
+            const buffer = new ArrayBuffer(8);
+            const view = new DataView(buffer);
+            view.setBigUint64(0, BigInt(value), false); // false para big-endian
+            return buffer;
+        }
+
+        // Função para desempacotar um número inteiro de 64 bits (big-endian)
+        function unpackUInt64BE(buffer) {
+            const view = new DataView(buffer);
+            return view.getBigUint64(0, false); // false para big-endian
+        }
+
         // Conectando ao servidor WebSocket no localhost na porta 8080
         const ws = new WebSocket('ws://localhost:8080');
 

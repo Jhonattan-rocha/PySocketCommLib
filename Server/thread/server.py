@@ -135,6 +135,13 @@ class Server(threading.Thread):
             client.disconnect()
         self.__running = False
         sys.exit(0)
+    
+    def get_client(self, uuid: str = "") -> Client:
+        if not uuid and len(self.__clients):
+            return self.__clients.pop()
+        for client in self.__clients:
+            if str(client.uuid) == uuid:
+                return client
 
     def run(self) -> None:
         with socket.socket(*self.conn_type) as server:
