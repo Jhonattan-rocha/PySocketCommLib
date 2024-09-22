@@ -1,0 +1,7 @@
+LICENSE
+setup.py
+PySocketCommLib.egg-info/PKG-INFO
+PySocketCommLib.egg-info/SOURCES.txt
+PySocketCommLib.egg-info/dependency_links.txt
+PySocketCommLib.egg-info/top_level.txt
+tests/test.py

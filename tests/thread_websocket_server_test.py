@@ -26,7 +26,7 @@ def main():
                 break
             print(f"Mensagem recebida: {web_socket_server.decode_message(message)}")
             client.connection.send(web_socket_server.encode_message("Mensagem recebida com sucesso"))
-        
+            
     except Exception as e:
         print(f"Erro na execução: {e}")
     
