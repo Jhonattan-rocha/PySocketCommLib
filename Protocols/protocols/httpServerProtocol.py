@@ -76,7 +76,7 @@ class HttpServerProtocol:
         matches = self.regex_find_var_parameters.findall(method_url)
         values = path_parts[-len(matches):]
         if not matches:
-            raise ValueError("Nenhuma variável encontrada na URL.")
+            return {}
         
         parsed_vars = {}
         
@@ -110,9 +110,8 @@ class HttpServerProtocol:
             matches = self.regex_find_var_parameters.findall(funciton['path'])
 
             if len(parsed_url_parts) != len(parsed_url_method_parts):
-                print(parsed_url_parts, parsed_url_method_parts)
-                raise ValueError(f"Invalid url varible, expected {len(matches)} varibles, but was passed {(len(parsed_url_parts)-(len(parsed_url_method_parts)-len(matches)))}")
-            
+                continue
+
             if path == funciton['path'] or parsed_url_parts[:len(parsed_url_method_parts)-len(matches)] == parsed_url_method_parts[:len(parsed_url_method_parts)-len(matches)]:
                 result.append(funciton)
         return result

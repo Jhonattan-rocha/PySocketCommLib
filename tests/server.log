@@ -4,3 +4,17 @@
 2024-09-21 23:48:36,130 - INFO - Request: ('127.0.0.1', 56008) - "GET /user/1 HTTP/1.1" 200 -
 2024-09-21 23:48:36,218 - INFO - Request: ('127.0.0.1', 56009) - "GET /favicon.ico HTTP/1.1" 404 -
 2024-09-21 23:48:53,031 - INFO - Request: ('127.0.0.1', 56010) - "GET /user/1 HTTP/1.1" 200 -
+2024-09-22 14:23:55,307 - INFO - Starting server on localhost:8080
+2024-09-22 14:25:35,695 - INFO - Starting server on localhost:8080
+2024-09-22 14:26:22,490 - INFO - Starting server on localhost:8080
+2024-09-22 14:26:25,650 - INFO - Request: ('127.0.0.1', 64742) - "GET /user HTTP/1.1" 200 -
+2024-09-22 14:26:25,651 - INFO - Request: ('127.0.0.1', 64743) - "GET /user HTTP/1.1" 200 -
+2024-09-22 14:26:25,740 - INFO - Request: ('127.0.0.1', 64744) - "GET /favicon.ico HTTP/1.1" 404 -
+2024-09-22 14:26:30,066 - INFO - Request: ('127.0.0.1', 64749) - "GET /user/1 HTTP/1.1" 200 -
+2024-09-22 14:26:48,025 - INFO - Request: ('127.0.0.1', 64750) - "GET /user/1?user=1 HTTP/1.1" 200 -
+2024-09-22 14:27:07,511 - INFO - Request: ('127.0.0.1', 64751) - "GET /user/1?user=1&user2=2 HTTP/1.1" 200 -
+2024-09-22 14:27:21,931 - INFO - Request: ('127.0.0.1', 64753) - "GET /user/?user=1&user2=2 HTTP/1.1" 200 -
+2024-09-22 14:37:23,253 - INFO - Request: ('127.0.0.1', 64902) - "GET /user/?user=1&user2=2 HTTP/1.1" 200 -
+2024-09-22 14:37:23,577 - INFO - Request: ('127.0.0.1', 64903) - "GET /user/?user=1&user2=2 HTTP/1.1" 200 -
+2024-09-22 14:37:26,927 - INFO - Request: ('127.0.0.1', 64904) - "GET /user/?user=1 HTTP/1.1" 200 -
+2024-09-22 14:37:30,287 - INFO - Request: ('127.0.0.1', 64907) - "GET /user/ HTTP/1.1" 200 -
