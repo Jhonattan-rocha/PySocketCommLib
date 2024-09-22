@@ -1,0 +1,6 @@
+2024-09-21 23:47:10,049 - INFO - Starting server on localhost:8080
+2024-09-21 23:47:41,480 - INFO - Request: ('127.0.0.1', 55947) - "GET /user/1 HTTP/1.1" 200 -
+2024-09-21 23:48:34,280 - INFO - Starting server on localhost:8080
+2024-09-21 23:48:36,130 - INFO - Request: ('127.0.0.1', 56008) - "GET /user/1 HTTP/1.1" 200 -
+2024-09-21 23:48:36,218 - INFO - Request: ('127.0.0.1', 56009) - "GET /favicon.ico HTTP/1.1" 404 -
+2024-09-21 23:48:53,031 - INFO - Request: ('127.0.0.1', 56010) - "GET /user/1 HTTP/1.1" 200 -

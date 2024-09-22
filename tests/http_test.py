@@ -1,32 +1,21 @@
-import http.client
+import os, sys
 
-def make_http_request(method, url, headers=None, body=None):
-    # Parse URL to get host and path
-    url_parts = http.client.urlsplit(url)
-    host = url_parts.netloc
-    path = url_parts.path
+current_dir = os.path.dirname(os.path.realpath(__file__))
+project_dir = os.path.abspath(os.path.join(current_dir, '..'))
 
-    # Determine the appropriate port
-    if url_parts.scheme == 'https':
-        conn = http.client.HTTPSConnection(host)
-    else:
-        conn = http.client.HTTPConnection(host)
+sys.path.append(project_dir)
 
-    # Make request
-    conn.request(method, path, body, headers or {})
-    response = conn.getresponse()
+from Protocols.protocols import httpServerProtocol
 
-    # Read and return response
-    response_body = response.read()
-    return response.status, response.reason, response_body
+server = httpServerProtocol.HttpServerProtocol("localhost", 8080)
 
-# Exemplo de uso
-method = 'GET'
-url = 'https://ciclovivo.com.br/wp-content/uploads/2018/10/iStock-536613027-1024x683.jpg'
-status, reason, body = make_http_request(method, url)
+@server.add_handler(url="/user/{int: id}",method="GET")
+def test(handler, params):
+    print("Né que funciona")
+    handler.send_response(200)
+    handler.send_header("Content-type", "application/json")
+    handler.end_headers()
+    response = f"Received query parameters: {params}"
+    handler.wfile.write(response.encode())
 
-print(f'Status: {status} {reason}')
-print(f'Response body:\n{body}')
-
-with open('./tests/img.jpg', 'wb') as file:
-    file.write(body)
+server.start_http_server()
