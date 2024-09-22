@@ -4,14 +4,17 @@ import os
 import struct
 
 def decode_websocket_message(message):
-    # Primeiro byte contém FIN e opcode
+    # Primeiro byte: FIN e opcode
     first_byte = message[0]
-    
-    # Segundo byte contém o comprimento do payload
-    second_byte = message[1]
-    payload_length = second_byte & 0x7F  # Os 7 bits restantes são o comprimento
+    fin = first_byte >> 7
+    opcode = first_byte & 0x0F
 
-    offset = 2
+    # Segundo byte: máscara e comprimento do payload
+    second_byte = message[1]
+    masked = second_byte >> 7
+    payload_length = second_byte & 0x7F
+
+    offset = 2  # O offset inicial está nos primeiros 2 bytes
 
     if payload_length == 126:
         payload_length = struct.unpack(">H", message[offset:offset + 2])[0]

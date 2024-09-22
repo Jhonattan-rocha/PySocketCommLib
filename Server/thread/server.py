@@ -174,7 +174,6 @@ class Server(threading.Thread):
                 except KeyboardInterrupt:
                     sys.exit(1)
                 except Exception as e:
-                    print(e, 'caiu aqui')
                     sys.exit(1)
 
 
