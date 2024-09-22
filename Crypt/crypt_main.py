@@ -1,6 +1,6 @@
-from Options.Ops import Crypt_ops
-from Crypt.Crypts_map.Sync import Sync
-from Crypt.Crypts_map.Async import Async
+from Options import Crypt_ops
+from Crypt import Sync
+from Crypt import Async
 
 
 class Crypt:

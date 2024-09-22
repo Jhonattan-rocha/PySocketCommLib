@@ -3,15 +3,15 @@ import ssl
 import struct
 import threading
 import sys
-from Abstracts.Auth import Auth
-from Events.Events import Events
-from Options.Ops import Server_ops, Client_ops, SSLContextOps
-from Crypt.Crypt_main import Crypt
+from Abstracts import Auth
+from Events import Events
+from Options import Server_ops, Client_ops, SSLContextOps
+from Crypt import Crypt
 from Client.Thread.client import Client
 from Connection_type.Types import Types
-from Files.File import File
-from TaskManager.TaskManager import TaskManager
-from Protocols.configure import config
+from Files import File
+from TaskManager import TaskManager
+from Protocols import config
 
 
 class Server(threading.Thread):

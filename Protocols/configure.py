@@ -1,6 +1,6 @@
-from Protocols.protocols.httpServerProtocol import HttpServerProtocol
-from Protocols.protocols.websocket.client import WebSocketClient
-from Protocols.protocols.websocket.server import WebSocketServer
+from Protocols import HttpServerProtocol
+from Protocols import WebSocketClient
+from Protocols import WebSocketServer
 
 def config(proto: str):
     """Protocols

@@ -2,12 +2,12 @@ import asyncio
 import ssl
 import struct
 import uuid
-from Events.Events import Events
-from Files.File import File
-from Options.Ops import Client_ops, SSLContextOps
-from Crypt.Crypt_main import Crypt
-from TaskManager.AsyncTaskManager import AsyncTaskManager
-from Protocols.configure import config
+from Events import Events
+from Files import File
+from Options import Client_ops, SSLContextOps
+from Crypt import Crypt
+from TaskManager import AsyncTaskManager
+from Protocols import config
 
 
 class Client:

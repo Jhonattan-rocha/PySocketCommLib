@@ -3,14 +3,14 @@ import ssl
 import struct
 import threading
 import uuid
-from Abstracts.Auth import Auth
-from Events.Events import Events
-from Files.File import File
-from Options.Ops import Client_ops, SSLContextOps
-from Crypt.Crypt_main import Crypt
-from Connection_type.Types import Types
-from TaskManager.TaskManager import TaskManager
-from Protocols.configure import config
+from Abstracts import Auth
+from Events import Events
+from Files import File
+from Options import Client_ops, SSLContextOps
+from Crypt import Crypt
+from Connection_type import Types
+from TaskManager import TaskManager
+from Protocols import config
 
 
 class Client(threading.Thread):

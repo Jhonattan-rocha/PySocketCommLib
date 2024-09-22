@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Callable
-from Options.Ops import SyncCrypt_ops
+from Options import SyncCrypt_ops
 
 
 class SyncCrypts(ABC):

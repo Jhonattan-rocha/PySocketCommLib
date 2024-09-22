@@ -2,13 +2,13 @@ import asyncio
 import ssl
 import struct
 import sys
-from Abstracts.Auth import Auth
-from Events.Events import Events
-from Files.File import File
-from Options.Ops import Client_ops, SSLContextOps, Server_ops
-from Crypt.Crypt_main import Crypt
+from Abstracts import Auth
+from Events import Events
+from Files import File
+from Options import Client_ops, SSLContextOps, Server_ops
+from Crypt import Crypt
 from Client.asyncli.client import Client
-from TaskManager.AsyncTaskManager import AsyncTaskManager
+from TaskManager import AsyncTaskManager
 from Protocols.configure import config
 
 
