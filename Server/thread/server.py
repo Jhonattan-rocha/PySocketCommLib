@@ -7,7 +7,7 @@ from Abstracts import Auth
 from Events import Events
 from Options import Server_ops, Client_ops, SSLContextOps
 from Crypt import Crypt
-from Client.Thread.client import Client
+from Client.thread.client import Client
 from Connection_type.Types import Types
 from Files import File
 from TaskManager import TaskManager
