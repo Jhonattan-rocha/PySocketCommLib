@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from Abstracts import SyncCrypts
+from Abstracts.SyncCrypts import SyncCrypts
 from Options.Ops import SyncCrypt_ops
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes

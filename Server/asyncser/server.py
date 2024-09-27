@@ -2,12 +2,12 @@ import asyncio
 import ssl
 import struct
 import sys
-from Abstracts import Auth
+from Abstracts.Auth import Auth
 from Events import Events
 from Files import File
 from Options import Client_ops, SSLContextOps, Server_ops
 from Crypt import Crypt
-from Client.asyncli.client import Client
+from Client import AsyncClient
 from TaskManager import AsyncTaskManager
 from Protocols.configure import config
 
@@ -22,7 +22,7 @@ class Server:
         self.events = Events()
         self.taskManager = AsyncTaskManager()
         self.configureProtocol = config
-        self.__clients: list[Client] = []
+        self.__clients: list[AsyncClient] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
         self.ssl_context: ssl.SSLContext | None = None
@@ -97,7 +97,7 @@ class Server:
     async def is_running(self) -> bool:
         return self.__running
 
-    async def save_clients(self, client: Client) -> None:
+    async def save_clients(self, client: AsyncClient) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
 
@@ -112,7 +112,7 @@ class Server:
         writer.write(enc_key)
         await writer.drain()
 
-    async def get_client(self, uuid: str = "") -> Client:
+    async def get_client(self, uuid: str = "") -> AsyncClient:
         if not uuid and len(self.__clients):
             return self.__clients.pop()
         for client in self.__clients:
@@ -125,7 +125,7 @@ class Server:
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)
 
-            client = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
+            client = AsyncClient(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
                                        encrypt_configs=self.server_options.encrypt_configs))
             client.reader = reader
             client.writer = writer

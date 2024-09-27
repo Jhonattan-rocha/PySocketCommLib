@@ -3,7 +3,7 @@ import ssl
 import struct
 import threading
 import uuid
-from Abstracts import Auth
+from Abstracts.Auth import Auth
 from Events import Events
 from Files import File
 from Options import Client_ops, SSLContextOps

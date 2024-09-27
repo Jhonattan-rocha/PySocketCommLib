@@ -3,11 +3,11 @@ import ssl
 import struct
 import threading
 import sys
-from Abstracts import Auth
+from Abstracts.Auth import Auth
 from Events import Events
 from Options import Server_ops, Client_ops, SSLContextOps
 from Crypt import Crypt
-from Client.thread.client import Client
+from Client import ThreadClient
 from Connection_type.Types import Types
 from Files import File
 from TaskManager import TaskManager
@@ -25,7 +25,7 @@ class Server(threading.Thread):
         self.events = Events()
         self.taskManager = TaskManager()
         self.configureProtocol = config
-        self.__clients: list[Client] = []
+        self.__clients: list[ThreadClient] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
         self.ssl_context: ssl.SSLContext | None = None
@@ -120,7 +120,7 @@ class Server(threading.Thread):
     def is_running(self) -> bool:
         return self.__running
 
-    def save_clients(self, client: Client) -> None:
+    def save_clients(self, client: ThreadClient) -> None:
         if client not in self.__clients:
             self.__clients.append(client)
 
@@ -136,7 +136,7 @@ class Server(threading.Thread):
         self.__running = False
         sys.exit(0)
     
-    def get_client(self, uuid: str = "") -> Client:
+    def get_client(self, uuid: str = "") -> ThreadClient:
         if not uuid and len(self.__clients):
             return self.__clients.pop()
         for client in self.__clients:
@@ -165,7 +165,7 @@ class Server(threading.Thread):
                     except Exception as ex:
                         pass
 
-                    cliente = Client(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
+                    cliente = ThreadClient(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
                                                 encrypt_configs=self.server_options.encrypt_configs,
                                                 conn_type=self.conn_type))
                     cliente.connection = client

@@ -2,7 +2,7 @@ import random
 import string
 import asyncio
 from typing import Any, Callable
-from Abstracts import SyncCrypts
+from Abstracts.SyncCrypts import SyncCrypts
 from Options import SyncCrypt_ops
 from cryptography.fernet import Fernet
 from concurrent.futures import ThreadPoolExecutor
