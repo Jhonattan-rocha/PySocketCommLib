@@ -28,12 +28,12 @@ class WebSocketClient:
             payload_length = struct.unpack(">Q", message[offset:offset + 8])[0]
             offset += 8
 
-        return message[offset:offset + payload_length].decode('utf-8')
+        return message[offset:offset + payload_length].decode('cp850')
 
 
     def encode_message_with_mask(self, message: str) -> bytearray:
         # Converter a mensagem em bytes
-        message_bytes = message.encode('utf-8')
+        message_bytes = message.encode('cp850')
         
         # Gerar uma máscara de 4 bytes
         mask = os.urandom(4)  # Gera 4 bytes aleatórios

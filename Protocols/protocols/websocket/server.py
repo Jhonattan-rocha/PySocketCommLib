@@ -10,7 +10,7 @@ class WebSocketServer:
 
     def encode_message(self, message: str):
         # Converter a mensagem em bytes
-        message_bytes = message.encode('utf-8')
+        message_bytes = message.encode('cp850')
         
         # Construir o frame do WebSocket
         frame = bytearray()
@@ -66,10 +66,10 @@ class WebSocketServer:
             for i in range(payload_length):
                 decoded_bytes.append(message[offset + i] ^ mask[i % 4])
 
-            return decoded_bytes.decode('utf-8')
+            return decoded_bytes.decode('cp850')
         else:
             # Se não estiver mascarada, retornar diretamente os dados
-            return message[offset:offset + payload_length].decode('utf-8')
+            return message[offset:offset + payload_length].decode('cp850')
     
     def handshake(self, client_socket: socket.socket):
         request = client_socket.recv(1024).decode()
