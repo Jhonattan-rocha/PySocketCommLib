@@ -35,7 +35,7 @@ class WebSocketServer:
         
         return frame
 
-    def decode_message(self, message):
+    def decode_message(self, message: bytes):
         # Primeiro byte: FIN e opcode
         first_byte = message[0]
         fin = first_byte >> 7
