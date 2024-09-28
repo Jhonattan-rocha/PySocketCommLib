@@ -74,7 +74,24 @@ class Server(threading.Thread):
         file.setBytes(bytes_recv)
         file.decompress_bytes()
         return file
+    
+    def extract_number(self, data):
+        if isinstance(data, (int, float)):
+            return data
 
+        if isinstance(data, (str, bytes)):
+            try:
+                return int(data)
+            except Exception as e:
+                pass
+
+        if isinstance(data, (bytes, bytearray)):
+            try:
+                decoded_value, = struct.unpack("!Q", data)[0]
+                return decoded_value
+            except struct.error:
+                pass
+    
     def receive_message(self, client: socket.socket | ssl.SSLSocket, recv_bytes: int = 2048, block: bool = False) -> bytes:
         raw_msglen = client.recv(8)
         if not raw_msglen:
