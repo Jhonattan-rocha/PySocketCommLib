@@ -123,7 +123,7 @@ class Server(threading.Thread):
             pass
 
         try:
-            message = self.encoder(message)
+            message = self.encoder(message.decode("cp850"))
         except Exception as e:
             pass
         
