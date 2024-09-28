@@ -128,7 +128,7 @@ class Server(threading.Thread):
             pass
         
         msglen = len(message)
-        client.sendall(self.encoder(struct.pack("!Q", msglen)))
+        client.sendall(self.encoder(struct.pack("!Q", msglen).decode("cp850")))
 
         if block:
             client.sendall(message)
