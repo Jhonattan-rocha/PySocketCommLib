@@ -18,6 +18,8 @@ class Server:
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.auth: Auth = Options.auth
+        self.encoder = Options.encoder
+        self.decoder = Options.decoder
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
@@ -57,14 +59,25 @@ class Server:
         for client in self.__clients:
             await self.send_message(message, sent_bytes, client.writer)
 
-    async def send_message(self, message: bytes, sent_bytes: int = 2048, writer: asyncio.StreamWriter = None):
+    async def send_message(self, message: bytes, sent_bytes: int = 2048, writer: asyncio.StreamWriter = None, block: bool = False):
         try:
             message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
         except Exception as e:
             pass
+
+        try:
+            message = await self.encoder(message)
+        except Exception as e:
+            pass
+
         lng = len(message)
-        writer.write(struct.pack("!Q", lng))
+        writer.write(await self.encoder(struct.pack("!Q", lng)))
         await writer.drain()
+
+        if block:
+            writer.write(message)
+            await writer.drain()
+            return
 
         offset = 0
         while offset < lng:
@@ -72,8 +85,19 @@ class Server:
             await writer.drain()
             offset += sent_bytes
 
-    async def receive_message(self, recv_bytes: int = 2048, reader: asyncio.StreamReader = None):
-        length = struct.unpack("!Q", await reader.read(8))[0]
+    async def receive_message(self, recv_bytes: int = 2048, reader: asyncio.StreamReader = None, block: bool = False):
+        length = struct.unpack("!Q", await self.decoder(await reader.read(8)))[0]
+
+        if block:
+            message = reader.read(length)
+            try:
+                dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, await self.decoder(message))
+                if await self.events.async_executor(self.events.size) > 0:
+                    await self.events.async_executor(self.events.scam, dec)
+                return dec
+            except Exception as e:
+                print(e)
+                return await self.decoder(message)
 
         chunks = []
         bytes_received = 0
@@ -86,13 +110,12 @@ class Server:
 
         res = b"".join(chunks)
         try:
-            dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, res)
+            dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, await self.decoder(res))
             if await self.events.async_executor(self.events.size) > 0:
                 await self.events.async_executor(self.events.scam, dec)
             return dec
         except Exception as e:
-            print(e)
-            return res
+            return await self.decoder(res)
 
     async def is_running(self) -> bool:
         return self.__running

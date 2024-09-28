@@ -21,6 +21,8 @@ class Server(threading.Thread):
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.auth: Auth = Options.auth
+        self.encoder = Options.encoder
+        self.decoder = Options.decoder
         self.conn_type: Types | tuple = Options.conn_type
         self.events = Events()
         self.taskManager = TaskManager()
@@ -73,11 +75,22 @@ class Server(threading.Thread):
         file.decompress_bytes()
         return file
 
-    def receive_message(self, client: socket.socket | ssl.SSLSocket, recv_bytes: int = 2048) -> bytes:
+    def receive_message(self, client: socket.socket | ssl.SSLSocket, recv_bytes: int = 2048, block: bool = False) -> bytes:
         raw_msglen = client.recv(8)
         if not raw_msglen:
             return b""
-        msglen = struct.unpack("!Q", raw_msglen)[0]
+        msglen = struct.unpack("!Q", self.decoder(raw_msglen))[0]
+
+        if block:
+            message = client.recv(msglen)
+            try:
+                dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(message))
+                if self.events.size() > 0:
+                    self.events.scam(dec_message)
+                return dec_message
+            except Exception as e:
+                return self.decoder(message)
+
         chunks = []
         bytes_received = 0
         while bytes_received < msglen:
@@ -89,12 +102,12 @@ class Server(threading.Thread):
 
         message = b"".join(chunks)
         try:
-            dec_message = self.crypt.sync_crypt.decrypt_message(message)
+            dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(message))
             if self.events.size() > 0:
                 self.events.scam(dec_message)
             return dec_message
         except Exception as e:
-            return message
+            return self.decoder(message)
 
     def send_message_all_clients(self, message: bytes, sent_bytes: int = 2048):
         try:
@@ -103,13 +116,24 @@ class Server(threading.Thread):
         except Exception as e:
             print(e)
 
-    def send_message(self, client: socket.socket | ssl.SSLSocket, message: bytes, sent_bytes: int = 2048) -> None:
+    def send_message(self, client: socket.socket | ssl.SSLSocket, message: bytes, sent_bytes: int = 2048, block: bool = False) -> None:
         try:
             message = self.crypt.sync_crypt.encrypt_message(message)
         except Exception as e:
             pass
+
+        try:
+            message = self.encoder(message)
+        except Exception as e:
+            pass
+        
         msglen = len(message)
-        client.sendall(struct.pack("!Q", msglen))
+        client.sendall(self.encoder(struct.pack("!Q", msglen)))
+
+        if block:
+            client.sendall(message)
+            return
+
         offset = 0
         while offset < msglen:
             sent = client.send(message[offset:offset + sent_bytes])

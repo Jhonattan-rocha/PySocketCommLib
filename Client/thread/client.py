@@ -19,6 +19,8 @@ class Client(threading.Thread):
         self.client_options = Options
         self.HOST = Options.host
         self.PORT = Options.port
+        self.encoder = Options.encoder
+        self.decoder = Options.decoder
         self.auth: Auth = Options.auth
         self.uuid = uuid.uuid4()
         self.events = Events()
@@ -60,11 +62,22 @@ class Client(threading.Thread):
         file.decompress_bytes()
         return file
 
-    def receive_message(self, recv_bytes: int = 2048) -> bytes:
+    def receive_message(self, recv_bytes: int = 2048, block: bool = False) -> bytes:
         raw_msglen = self.connection.recv(8)
         if not raw_msglen:
             return b""
-        msglen = struct.unpack("!Q", raw_msglen)[0]
+        msglen = struct.unpack("!Q", self.decoder(raw_msglen))[0]
+
+        if block:
+            message = self.connection.recv(msglen)
+            try:
+                dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(message))
+                if self.events.size() > 0:
+                    self.events.scam(dec_message)
+                return dec_message
+            except Exception as e:
+                return self.decoder(message)
+
         chunks = []
         bytes_received = 0
         while bytes_received < msglen:
@@ -76,21 +89,31 @@ class Client(threading.Thread):
 
         message = b"".join(chunks)
         try:
-            dec_message = self.crypt.sync_crypt.decrypt_message(message)
+            dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(message))
             if self.events.size() > 0:
                 self.events.scam(dec_message)
             return dec_message
         except Exception as e:
-            print(e)
-            return message
+            return self.decoder(message)
 
-    def send_message(self, message: bytes, sent_bytes: int = 2048) -> None:
+    def send_message(self, message: bytes, sent_bytes: int = 2048, block: bool = False) -> None:
         try:
             message = self.crypt.sync_crypt.encrypt_message(message)
         except Exception as e:
             pass
+
+        try:
+            message = self.encoder(message)
+        except Exception as e:
+            pass
+        
         msglen = len(message)
-        self.connection.sendall(struct.pack("!Q", msglen))
+        self.connection.sendall(self.encoder(struct.pack("!Q", msglen)))
+
+        if block:
+            self.connection.sendall(message)
+            return
+
         offset = 0
         while offset < msglen:
             sent = self.connection.send(message[offset:offset + sent_bytes])
