@@ -61,12 +61,29 @@ class Client(threading.Thread):
         file.setBytes(bytes_recv)
         file.decompress_bytes()
         return file
+    
+    def __extract_number(self, data):
+        if isinstance(data, (int, float)):
+            return data
+
+        if isinstance(data, (str, bytes)):
+            try:
+                return int(data)
+            except Exception as e:
+                pass
+
+        if isinstance(data, (bytes, bytearray)):
+            try:
+                decoded_value = struct.unpack("!Q", data)[0]
+                return decoded_value
+            except struct.error:
+                pass
 
     def receive_message(self, recv_bytes: int = 2048, block: bool = False) -> bytes:
         raw_msglen = self.connection.recv(8)
         if not raw_msglen:
             return b""
-        msglen = struct.unpack("!Q", self.decoder(raw_msglen))[0]
+        msglen = self.__extract_number(self.decoder(raw_msglen))
 
         if block:
             message = self.connection.recv(msglen)

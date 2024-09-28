@@ -85,8 +85,25 @@ class Server:
             await writer.drain()
             offset += sent_bytes
 
+    async def __extract_number(self, data):
+        if isinstance(data, (int, float)):
+            return data
+
+        if isinstance(data, (str, bytes)):
+            try:
+                return int(data)
+            except Exception as e:
+                pass
+
+        if isinstance(data, (bytes, bytearray)):
+            try:
+                decoded_value = struct.unpack("!Q", data)[0]
+                return decoded_value
+            except struct.error:
+                pass
+
     async def receive_message(self, recv_bytes: int = 2048, reader: asyncio.StreamReader = None, block: bool = False):
-        length = struct.unpack("!Q", await self.decoder(await reader.read(8)))[0]
+        length = await self.__extract_number(await self.decoder(await reader.read(8)))
 
         if block:
             message = reader.read(length)

@@ -75,7 +75,7 @@ class Server(threading.Thread):
         file.decompress_bytes()
         return file
     
-    def extract_number(self, data):
+    def __extract_number(self, data):
         if isinstance(data, (int, float)):
             return data
 
@@ -87,7 +87,7 @@ class Server(threading.Thread):
 
         if isinstance(data, (bytes, bytearray)):
             try:
-                decoded_value, = struct.unpack("!Q", data)[0]
+                decoded_value = struct.unpack("!Q", data)[0]
                 return decoded_value
             except struct.error:
                 pass
@@ -96,7 +96,7 @@ class Server(threading.Thread):
         raw_msglen = client.recv(8)
         if not raw_msglen:
             return b""
-        msglen = struct.unpack("!Q", self.decoder(raw_msglen))[0]
+        msglen = self.__extract_number(self.decoder(raw_msglen))
 
         if block:
             message = client.recv(msglen)

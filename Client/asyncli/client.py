@@ -98,9 +98,26 @@ class Client:
             await self.writer.drain()
             offset += sent_bytes
 
+    async def __extract_number(self, data):
+        if isinstance(data, (int, float)):
+            return data
+
+        if isinstance(data, (str, bytes)):
+            try:
+                return int(data)
+            except Exception as e:
+                pass
+
+        if isinstance(data, (bytes, bytearray)):
+            try:
+                decoded_value = struct.unpack("!Q", data)[0]
+                return decoded_value
+            except struct.error:
+                pass
+
     async def receive_message(self, recv_bytes: int = 2048, block: bool = False):
         lng = await self.reader.read(8)
-        length = struct.unpack("!Q", await self.decoder(lng))[0]
+        length = await self.__extract_number(await self.decoder(lng))
 
         if block:
             message = self.reader.read(length)
