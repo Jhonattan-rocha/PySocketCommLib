@@ -8,7 +8,10 @@ class WebSocketServer:
     def __init__(self) -> None:
         pass
 
-    def encode_message(self, message_bytes: bytes):
+    def encode_message(self, message: str):
+        # Converter a mensagem em bytes
+        message_bytes = message.encode('cp850')
+        
         # Construir o frame do WebSocket
         frame = bytearray()
         
