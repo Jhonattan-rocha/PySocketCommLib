@@ -151,6 +151,9 @@ class Client(threading.Thread):
         self.connection.close()
         self.__running = False
 
+    def handshake(self, client: socket.socket | ssl.SSLSocket) -> bool:
+        pass    
+
     def connect(self, ignore_err=False) -> None:
         try:
             if not self.connection:
@@ -162,6 +165,9 @@ class Client(threading.Thread):
                     pass
 
                 self.connection.connect((self.HOST, self.PORT))
+
+                self.handshake(self.connection)
+
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
                         self.sync_crypt_key()
