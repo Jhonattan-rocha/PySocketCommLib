@@ -26,6 +26,7 @@ class Client(threading.Thread):
         self.events = Events()
         self.taskManager = TaskManager()
         self.configureProtocol = config
+        self.configureConnection = {}
         self.__running: bool = True
         self.connection: socket.socket | ssl.SSLSocket | None = None
         self.conn_type: Types | tuple = Options.conn_type
@@ -151,8 +152,9 @@ class Client(threading.Thread):
         self.connection.close()
         self.__running = False
 
-    def handshake(self, client: socket.socket | ssl.SSLSocket) -> bool:
-        pass    
+    def handshake(self) -> bool:
+        for key, value in enumerate(self.configureConnection):
+            value(self.connection)   
 
     def connect(self, ignore_err=False) -> None:
         try:
@@ -167,7 +169,7 @@ class Client(threading.Thread):
                 self.connection.connect((self.HOST, self.PORT))
 
                 try:
-                    self.handshake(self.connection)
+                    self.handshake()
                 except Exception as ex:
                     pass
 

@@ -27,6 +27,7 @@ class Server(threading.Thread):
         self.events = Events()
         self.taskManager = TaskManager()
         self.configureProtocol = config
+        self.configureConnection = {}
         self.__clients: list[ThreadClient] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
@@ -185,7 +186,8 @@ class Server(threading.Thread):
                 return client
     
     def handshake(self, client: socket.socket | ssl.SSLSocket) -> bool:
-        pass
+        for key, value in enumerate(self.configureConnection):
+            value(client)
 
     def run(self) -> None:
         with socket.socket(*self.conn_type) as server:

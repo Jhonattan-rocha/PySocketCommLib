@@ -23,6 +23,7 @@ class Client:
         self.events = Events()
         self.taskManager = AsyncTaskManager()
         self.configureProtocol = config
+        self.configureConnection = {}
         self.__running: bool = True
         self.reader = None
         self.writer = None
@@ -153,8 +154,9 @@ class Client:
         await self.writer.wait_closed()
         self.__running = False
 
-    async def handshake(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> bool:
-        pass
+    async def handshake(self) -> bool:
+        for key, value in enumerate(self.configureConnection):
+            await value(self.reader, self.writer)
 
     async def connect(self, ignore_err=False) -> None:
         try:
@@ -162,7 +164,7 @@ class Client:
                 self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT, ssl=self.ssl_context)
                 
                 try:
-                    await self.handshake(self.reader, self.writer)
+                    await self.handshake()
                 except Exception as e:
                     pass
 

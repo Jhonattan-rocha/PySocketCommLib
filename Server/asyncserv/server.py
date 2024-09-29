@@ -24,6 +24,7 @@ class Server:
         self.events = Events()
         self.taskManager = AsyncTaskManager()
         self.configureProtocol = config
+        self.configureConnection = {}
         self.__clients: list[AsyncClient] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
@@ -160,7 +161,8 @@ class Server:
                 return client
 
     async def handshake(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> bool:
-        pass
+        for key, value in enumerate(self.configureConnection):
+            await value(reader, writer)
 
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         print(f"Cliente conectado")
