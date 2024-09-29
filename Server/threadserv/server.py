@@ -184,10 +184,6 @@ class Server(threading.Thread):
         for client in self.__clients:
             if str(client.uuid) == uuid:
                 return client
-    
-    def handshake(self, client: socket.socket | ssl.SSLSocket) -> bool:
-        for key, value in enumerate(self.configureConnection):
-            value(client)
 
     def run(self) -> None:
         with socket.socket(*self.conn_type) as server:
@@ -202,17 +198,6 @@ class Server(threading.Thread):
 
                     try:
                         client = self.ssl_context.wrap_socket(client, server_side=True)
-                    except Exception as ex:
-                        pass
-
-                    try:
-                        self.handshake(client)
-                    except Exception as ex:
-                        pass
-
-                    try:
-                        if self.crypt.async_crypt and self.crypt.sync_crypt:
-                            self.sync_crypt_key(client)
                     except Exception as ex:
                         pass
 

@@ -150,11 +150,7 @@ class Client(threading.Thread):
 
     def disconnect(self) -> None:
         self.connection.close()
-        self.__running = False
-
-    def handshake(self) -> bool:
-        for key, value in enumerate(self.configureConnection):
-            value(self.connection)   
+        self.__running = False   
 
     def connect(self, ignore_err=False) -> None:
         try:
@@ -167,17 +163,6 @@ class Client(threading.Thread):
                     pass
 
                 self.connection.connect((self.HOST, self.PORT))
-
-                try:
-                    self.handshake()
-                except Exception as ex:
-                    pass
-
-                try:
-                    if self.crypt.async_crypt and self.crypt.sync_crypt:
-                        self.sync_crypt_key()
-                except Exception as ex:
-                    pass
 
                 try:
                     if self.auth and not self.auth.validate_token(self):

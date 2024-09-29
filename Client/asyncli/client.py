@@ -154,25 +154,10 @@ class Client:
         await self.writer.wait_closed()
         self.__running = False
 
-    async def handshake(self) -> bool:
-        for key, value in enumerate(self.configureConnection):
-            await value(self.reader, self.writer)
-
     async def connect(self, ignore_err=False) -> None:
         try:
             if not self.reader and not self.writer:
                 self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT, ssl=self.ssl_context)
-                
-                try:
-                    await self.handshake()
-                except Exception as e:
-                    pass
-
-                try:
-                    if self.crypt.async_crypt and self.crypt.sync_crypt:
-                        await self.sync_crypt_key()
-                except Exception as e:
-                    pass
 
                 try:
                     if self.auth and not self.auth.validate_token(self):
