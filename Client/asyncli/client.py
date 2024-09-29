@@ -161,7 +161,10 @@ class Client:
             if not self.reader and not self.writer:
                 self.reader, self.writer = await asyncio.open_connection(self.HOST, self.PORT, ssl=self.ssl_context)
                 
-                await self.handshake(self.reader, self.writer)
+                try:
+                    await self.handshake(self.reader, self.writer)
+                except Exception as e:
+                    pass
 
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:

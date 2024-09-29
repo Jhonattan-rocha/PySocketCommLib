@@ -165,7 +165,10 @@ class Server:
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         print(f"Cliente conectado")
         try:
-            await self.handshake(reader, writer)
+            try:
+                await self.handshake(reader, writer)
+            except Exception as e:
+                pass
             
             if self.crypt.async_crypt and self.crypt.sync_crypt:
                 await self.sync_crypt_key(reader, writer)

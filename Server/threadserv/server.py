@@ -203,7 +203,10 @@ class Server(threading.Thread):
                     except Exception as ex:
                         pass
 
-                    self.handshake(client)
+                    try:
+                        self.handshake(client)
+                    except Exception as ex:
+                        pass
 
                     try:
                         if self.crypt.async_crypt and self.crypt.sync_crypt:

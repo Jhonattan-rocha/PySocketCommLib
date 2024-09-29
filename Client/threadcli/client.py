@@ -166,7 +166,10 @@ class Client(threading.Thread):
 
                 self.connection.connect((self.HOST, self.PORT))
 
-                self.handshake(self.connection)
+                try:
+                    self.handshake(self.connection)
+                except Exception as ex:
+                    pass
 
                 try:
                     if self.crypt.async_crypt and self.crypt.sync_crypt:
