@@ -31,10 +31,7 @@ class WebSocketClient:
         return message[offset:offset + payload_length].decode('cp850')
 
 
-    def encode_message_with_mask(self, message: str) -> bytearray:
-        # Converter a mensagem em bytes
-        message_bytes = message.encode('cp850')
-        
+    def encode_message_with_mask(self, message_bytes: bytes) -> bytearray:
         # Gerar uma máscara de 4 bytes
         mask = os.urandom(4)  # Gera 4 bytes aleatórios
         
