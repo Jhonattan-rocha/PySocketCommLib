@@ -63,10 +63,10 @@ class Client:
 
     async def sync_crypt_key(self):
         key_to_send = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.public_key_to_bytes)
-        self.writer.write(key_to_send)
+        self.writer.write(self.encoder(key_to_send))
         await self.writer.drain()
 
-        enc_key = await self.reader.read(2048)
+        enc_key = self.decoder(await self.reader.read(2048))
         key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.decrypt_with_private_key, enc_key)
         await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.set_key, key)
 

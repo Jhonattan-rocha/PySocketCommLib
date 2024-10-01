@@ -143,14 +143,14 @@ class Server:
             self.__clients.append(client)
 
     async def sync_crypt_key(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        client_public_key = await reader.read(2048)
+        client_public_key = self.decoder(await reader.read(2048))
         client_public_key_obj = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.load_public_key,
                                                                             client_public_key)
 
         sync_key = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.get_key)
         enc_key = await self.crypt.async_crypt.async_executor(self.crypt.async_crypt.encrypt_with_public_key, sync_key,
                                                               client_public_key_obj)
-        writer.write(enc_key)
+        writer.write(self.encoder(enc_key))
         await writer.drain()
 
     async def get_client(self, uuid: str = "") -> AsyncClient:

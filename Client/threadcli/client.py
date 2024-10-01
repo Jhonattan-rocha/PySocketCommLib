@@ -140,8 +140,8 @@ class Client(threading.Thread):
             offset += sent
 
     def sync_crypt_key(self):
-        self.connection.sendall(self.crypt.async_crypt.public_key_to_bytes())
-        enc_key = self.connection.recv(2048)
+        self.connection.sendall(self.encoder(self.crypt.async_crypt.public_key_to_bytes()))
+        enc_key = self.decoder(self.connection.recv(2048))
         key = self.crypt.async_crypt.decrypt_with_private_key(enc_key)
         self.crypt.sync_crypt.set_key(key)
 

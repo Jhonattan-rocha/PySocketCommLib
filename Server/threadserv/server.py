@@ -167,10 +167,10 @@ class Server(threading.Thread):
             self.__clients.append(client)
 
     def sync_crypt_key(self, client: socket.socket | ssl.SSLSocket):
-        client_public_key = client.recv(2048)
+        client_public_key = self.decoder(client.recv(2048))
         client_public_key_obj = self.crypt.async_crypt.load_public_key(client_public_key)
         enc_key = self.crypt.async_crypt.encrypt_with_public_key(self.crypt.sync_crypt.get_key(), client_public_key_obj)
-        client.sendall(enc_key)
+        client.sendall(self.encoder(enc_key))
 
     def break_server(self):
         for client in self.__clients:
