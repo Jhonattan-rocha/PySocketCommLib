@@ -19,19 +19,15 @@ class Auth(ABC):
         self.token = token
 
     @abstractmethod
-    def send_token(self, client: Client) -> str:
+    def get_token(self, client: Client | None = None) -> str:
         pass
 
     @abstractmethod
-    def get_token(self, client: Client) -> str:
+    def set_token(self, client: Client | None = None, token: str = "") -> str:
         pass
 
     @abstractmethod
-    def set_token(self, client: Client) -> str:
-        pass
-
-    @abstractmethod
-    def validate_token(self, client: Client) -> bool:
+    def validate_token(self, client: Client | None = None) -> bool:
         pass
 
     @abstractmethod

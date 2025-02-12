@@ -3,6 +3,7 @@ import ssl
 import struct
 import threading
 import sys
+from queue import Queue
 from Abstracts.Auth import Auth
 from Events import Events
 from Options import Server_ops, Client_ops, SSLContextOps
@@ -28,6 +29,8 @@ class Server(threading.Thread):
         self.taskManager = TaskManager()
         self.configureProtocol = config
         self.configureConnection = {}
+        self.server_socket: socket.socket | None = None
+        self.hitory_udp_message: Queue[tuple] = Queue(Options.MAX_HISTORY_UDP_MESSAGES)
         self.__clients: list[ThreadClient] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
@@ -126,6 +129,33 @@ class Server(threading.Thread):
             return dec_message
         except Exception as e:
             return self.decoder(message)
+        
+    def send_message_udp(self, client_address, message: bytes, sent_bytes: int = 2048):
+        self.hitory_udp_message.put((client_address, message))
+        try:
+            message = self.crypt.sync_crypt.encrypt_message(message)
+        except Exception as e:
+            pass
+
+        try:
+            message = self.encoder(message.decode("cp850"))
+        except Exception as e:
+            pass
+
+        self.server_socket.sendto(message.encode('cp850'), client_address)
+
+    def receive_message_udp(self, recv_bytes: int = 2048):
+        data, address = self.server_socket.recvfrom(recv_bytes)
+        if not data:
+            return b"", address
+
+        try:
+            dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(data))
+            if self.events.size() > 0:
+                self.events.scam(dec_message)
+            return dec_message, address
+        except Exception as e:
+            return self.decoder(data), address
 
     def send_message_all_clients(self, message: bytes, sent_bytes: int = 2048):
         try:
@@ -218,6 +248,53 @@ class Server(threading.Thread):
                     sys.exit(1)
                 except Exception as e:
                     sys.exit(1)
+
+    def run(self) -> None:
+        with socket.socket(*self.conn_type) as server_socket:
+            self.server_socket = server_socket
+            server_socket.bind((self.HOST, self.PORT))
+
+            if self.conn_type in [Types.TCP_IPV4, Types.TCP_IPV6]:
+                server_socket.listen()
+                print("Servidor TCP rodando")
+                while self.__running:
+                    try:
+                        (client, address) = server.accept()
+
+                        try:
+                            client = self.ssl_context.wrap_socket(client, server_side=True)
+                        except Exception as ex:
+                            pass
+
+                        cliente = ThreadClient(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
+                                                    encrypt_configs=self.server_options.encrypt_configs,
+                                                    conn_type=self.conn_type))
+                        cliente.connection = client
+
+                        try:
+                            if self.auth and not self.auth.validate_token(cliente):
+                                cliente.disconnect()
+                                continue
+                        except Exception as e:
+                            pass
+
+                        self.save_clients(cliente)
+                    except KeyboardInterrupt:
+                        sys.exit(1)
+                    except Exception as e:
+                        sys.exit(1)
+
+            elif self.conn_type in [Types.UDP_IPV4, Types.UDP_IPV6]:
+                print("Servidor UDP rodando")
+                while self.__running:
+                    try:
+                        data = self.receive_message_udp()
+                        if data:
+                            self.hitory_udp_message.put(data)
+                    except KeyboardInterrupt:
+                        sys.exit(1)
+                    except Exception as e:
+                        print(f"Erro no servidor UDP: {e}")
 
 
 if __name__ == '__main__':

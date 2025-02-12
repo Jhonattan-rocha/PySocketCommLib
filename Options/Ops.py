@@ -36,7 +36,7 @@ class SSLContextOps:
 class Server_ops:
     def __init__(self, host: str = "127.0.0.1", port: int = 8080, encrypt_configs: Crypt_ops = None,
                  conn_type: Types | tuple | None = Types.TCP_IPV4, ssl_ops: SSLContextOps = None,
-                 auth: Auth = None, encoder: Callable[..., Any] = None, decoder: Callable[..., Any] = None) -> None:
+                 auth: Auth = None, encoder: Callable[..., Any] = None, decoder: Callable[..., Any] = None, MAX_HISTORY_UDP_MESSAGES: int = 256, auth_method: str = "noauth", auth_config: dict[str, Any] = {}) -> None:
         self.host = host
         self.port = port
         self.conn_type = conn_type
@@ -45,12 +45,15 @@ class Server_ops:
         self.auth = auth
         self.encoder = encoder
         self.decoder = decoder
+        self.MAX_HISTORY_UDP_MESSAGES = MAX_HISTORY_UDP_MESSAGES
+        self.auth_method = auth_method
+        self.auth_config = auth_config
 
 
 class Client_ops:
     def __init__(self, host: str = "127.0.0.1", port: int = 8080, encrypt_configs: Crypt_ops = None,
                  conn_type: Types | tuple | None = Types.TCP_IPV4, ssl_ops: SSLContextOps = None,
-                 auth: Auth = None, encoder: Callable[..., Any] = None, decoder: Callable[..., Any] = None) -> None:
+                 auth: Auth = None, encoder: Callable[..., Any] = None, decoder: Callable[..., Any] = None, MAX_HISTORY_UDP_MESSAGES: int = 256, auth_method: str = "noauth", auth_config: dict[str, Any] = {}) -> None:
         self.host = host
         self.port = port
         self.conn_type = conn_type
@@ -59,3 +62,7 @@ class Client_ops:
         self.auth = auth
         self.encoder = encoder
         self.decoder = decoder
+        self.MAX_HISTORY_UDP_MESSAGES = MAX_HISTORY_UDP_MESSAGES
+        self.auth_method = auth_method
+        self.auth_config = auth_config
+        

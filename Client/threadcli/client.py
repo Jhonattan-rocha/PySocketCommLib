@@ -3,6 +3,7 @@ import ssl
 import struct
 import threading
 import uuid
+from queue import Queue
 from Abstracts.Auth import Auth
 from Events import Events
 from Files import File
@@ -27,6 +28,7 @@ class Client(threading.Thread):
         self.taskManager = TaskManager()
         self.configureProtocol = config
         self.configureConnection = {}
+        self.history_udp_messages: Queue[tuple] = Queue()
         self.__running: bool = True
         self.connection: socket.socket | ssl.SSLSocket | None = None
         self.conn_type: Types | tuple = Options.conn_type
@@ -113,6 +115,34 @@ class Client(threading.Thread):
             return dec_message
         except Exception as e:
             return self.decoder(message)
+        
+    def send_message_udp(self, client_address, message: bytes, sent_bytes: int = 2048):
+        self.history_udp_messages.put((client_address, message))
+        try:
+            message = self.crypt.sync_crypt.encrypt_message(message)
+        except Exception as e:
+            pass
+
+        try:
+            message = self.encoder(message.decode("cp850"))
+        except Exception as e:
+            pass
+
+        self.connection.sendto(message.encode('cp850'), client_address)
+
+    def receive_message_udp(self, recv_bytes: int = 2048):
+        data, address = self.connection.recvfrom(recv_bytes)
+        if not data:
+            return b"", address
+
+        try:
+            dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(data))
+            if self.events.size() > 0:
+                self.events.scam(dec_message)
+            self.history_udp_messages.put((address, dec_message)) 
+            return dec_message, address
+        except Exception as e:
+            return self.decoder(data), address
 
     def send_message(self, message: bytes, sent_bytes: int = 2048, block: bool = False) -> None:
         try:
@@ -157,22 +187,27 @@ class Client(threading.Thread):
             if not self.connection:
                 self.connection = socket.socket(*self.conn_type)
 
-                try:
-                    self.connection = self.ssl_context.wrap_socket(self.connection, server_hostname=self.HOST)
-                except Exception as e:
-                    pass
+                if self.conn_type in [Types.TCP_IPV4, Types.TCP_IPV6]:
+                    try:
+                        self.connection = self.ssl_context.wrap_socket(self.connection, server_hostname=self.HOST)
+                    except Exception as e:
+                        pass 
 
-                self.connection.connect((self.HOST, self.PORT))
+                    self.connection.connect((self.HOST, self.PORT))
 
-                try:
-                    if self.auth and not self.auth.validate_token(self):
-                        self.disconnect()
-                except Exception as e:
+                    try:
+                        if self.auth and not self.auth.validate_token(self):
+                            self.disconnect()
+                            return 
+                    except Exception as e:
+                        pass
+
+                elif self.conn_type in [Types.UDP_IPV4, Types.UDP_IPV6]: 
                     pass
 
                 self.__running = True
             if not ignore_err:
-                raise RuntimeError("Conexão já extabelecida")
+                raise RuntimeError("Conexão já estabelecida")
         except Exception as e:
             self.__running = False
             print(e)
