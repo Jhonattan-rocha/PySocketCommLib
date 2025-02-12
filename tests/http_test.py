@@ -5,7 +5,7 @@ project_dir = os.path.abspath(os.path.join(current_dir, '..'))
 
 sys.path.append(project_dir)
 
-from Protocols.protocols import httpServerProtocol
+from Protocols.protocols.httpServer import httpServerProtocol
 
 server = httpServerProtocol.HttpServerProtocol("localhost", 8080)
 

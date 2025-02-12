@@ -12,8 +12,8 @@ from typing import Any, Callable
 
 class HttpServerProtocol:
     def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./server.log", static_dir: str = "./static") -> None:
-        self.host = host
-        self.port = port
+        self.host: str = host
+        self.port: str = port
         self.static_dir = static_dir
         self.regex_find_var_parameters = re.compile(r"/{(?P<type>\w+): (?P<name>\w+)}")
         logging.basicConfig(filename=logging_path, level=logging.INFO,

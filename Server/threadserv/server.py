@@ -228,7 +228,7 @@ class Server(threading.Thread):
         sys.exit(0)
     
     def get_client(self, uuid: str = "") -> ThreadClient:
-        if not uuid and len(self.__clients):
+        if not uuid and len(self.__clients) == 1:
             return self.__clients.pop()
         for client in self.__clients:
             if str(client.uuid) == uuid:

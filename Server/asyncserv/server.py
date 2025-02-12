@@ -173,7 +173,7 @@ class Server:
         await writer.drain()
 
     async def get_client(self, uuid: str = "") -> AsyncClient:
-        if not uuid and len(self.__clients):
+        if not uuid and len(self.__clients) == 1:
             return self.__clients.pop()
         for client in self.__clients:
             if str(client.uuid) == uuid:
