@@ -3,6 +3,8 @@ import ssl
 import struct
 import sys
 from Abstracts.Auth import Auth
+from Auth.NoAuth import NoAuth
+from Auth.SimpleAuth import SimpleTokenAuth
 from Events import Events
 from Files import File
 from Options import Client_ops, SSLContextOps, Server_ops
@@ -18,6 +20,8 @@ class Server:
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.auth: Auth = Options.auth
+        self.auth_method: str = Options.auth_method
+        self.auth_config: dict = Options.auth_config
         self.encoder = Options.encoder
         self.decoder = Options.decoder
         self.loop = asyncio.get_running_loop()
@@ -38,6 +42,21 @@ class Server:
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+            
+        if not self.auth:
+            self.auth = self._create_auth_instance()
+
+    def _create_auth_instance(self):
+        auth_method_name = self.auth_method.lower()
+        if auth_method_name == 'noauth':
+            return NoAuth()
+        elif auth_method_name == 'simpleauth':
+            token = self.auth_config.get('token')
+            if not token:
+                raise ValueError("SimpleTokenAuth requires 'token' in auth_config.")
+            return SimpleTokenAuth(token=token)
+        else:
+            return NoAuth()
 
     def ssl_configure(self, ssl_ops: SSLContextOps):
         self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)

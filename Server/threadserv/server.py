@@ -5,6 +5,8 @@ import threading
 import sys
 from queue import Queue
 from Abstracts.Auth import Auth
+from Auth.NoAuth import NoAuth
+from Auth.SimpleAuth import SimpleTokenAuth
 from Events import Events
 from Options import Server_ops, Client_ops, SSLContextOps
 from Crypt import Crypt
@@ -22,6 +24,8 @@ class Server(threading.Thread):
         self.HOST: str = Options.host
         self.PORT: int = Options.port
         self.auth: Auth = Options.auth
+        self.auth_method: str = Options.auth_method
+        self.auth_config: dict = Options.auth_config
         self.encoder = Options.encoder
         self.decoder = Options.decoder
         self.conn_type: Types | tuple = Options.conn_type
@@ -44,6 +48,21 @@ class Server(threading.Thread):
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+        
+        if not self.auth:
+            self.auth = self._create_auth_instance()
+
+    def _create_auth_instance(self):
+        auth_method_name = self.auth_method.lower()
+        if auth_method_name == 'noauth':
+            return NoAuth()
+        elif auth_method_name == 'simpletoken':
+            token = self.auth_config.get('token')
+            if not token:
+                raise ValueError("SimpleTokenAuth requires 'token' in auth_config.")
+            return SimpleTokenAuth(token=token)
+        else:
+            return NoAuth()
 
     def ssl_configure(self, ssl_ops: SSLContextOps):
         self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)

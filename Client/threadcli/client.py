@@ -5,6 +5,8 @@ import threading
 import uuid
 from queue import Queue
 from Abstracts.Auth import Auth
+from Auth.NoAuth import NoAuth
+from Auth.SimpleAuth import SimpleTokenAuth
 from Events import Events
 from Files import File
 from Options import Client_ops, SSLContextOps
@@ -23,12 +25,14 @@ class Client(threading.Thread):
         self.encoder = Options.encoder
         self.decoder = Options.decoder
         self.auth: Auth = Options.auth
+        self.auth_method: str = Options.auth_method
+        self.auth_config: dict = Options.auth_config
         self.uuid = uuid.uuid4()
         self.events = Events()
         self.taskManager = TaskManager()
         self.configureProtocol = config
         self.configureConnection = {}
-        self.history_udp_messages: Queue[tuple] = Queue()
+        self.history_udp_messages: Queue[tuple] = Queue(Options.MAX_HISTORY_UDP_MESSAGES)
         self.__running: bool = True
         self.connection: socket.socket | ssl.SSLSocket | None = None
         self.conn_type: Types | tuple = Options.conn_type
@@ -43,6 +47,22 @@ class Client(threading.Thread):
         if Options.encrypt_configs:
             self.crypt = Crypt()
             self.crypt.configure(Options.encrypt_configs)
+        
+        
+        if not self.auth:
+            self.auth = self._create_auth_instance()
+
+    def _create_auth_instance(self):
+        auth_method_name = self.auth_method.lower()
+        if auth_method_name == 'noauth':
+            return NoAuth()
+        elif auth_method_name == 'simpletoken':
+            token = self.auth_config.get('token')
+            if not token:
+                raise ValueError("SimpleTokenAuth requires 'token' in auth_config.")
+            return SimpleTokenAuth(token=token)
+        else:
+            return NoAuth()
 
     def ssl_configure(self, ssl_ops: SSLContextOps):
         # Define o contexto SSL
