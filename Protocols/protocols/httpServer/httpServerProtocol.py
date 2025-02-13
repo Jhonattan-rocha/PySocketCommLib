@@ -12,7 +12,7 @@ from Protocols.protocols.httpServer.Responses import FileResponse, RedirectRespo
 from Protocols.protocols.httpServer.Router import Router
 
 class HttpServerProtocol:
-    def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./server.log", static_dir: str = "./static") -> None:
+    def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static") -> None:
         self.host: str = host
         self.port: str = port
         self.static_dir = static_dir
@@ -242,14 +242,14 @@ if __name__ == '__main__':
     @my_router.get("/files/{str:filename}")
     def file_route(handler, params):
         filename = params[2].get('filename')
-        filepath = os.path.join(server.static_dir, filename) # Be careful with path traversal in real apps!
+        filepath = os.path.join(server.static_dir, filename)
         try:
             return FileResponse(filepath)
         except FileNotFoundError:
             return Response(body=b"File not found", status=404)
 
 
-    @server.get("/direct_route") # Example of a direct route still on HttpServerProtocol
+    @server.get("/direct_route")
     def direct_handler(handler, params):
         return Response(body=b"Hello from direct route!", content_type='text/plain')
 

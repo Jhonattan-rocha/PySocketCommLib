@@ -2,7 +2,7 @@ from Protocols import HttpServerProtocol
 from Protocols import WebSocketClient
 from Protocols import WebSocketServer
 
-def config(proto: str):
+def config(proto: str) -> HttpServerProtocol | WebSocketClient | WebSocketServer:
     """Protocols
     Args:
         proto (str): name of protocol
