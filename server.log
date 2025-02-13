@@ -1,0 +1,6 @@
+2025-02-13 11:07:20,995 - INFO - Starting server on localhost:8081
+2025-02-13 11:07:56,616 - INFO - Request: ('127.0.0.1', 51792) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-13 11:07:56,617 - INFO - Request: ('127.0.0.1', 51792) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-13 11:07:56,617 - INFO - Request: ('127.0.0.1', 51792) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-13 11:07:56,618 - INFO - Request: ('127.0.0.1', 51792) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-13 11:07:56,876 - INFO - Request: ('127.0.0.1', 51794) - "GET /favicon.ico HTTP/1.1" 404 -

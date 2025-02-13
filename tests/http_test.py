@@ -7,25 +7,19 @@ sys.path.append(project_dir)
 
 from Protocols.protocols.httpServer import httpServerProtocol
 
-server = httpServerProtocol.HttpServerProtocol("localhost", 8080)
+server = httpServerProtocol.HttpServerProtocol("localhost", 8081)
 
 @server.add_handler(url="/user/{int: id}",method="GET")
 def test(handler, params):
     print("Né que funciona 1")
-    handler.send_response(200)
-    handler.send_header("Content-type", "application/json")
-    handler.end_headers()
-    response = f"Received query parameters: {params}"
-    handler.wfile.write(response.encode())
+    response_data = {"message": f"Received query parameters: {params}"} # Structure your data
+    return httpServerProtocol.JSONResponse(data=response_data) # Return JSONResponse
 
 @server.add_handler(url="/user/",method="GET")
 def test_2(handler, params):
     print("Né que funciona 2")
-    handler.send_response(200)
-    handler.send_header("Content-type", "application/json")
-    handler.end_headers()
-    response = f"Received query parameters: {params}"
-    handler.wfile.write(response.encode())
+    response_data = {"message": f"Received query parameters: {params}"} # Structure your data
+    return httpServerProtocol.JSONResponse(data=response_data) # Return JSONResponse
 
 
 server.start_http_server()
