@@ -257,37 +257,40 @@ def gerar_nonce(tamanho=24):
 
 def construir_client_first_message(usuario, client_nonce):
     """Constrói a mensagem inicial do cliente (Client First Message)."""
-    gs2_header = 'n,,'.encode('utf-8') #  gs2-cbind-flag, atualmente sempre 'n,,' para PostgreSQL
-    username = f"n={preparar_nome_usuario(usuario)}".encode('utf-8')
-    nonce = f"r={client_nonce}".encode('utf-8')
-    return base64.b64encode(gs2_header + username + b'\x00' + nonce).decode('utf-8')
+    gs2_header = "n,,"  # Header GS2 correto para PostgreSQL (sem binding)
+    username = f"n={preparar_nome_usuario(usuario)}"
+    nonce = f"r={client_nonce}"
+
+    # Aqui, montamos a mensagem corretamente, SEM repetir 'n,,'
+    client_first_message_bare = f"{username},{nonce}"
+    
+    return gs2_header, client_first_message_bare  # Retornar separadamente
 
 def construir_client_final_message_without_proof(client_nonce, server_nonce):
     """Constrói a mensagem final do cliente (Client Final Message) sem a prova."""
-    channel_binding = 'c='.encode('utf-8') # Sem channel binding para este exemplo 'c='
-    nonce = f"r={client_nonce}{server_nonce}".encode('utf-8') # Client nonce + server nonce
-    return f"{channel_binding.decode('utf-8')}{nonce.decode('utf-8')}"
+    channel_binding = 'c=biws'  # Sem channel binding
+    nonce = f"r={server_nonce}"  # Certificar-se de usar o nonce completo
+
+    return f"{channel_binding},{nonce}"
 
 def construir_mensagem_inicial_sasl(client_first_message):
-    """Constrói a mensagem SASLInitialResponse."""
-    mecanismo = 'SCRAM-SHA-256\x00'.encode('utf-8') # Mecanismo SASL e null terminator
-    payload = client_first_message.encode('utf-8') # payload é o client_first_message (já em base64)
-    mensagem_corpo = mecanismo + payload
-    tamanho_mensagem = len(mensagem_corpo) # Length of the message body itself, *before* adding size bytes.
-    mensagem_completa = b'n' + struct.pack('!i', tamanho_mensagem + 4) + mensagem_corpo # + 4 to include size of length itself.
-    return mensagem_completa
+    """Constrói a mensagem SASLInitialResponse corretamente."""
+    gs2_header, client_first_message_bare = client_first_message  # Separando GS2 header do restante
+    
+    mecanismo = b'SCRAM-SHA-256\x00'  # Nome do mecanismo SASL com null terminator
+    payload = (gs2_header + client_first_message_bare).encode('utf-8')  # Unir corretamente
+
+    mensagem_corpo = mecanismo + struct.pack('!I', len(payload)) + payload
+    tamanho_mensagem = len(mensagem_corpo) + 4  # O tamanho da mensagem inclui os 4 bytes extras
+
+    return b'p' + struct.pack('!I', tamanho_mensagem) + mensagem_corpo
 
 def construir_mensagem_resposta_sasl(client_final_message):
-    """Constrói a mensagem SASLResponse."""
-    payload_b64 = client_final_message.encode('utf-8')
-    payload = base64.b64decode(base64.b64encode(payload_b64)) # Dupla codificação Base64 parece desnecessária e potencialmente errada; payload deve ser apenas client_final_message codificado em base64. Correção abaixo:
+    """Constrói a mensagem SASLResponse corretamente."""
+    payload = client_final_message.encode('utf-8')  # Apenas encode para bytes
 
-    payload = base64.b64decode(base64.b64encode(client_final_message.encode('utf-8'))) # Isto ainda parece redundante. Correção para encode apenas:
-    payload = base64.b64encode(client_final_message.encode('utf-8')) # Correção: A mensagem deve ser base64 encode do client_final_message string.
-
-    mensagem_corpo = payload
-    tamanho_mensagem = len(mensagem_corpo) + 4
-    return b'c' + struct.pack('!i', tamanho_mensagem) + mensagem_corpo
+    tamanho_mensagem = len(payload) + 4  # O tamanho inclui os 4 bytes do próprio tamanho
+    return b'p' + struct.pack('!I', tamanho_mensagem) + payload
 
 def calcular_client_proof(usuario, senha, salt, iteration_count, client_first_message, server_first_message, client_final_message_without_proof):
     """Calcula a prova do cliente usando HMAC-SHA-256."""
