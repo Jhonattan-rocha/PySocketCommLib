@@ -19,7 +19,9 @@ class PostgreSQLSocketClient:
         self.conexao_socket = None # Inicializa a conexão_socket como None
         self.pid: int = 0
         self.secret_key: str = ""
-
+        self.parameter_status = {} 
+        self.notices = [] 
+    
     def conectar(self):
         """
         Cria e estabelece a conexão com o servidor PostgreSQL.
@@ -384,6 +386,26 @@ class PostgreSQLSocketClient:
             print(f"Erro inesperado ao enviar query: {e}", file=sys.stderr)
             return False
 
+    def _obter_info_tipo_dado(self, data_type_oid):
+        """
+        Consulta pg_type para obter informações detalhadas sobre um tipo de dado.
+        """
+        query = f"""
+            SELECT typname, typlen, typtype, typelem
+            FROM pg_type
+            WHERE oid = {data_type_oid};
+        """
+        resultados = self.run(query)
+        if resultados and resultados[0]:
+            tipo_info = resultados[0]
+            return {
+                'typname': tipo_info[0],
+                'typlen': tipo_info[1],
+                'typtype': tipo_info[2],
+                'typelem': tipo_info[3]
+            }
+        return None # Retorna None se não encontrar o tipo
+
     def _receber_resultado(self, sock):
         """
         Recebe e processa o resultado do servidor PostgreSQL.
@@ -407,15 +429,36 @@ class PostgreSQLSocketClient:
                 if tipo_mensagem_int == ord('T'): # Row Description
                     num_campos = struct.unpack('!H', corpo_mensagem[:2])[0]
                     offset = 2
-                    nomes_colunas = []
+                    colunas_info = [] # Lista para armazenar informações detalhadas sobre as colunas
                     for _ in range(num_campos):
                         nome_fim = corpo_mensagem.find(b'\x00', offset)
                         nome_coluna = corpo_mensagem[offset:nome_fim].decode('utf-8')
-                        nomes_colunas.append(nome_coluna)
                         offset = nome_fim + 1
-                        # Ignoramos o resto das informações do campo por agora (tipo de dado, etc.)
-                    colunas = nomes_colunas # Armazena os nomes das colunas
-                    print(f"Nomes das colunas recebidos: {colunas}") # Imprime os nomes das colunas recebidos
+
+                        table_oid = struct.unpack('!i', corpo_mensagem[offset:offset+4])[0]
+                        offset += 4
+                        attribute_number = struct.unpack('!h', corpo_mensagem[offset:offset+2])[0]
+                        offset += 2
+                        data_type_oid = struct.unpack('!i', corpo_mensagem[offset:offset+4])[0]
+                        offset += 4
+                        data_type_size = struct.unpack('!h', corpo_mensagem[offset:offset+2])[0]
+                        offset += 2
+                        type_modifier = struct.unpack('!i', corpo_mensagem[offset:offset+4])[0]
+                        offset += 4
+                        format_code = struct.unpack('!h', corpo_mensagem[offset:offset+2])[0]
+                        offset += 2
+
+                        colunas_info.append({
+                            'nome': nome_coluna,
+                            'table_oid': table_oid,
+                            'attribute_number': attribute_number,
+                            'data_type_oid': data_type_oid,
+                            'data_type_size': data_type_size,
+                            'type_modifier': type_modifier,
+                            'format_code': format_code
+                        })
+                    colunas = colunas_info
+                    print(f"Nomes das colunas recebidos: {colunas}")
                 elif tipo_mensagem_int == ord('D'): # Data Row
                     num_colunas = struct.unpack('!H', corpo_mensagem[:2])[0]
                     offset = 2
@@ -439,9 +482,22 @@ class PostgreSQLSocketClient:
                     print(f"Erro do Servidor ao receber resultado: {erro_msg}", file=sys.stderr)
                     return None # Retorna None em caso de erro
                 elif tipo_mensagem_int == ord('S'): # Parameter Status
-                    pass # Ignoramos Parameter Status
+                    corpo_mensagem_str = corpo_mensagem.decode('utf-8')
+                    partes = corpo_mensagem_str.split('\x00')
+                    nome_parametro = partes[0]
+                    valor_parametro = partes[1] if len(partes) > 1 and partes[1] else None # Verifica se há valor
+                    self.parameter_status[nome_parametro] = valor_parametro # Armazena no dicionário
                 elif tipo_mensagem_int == ord('N'): # Notice Response
-                    pass # Ignoramos avisos
+                    offset = 0
+                    notice_detalhes = {}
+                    while offset < len(corpo_mensagem):
+                        tipo_campo = chr(corpo_mensagem[offset])
+                        offset += 1
+                        fim_valor = corpo_mensagem.find(b'\x00', offset)
+                        valor_campo = corpo_mensagem[offset:fim_valor].decode('utf-8', errors='ignore')
+                        notice_detalhes[tipo_campo] = valor_campo
+                        offset = fim_valor + 1
+                    self.notices.append(notice_detalhes) # Adiciona a notice à lista
                 elif tipo_mensagem_int == ord('K'):
                     self.pid = struct.unpack('!i', corpo_mensagem[:4])[0]
                     self.secret_key = struct.unpack('!i', corpo_mensagem[4:8])[0]
@@ -451,19 +507,7 @@ class PostgreSQLSocketClient:
                 else:
                     print(f"Tipo de mensagem de resultado desconhecido: {chr(tipo_mensagem_int)} (código: {tipo_mensagem_int})", file=sys.stderr)
                     break # Para em caso de tipo desconhecido
-            if colunas and resultados: # Se houver nomes de colunas e resultados, imprima de forma organizada
-                print("\nResultados:")
-                print("-" * 40)
-                print("| " + " | ".join(colunas) + " |")
-                print("-" * 40)
-                for linha in resultados:
-                    print("| " + " | ".join(linha) + " |")
-                print("-" * 40)
-            elif resultados: # Se não houver nomes de colunas mas houver resultados, imprima apenas os dados
-                print("\nResultados (sem nomes de colunas):")
-                for linha in resultados:
-                    print(linha)
-            return resultados # Retorna os resultados processados
+            return resultados, colunas_info # Retorna os resultados processados
         except socket.error as e:
             print(f"Erro de socket ao receber resultado: {e}", file=sys.stderr)
             return None
@@ -474,7 +518,5 @@ class PostgreSQLSocketClient:
 if __name__ == "__main__":
     db = PostgreSQLSocketClient(host='127.0.0.1', port=5432, usuario='postgres', senha='123456', banco_de_dados='postgres')
     if db.conectar():
-        print(db.run("SELECT version();"))
-        print(db.run("SELECT version();"))
         print(db.run("SELECT datname FROM pg_database;"))
         db.desconectar()
