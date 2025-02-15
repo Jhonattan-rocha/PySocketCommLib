@@ -156,99 +156,82 @@ def lidar_autenticacao_scram_sha_256(sock, usuario, senha):
     """
     Lida com o processo de autenticação SCRAM-SHA-256.
     """
+
     try:
         # 1. Enviar SASLInitialResponse (Client First Message)
         client_nonce = gerar_nonce()
         client_first_message = construir_client_first_message(usuario, client_nonce)
         mensagem_inicial_sasl = construir_mensagem_inicial_sasl(client_first_message)
         print(f"Mensagem SASL inicial (codificada): {mensagem_inicial_sasl}")
-        print(f"Mensagem SASL inicial (hex): {mensagem_inicial_sasl.hex()}") # DEBUG: Hex representation
+        print(f"Mensagem SASL inicial (hex): {mensagem_inicial_sasl.hex()}") 
+
         sock.sendall(mensagem_inicial_sasl)
         print("Mensagem SASL inicial (Client First Message) enviada.")
 
-        # 2. Receber SASLContinue (Server First Message)
-        tipo_mensagem = sock.recv(1)
-        print(f"Tipo de mensagem recebido (SASL Continue expected): {chr(ord(tipo_mensagem))} (hex: {tipo_mensagem.hex()})") # DEBUG: Message type received
-        if ord(tipo_mensagem) != ord('N'): # Espera SASLContinue
-            if ord(tipo_mensagem) == ord('E'): # Tratar mensagem de erro
-                tamanho_mensagem_bytes = sock.recv(4)
-                tamanho_mensagem = struct.unpack('!i', tamanho_mensagem_bytes)[0] - 4
-                corpo_mensagem_erro = sock.recv(tamanho_mensagem)
-                mensagem_erro = corpo_mensagem_erro.decode('utf-8', errors='ignore') # Tentar decodificar a mensagem de erro
-                print(f"Erro do servidor (SASL): {mensagem_erro}", file=sys.stderr) # Imprimir a mensagem de erro
+        while True:
+            tipo_mensagem = sock.recv(1)
+            if not tipo_mensagem:
+                print("Conexão fechada pelo servidor inesperadamente.", file=sys.stderr)
                 return False
-            print(f"Esperava mensagem SASLContinue, recebeu: Tipo de mensagem (código numérico): {ord(tipo_mensagem)}, Tipo de mensagem (caractere): {chr(ord(tipo_mensagem))}", file=sys.stderr)
-            return False
-        tamanho_mensagem_bytes = sock.recv(4)
-        tamanho_mensagem = struct.unpack('!i', tamanho_mensagem_bytes)[0] - 4
-        corpo_mensagem = sock.recv(tamanho_mensagem)
-        print(f"Corpo mensagem SASL Continue (hex): {corpo_mensagem.hex()}") # DEBUG: Hex of server message body
-        server_first_message_b64 = corpo_mensagem.split(b'\x00')[0] # Pegar o primeiro bloco antes do null terminator
-        server_first_message_str = base64.b64decode(server_first_message_b64).decode('utf-8')
-        server_attrs = dict(attr.split('=', 1) for attr in server_first_message_str.split(','))
-        print("Mensagem SASL Continue (Server First Message) recebida.")
 
-        # Extrair salt, nonce do servidor e iteration count
-        salt_b64 = server_attrs['s']
-        server_nonce = server_attrs['r']
-        iteration_count = int(server_attrs['i'])
-        salt = base64.b64decode(salt_b64)
-
-        # 3. Construir Client Final Message e enviar SASLResponse
-        client_final_message_without_proof = construir_client_final_message_without_proof(client_nonce, server_nonce)
-        client_proof = calcular_client_proof(usuario, senha, salt, iteration_count, client_first_message, server_first_message_str, client_final_message_without_proof)
-        client_final_message = f"{client_final_message_without_proof},p={base64.b64encode(client_proof).decode('utf-8')}"
-        mensagem_resposta_sasl = construir_mensagem_resposta_sasl(client_final_message)
-        print(f"Mensagem SASL Response (codificada): {mensagem_resposta_sasl}")
-        print(f"Mensagem SASL Response (hex): {mensagem_resposta_sasl.hex()}") # DEBUG: Hex representation
-        sock.sendall(mensagem_resposta_sasl)
-        print("Mensagem SASL Response (Client Final Message) enviada.")
-
-        # 4. Receber SASLComplete (Server Final Message - opcional) ou Authentication OK
-        tipo_mensagem = sock.recv(1)
-        print(f"Tipo de mensagem recebido (SASL Complete or Auth OK expected): {chr(ord(tipo_mensagem))} (hex: {tipo_mensagem.hex()})") # DEBUG: Message type received
-        if ord(tipo_mensagem) == ord('N'): # SASLComplete (Server Signature - Opcional, but good to verify)
             tamanho_mensagem_bytes = sock.recv(4)
             tamanho_mensagem = struct.unpack('!i', tamanho_mensagem_bytes)[0] - 4
             corpo_mensagem = sock.recv(tamanho_mensagem)
-            print(f"Corpo mensagem SASL Complete (hex): {corpo_mensagem.hex()}") # DEBUG: Hex of server message body
-            server_final_message_b64 = corpo_mensagem.split(b'\x00')[0]
-            server_final_message_str = base64.b64decode(server_final_message_b64).decode('utf-8')
-            server_signature_b64 = server_final_message_str.split('v=')[1]
-            server_signature = base64.b64decode(server_signature_b64)
-            print("Mensagem SASL Continue (Server Final Message) recebida e assinatura verificada (implementação de verificação omitida neste exemplo para simplificação).") # Implementação de verificação da assinatura do servidor seria ideal aqui.
 
-            # Esperar Authentication OK após SASLComplete (ou diretamente se não houver SASLComplete)
-            tipo_mensagem_auth_ok = sock.recv(1)
-            print(f"Tipo de mensagem recebido (Auth OK expected after SASL Complete): {chr(ord(tipo_mensagem_auth_ok))} (hex: {tipo_mensagem_auth_ok.hex()})") # DEBUG: Message type received
-            if ord(tipo_mensagem_auth_ok) == ord('R'):
-                tipo_auth_ok = struct.unpack('!i', sock.recv(4))[0]
-                if tipo_auth_ok == 0: # Authentication OK
+            if tipo_mensagem == b'R':  # Authentication Request
+                tipo_autenticacao = struct.unpack('!i', corpo_mensagem[:4])[0]
+
+                if tipo_autenticacao == 11:  # AuthenticationSASLContinue
+                    server_first_message = corpo_mensagem[4:].decode('utf-8')
+                    atributos_servidor = dict(attr.split('=', 1) for attr in server_first_message.split(','))
+
+                    server_nonce = atributos_servidor['r']
+                    salt_b64 = atributos_servidor['s']
+                    iteration_count = int(atributos_servidor['i'])
+
+                    salt = base64.b64decode(salt_b64)
+
+                    # 2. Construir Client Final Message e enviar SASLResponse
+                    client_final_message_without_proof = construir_client_final_message_without_proof(client_nonce, server_nonce)
+                    client_proof = calcular_client_proof(usuario, senha, salt, iteration_count, client_first_message, server_first_message, client_final_message_without_proof)
+
+                    client_final_message = f"{client_final_message_without_proof},p={base64.b64encode(client_proof).decode('utf-8')}"
+                    mensagem_resposta_sasl = construir_mensagem_resposta_sasl(client_final_message)
+                    sock.sendall(mensagem_resposta_sasl)
+                    print("Mensagem SASL Response (Client Final Message) enviada.")
+
+                elif tipo_autenticacao == 12:  # AuthenticationSASLFinal
+                    server_final_message = corpo_mensagem[4:].decode('utf-8')
+                    print(f"Server Final Message: {server_final_message}")
+                    
+                    if "v=" in server_final_message:
+                        print("Autenticação SCRAM-SHA-256 bem-sucedida!")
+                        return True
+                    else:
+                        print("Falha na verificação da assinatura do servidor.", file=sys.stderr)
+                        return False
+
+                elif tipo_autenticacao == 0:  # Authentication OK
                     print("Autenticação SCRAM-SHA-256 bem-sucedida!")
                     return True
+
                 else:
-                    print(f"Falha na autenticação após SASL Complete, tipo: {tipo_auth_ok}", file=sys.stderr)
+                    print(f"Método de autenticação inesperado: {tipo_autenticacao}", file=sys.stderr)
                     return False
-            else:
-                print(f"Esperava Authentication OK após SASL Complete, recebeu: {chr(ord(tipo_mensagem_auth_ok))}", file=sys.stderr)
+
+            elif tipo_mensagem == b'E':  # Mensagem de erro do servidor
+                erro_msg = corpo_mensagem.decode('utf-8', errors='ignore')
+                print(f"Erro do Servidor: {erro_msg}", file=sys.stderr)
                 return False
 
-        elif ord(tipo_mensagem) == ord('R'): # Authentication OK directly
-            tipo_auth_ok = struct.unpack('!i', sock.recv(4))[0]
-            if tipo_auth_ok == 0: # Authentication OK
-                print("Autenticação SCRAM-SHA-256 bem-sucedida!")
-                return True
             else:
-                print(f"Falha na autenticação SCRAM-SHA-256, tipo: {tipo_auth_ok}", file=sys.stderr)
+                print(f"Tipo de mensagem inesperado: {tipo_mensagem}", file=sys.stderr)
                 return False
-        else:
-            print(f"Esperava SASLComplete ou Authentication OK, recebeu: {chr(ord(tipo_mensagem))}", file=sys.stderr)
-            return False
-
 
     except Exception as e:
         print(f"Erro durante autenticação SCRAM: {str(e)}", file=sys.stderr)
         return False
+
     
 # ------------------- Funções auxiliares SCRAM-SHA-256 -------------------
 def gerar_nonce(tamanho=24):
@@ -297,9 +280,17 @@ def calcular_client_proof(usuario, senha, salt, iteration_count, client_first_me
     SaltedPassword = hi(senha, salt, iteration_count)
     ClientKey = hmac_sha256(SaltedPassword, 'Client Key')
     StoredKey = hash_sha256(ClientKey)
-    auth_message = client_first_message + "," + server_first_message + "," + client_final_message_without_proof
+
+    # Extraindo a parte correta do Client First Message
+    _, client_first_message_bare = client_first_message
+
+    # Construindo a mensagem de autenticação
+    auth_message = client_first_message_bare + "," + server_first_message + "," + client_final_message_without_proof
+
     ClientSignature = hmac_sha256(StoredKey, auth_message)
-    return ClientKey ^ ClientSignature # XOR bit a bit
+
+    # Retornar o Client Proof (XOR entre ClientKey e ClientSignature)
+    return xor_bytes(ClientKey, ClientSignature)
 
 def hi(senha, salt, iteration_count):
     """Implementa a função Hi (SaltedPasswordIteration)."""
