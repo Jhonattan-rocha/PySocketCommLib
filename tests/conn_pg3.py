@@ -397,13 +397,7 @@ class PostgreSQLSocketClient:
         """
         resultados = self.run(query)
         if resultados and resultados[0]:
-            tipo_info = resultados[0]
-            return {
-                'typname': tipo_info[0],
-                'typlen': tipo_info[1],
-                'typtype': tipo_info[2],
-                'typelem': tipo_info[3]
-            }
+            return resultados
         return None # Retorna None se não encontrar o tipo
 
     def _receber_resultado(self, sock):
@@ -518,5 +512,5 @@ class PostgreSQLSocketClient:
 if __name__ == "__main__":
     db = PostgreSQLSocketClient(host='127.0.0.1', port=5432, usuario='postgres', senha='123456', banco_de_dados='postgres')
     if db.conectar():
-        print(db.run("SELECT datname FROM pg_database;"))
+        print(db._obter_info_tipo_dado(19))
         db.desconectar()
