@@ -6,7 +6,7 @@ project_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.append(project_dir)
 
 import time
-from Server.Thread.server import Server
+from Server.threadserv.server import Server
 from Options.Ops import Server_ops, Crypt_ops, SyncCrypt_ops, AsyncCrypt_ops, SSLContextOps
 
 def main():

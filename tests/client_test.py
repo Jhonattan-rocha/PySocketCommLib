@@ -5,7 +5,7 @@ project_dir = os.path.abspath(os.path.join(current_dir, '..'))
 
 sys.path.append(project_dir)
 
-from Client.Thread.client import Client
+from Client.threadcli.client import Client
 from Options.Ops import Client_ops, Crypt_ops, SyncCrypt_ops, AsyncCrypt_ops, SSLContextOps
 
 def main():
