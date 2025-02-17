@@ -183,7 +183,11 @@ class PostgreSQLSocketClient:
                         self.logger.error(f"Método de autenticação não suportado: {auth_type}")
                         return False
                 elif message_type_int == ord('S'):  # ParameterStatus
-                    pass  # Ignorar
+                    message_body_str = message_body.decode('utf-8')
+                    parts = message_body_str.split('\x00')
+                    parameter_name = parts[0]
+                    parameter_value = parts[1] if len(parts) > 1 and parts[1] else None # Verifica se há valor
+                    self.parameter_status[parameter_name] = parameter_value # Armazena no dicionário
                 else:
                     self.logger.error(f"Tipo de mensagem desconhecido: {message_type_int}")
                     return False
@@ -517,5 +521,7 @@ class PostgreSQLSocketClient:
 if __name__ == "__main__":
     db = PostgreSQLSocketClient(host='127.0.0.1', port=5432, username='postgres', password='123456', database_name='postgres')
     if db.connect():
-        print(db._get_data_type_info(19))
+        print(db.run("SELECT 1;"))
+        print(db.parameter_status)
+        print(db._get_data_type_info(23))
         db.disconnect()
