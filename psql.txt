@@ -1,0 +1,39 @@
+2025-02-18 15:50:31,430 - INFO - Conectado a 127.0.0.1:5432
+2025-02-18 15:50:31,431 - INFO - Mensagem de Startup enviada.
+2025-02-18 15:50:31,467 - INFO - Servidor suporta SCRAM-SHA-256. Iniciando autenticaá∆o SCRAM.
+2025-02-18 15:50:31,467 - INFO - Mensagem SASL inicial (Client First Message) enviada.
+2025-02-18 15:50:31,470 - INFO - Mensagem SASL Response (Client Final Message) enviada.
+2025-02-18 15:50:31,473 - INFO - Server Final Message: v=Uk9a1IlZfrP29lxZv/I3cU2QO2PM+M49WNS8j6JDffU=
+2025-02-18 15:50:31,473 - INFO - Autenticaá∆o SCRAM-SHA-256 bem-sucedida!
+2025-02-18 15:50:31,473 - INFO - Autenticaá∆o bem-sucedida!
+2025-02-18 15:50:31,473 - INFO - Autenticaá∆o bem-sucedida.
+2025-02-18 15:50:31,473 - INFO - Statement preparado: get_valor
+2025-02-18 15:50:31,473 - INFO - Executando statement preparado: get_valor
+2025-02-18 15:50:31,473 - INFO - Mensagem ReadyForQuery recebida - Estado da Transaá∆o: I
+2025-02-18 15:50:31,473 - INFO - Conex∆o encerrada.
+2025-02-18 15:54:22,806 - INFO - Conectado a 127.0.0.1:5432
+2025-02-18 15:54:22,806 - INFO - Mensagem de Startup enviada.
+2025-02-18 15:54:22,839 - INFO - Servidor suporta SCRAM-SHA-256. Iniciando autenticaá∆o SCRAM.
+2025-02-18 15:54:22,840 - INFO - Mensagem SASL inicial (Client First Message) enviada.
+2025-02-18 15:54:22,843 - INFO - Mensagem SASL Response (Client Final Message) enviada.
+2025-02-18 15:54:22,845 - INFO - Server Final Message: v=1CdK150BSx3LbThX+SGrGqDkLLLIDriVAzwYW3O9IRQ=
+2025-02-18 15:54:22,845 - INFO - Autenticaá∆o SCRAM-SHA-256 bem-sucedida!
+2025-02-18 15:54:22,845 - INFO - Autenticaá∆o bem-sucedida!
+2025-02-18 15:54:22,845 - INFO - Autenticaá∆o bem-sucedida.
+2025-02-18 15:54:22,845 - INFO - Statement preparado: get_valor
+2025-02-18 15:54:22,845 - INFO - Executando statement preparado: get_valor
+2025-02-18 15:54:22,846 - INFO - Mensagem ReadyForQuery recebida - Estado da Transaá∆o: I
+2025-02-18 15:54:22,846 - INFO - Conex∆o encerrada.
+2025-02-18 15:54:45,677 - INFO - Conectado a 127.0.0.1:5432
+2025-02-18 15:54:45,678 - INFO - Mensagem de Startup enviada.
+2025-02-18 15:54:45,726 - INFO - Servidor suporta SCRAM-SHA-256. Iniciando autenticaá∆o SCRAM.
+2025-02-18 15:54:45,726 - INFO - Mensagem SASL inicial (Client First Message) enviada.
+2025-02-18 15:54:45,730 - INFO - Mensagem SASL Response (Client Final Message) enviada.
+2025-02-18 15:54:45,733 - INFO - Server Final Message: v=Du7jK9dZXJiAuGwAw+fosPq5SmDbPkXUXwqfe1URzSc=
+2025-02-18 15:54:45,733 - INFO - Autenticaá∆o SCRAM-SHA-256 bem-sucedida!
+2025-02-18 15:54:45,733 - INFO - Autenticaá∆o bem-sucedida!
+2025-02-18 15:54:45,733 - INFO - Autenticaá∆o bem-sucedida.
+2025-02-18 15:54:45,733 - INFO - Statement preparado: get_valor
+2025-02-18 15:54:45,734 - INFO - Executando statement preparado: get_valor
+2025-02-18 15:54:45,734 - INFO - Mensagem ReadyForQuery recebida - Estado da Transaá∆o: I
+2025-02-18 15:54:45,734 - INFO - Conex∆o encerrada.

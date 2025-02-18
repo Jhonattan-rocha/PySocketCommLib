@@ -632,130 +632,126 @@ class PostgreSQLSocketClient:
         num_params = len(parameters)
 
         # Criando a mensagem `Bind`
-        bind_message = b''
+        bind_message = b'\x00' + statement_name.encode('utf-8') + b'\x00'  # Nome do portal (vazio) e do statement
 
-        # Nome do portal (vazio) e do statement
-        bind_message += b'\x00' + statement_name.encode('utf-8') + b'\x00'
-
-        # Número de parâmetros
+        # Número de parâmetros no formato esperado pelo PostgreSQL
         bind_message += struct.pack('!H', num_params)
 
-        # Tipos de parâmetros (0 para texto)
+        # Especificando que todos os parâmetros são strings (formato de texto)
         for _ in range(num_params):
-            bind_message += struct.pack('!H', 0)
+            bind_message += struct.pack('!H', 0)  # 0 significa formato de texto
 
-        # Adicionando valores dos parâmetros
+        # Adicionando os valores dos parâmetros
         bind_message += struct.pack('!H', num_params)
         for param in parameters:
             param_bytes = param.encode('utf-8')
-            bind_message += struct.pack('!I', len(param_bytes)) + param_bytes
+            bind_message += struct.pack('!I', len(param_bytes)) + param_bytes  # Inclui o tamanho e o valor
 
         # Formato do resultado (0 para texto)
         bind_message += struct.pack('!H', 0)
 
-        # Criando mensagem `Bind`
+        # Criando a mensagem `Bind`
         full_bind_message = b'B' + struct.pack('!I', len(bind_message) + 4) + bind_message
 
-        # Criando a mensagem `Describe`
-        describe_message = b'D' + struct.pack('!I', 6) + b'P\x00'
-
-        # Criando a mensagem `Execute`
+        # Criando a mensagem `Execute` (Executar o portal vazio, retornando todas as linhas)
         execute_message = b'E' + struct.pack('!I', 9) + b'\x00' + struct.pack('!I', 0)
 
-        # Criando `Sync`
+        # Criando `Sync` (Indica que terminamos a solicitação)
         sync_message = b'S' + struct.pack('!I', 4)
 
         try:
+            # Enviar as mensagens corretamente
             self.socket_connection.sendall(full_bind_message)
-            self.socket_connection.sendall(describe_message)
             self.socket_connection.sendall(execute_message)
             self.socket_connection.sendall(sync_message)
             self.logger.info(f"Executando statement preparado: {statement_name}")
+
+            # Receber e processar os resultados
             return self._receive_prepared_statement_result()
         except Exception as e:
             self.logger.error(f"Erro ao executar statement preparado: {e}")
             return None
 
     def _receive_prepared_statement_result(self):
-        """
-        Recebe e processa o resultado do servidor para statements preparados.
-        Retorna uma lista de listas contendo as linhas de dados.
-        Retorna None em caso de erro ou se não houver dados.
-        """
-        results = []
-        columns = []
-        try:
-            while True:
-                message_type = self.socket_connection.recv(1)
-                if not message_type:
-                    self.logger.error("Conexão fechada pelo servidor enquanto aguardava resultados.")
-                    break
+            """
+            Recebe e processa o resultado do servidor para statements preparados.
+            Retorna uma lista de listas contendo as linhas de dados.
+            Retorna None em caso de erro ou se não houver dados.
+            """
+            results = []
+            columns = []
+            try:
+                while True:
+                    message_type = self.socket_connection.recv(1)
+                    if not message_type:
+                        self.logger.error("Conexão fechada pelo servidor enquanto aguardava resultados.")
+                        break
 
-                message_type_int = ord(message_type)
-                message_size_bytes = self.socket_connection.recv(4)
-                message_size = struct.unpack('!i', message_size_bytes)[0] - 4
-                message_body = self.socket_connection.recv(message_size)
+                    message_type_int = ord(message_type)
+                    message_size_bytes = self.socket_connection.recv(4)
+                    message_size = struct.unpack('!i', message_size_bytes)[0] - 4
+                    message_body = self.socket_connection.recv(message_size)
 
-                if message_type_int == ord('1'):  # ParseComplete
-                    self.logger.info("ParseComplete recebido.")
-                    continue
-                elif message_type_int == ord('2'):  # BindComplete
-                    self.logger.info("BindComplete recebido.")
-                    continue
-                elif message_type_int == ord('T'):  # RowDescription
-                    num_fields = struct.unpack('!H', message_body[:2])[0]
-                    offset = 2
-                    for _ in range(num_fields):
-                        name_end = message_body.find(b'\x00', offset)
-                        column_name = message_body[offset:name_end].decode('utf-8')
-                        offset = name_end + 1 + 18  # Pular os metadados do campo
-                        columns.append(column_name)
-                    self.logger.info(f"Nomes das colunas recebidos: {columns}")
-                elif message_type_int == ord('D'):  # DataRow
-                    num_columns = struct.unpack('!H', message_body[:2])[0]
-                    offset = 2
-                    row_values = []
-                    for _ in range(num_columns):
-                        value_size = struct.unpack('!i', message_body[offset:offset+4])[0]
-                        offset += 4
-                        if value_size == -1:
-                            row_values.append(None)
-                        else:
-                            value = message_body[offset:offset+value_size].decode('utf-8')
-                            row_values.append(value)
-                            offset += value_size
-                    results.append(row_values)  # Adiciona a linha de dados aos resultados
-                elif message_type_int == ord('C'):  # Command Complete
-                    command_complete = message_body.decode('utf-8')
-                    self.logger.info(f"Comando Completo: {command_complete}")
-                    break  # Fim dos resultados para esta query
-                elif message_type_int == ord('S'): # Parameter Status
-                    message_body_str = message_body.decode('utf-8')
-                    parts = message_body_str.split('\x00')
-                    parameter_name = parts[0]
-                    parameter_value = parts[1] if len(parts) > 1 and parts[1] else None # Verifica se há valor
-                    self.parameter_status[parameter_name] = parameter_value # Armazena no dicionário
-                elif message_type_int == ord('E'):  # Error Message
-                    error_msg = message_body.decode('utf-8', errors='ignore')
-                    self.logger.error(f"Erro do Servidor ao receber resultado: {error_msg}")
-                    return None  # Retorna None em caso de erro
-                elif message_type_int == ord('Z'):  # ReadyForQuery
-                    transaction_status = chr(message_body[0])  # Estado da transação é o primeiro byte
-                    self.logger.info(f"Mensagem ReadyForQuery recebida - Estado da Transação: {transaction_status}")
-                    break  # Sai do loop ao receber ReadyForQuery
-                elif message_type_int == ord('K'):
-                    self.pid = struct.unpack('!i', message_body[:4])[0]
-                    self.secret_key = struct.unpack('!i', message_body[4:8])[0]
-                else:
-                    self.logger.error(f"Tipo de mensagem de resultado desconhecido: {chr(message_type_int)} (código: {message_type_int})")
-                    break  # Para em caso de tipo desconhecido
-            return results, columns  # Retorna os resultados processados
-        except socket.error as e:
-            self.logger.error(f"Erro de socket ao receber resultado: {e}")
-            return None
-        except Exception as e:
-            self.logger.error(f"Erro inesperado ao receber resultado: {e}")
-            return None
+                    if message_type_int == ord('1'):  # ParseComplete
+                        self.logger.info("ParseComplete recebido.")
+                        continue
+                    elif message_type_int == ord('2'):  # BindComplete
+                        self.logger.info("BindComplete recebido.")
+                        continue
+                    elif message_type_int == ord('T'):  # RowDescription
+                        num_fields = struct.unpack('!H', message_body[:2])[0]
+                        offset = 2
+                        for _ in range(num_fields):
+                            name_end = message_body.find(b'\x00', offset)
+                            column_name = message_body[offset:name_end].decode('utf-8')
+                            offset = name_end + 1 + 18  # Pular os metadados do campo
+                            columns.append(column_name)
+                        self.logger.info(f"Nomes das colunas recebidos: {columns}")
+                    elif message_type_int == ord('D'):  # DataRow
+                        num_columns = struct.unpack('!H', message_body[:2])[0]
+                        offset = 2
+                        row_values = []
+                        for _ in range(num_columns):
+                            value_size = struct.unpack('!i', message_body[offset:offset+4])[0]
+                            offset += 4
+                            if value_size == -1:
+                                row_values.append(None)
+                            else:
+                                value = message_body[offset:offset+value_size].decode('utf-8')
+                                row_values.append(value)
+                                offset += value_size
+                        results.append(row_values)  # Adiciona a linha de dados aos resultados
+                    elif message_type_int == ord('C'):  # Command Complete
+                        command_complete = message_body.decode('utf-8')
+                        self.logger.info(f"Comando Completo: {command_complete}")
+                        break  # Fim dos resultados para esta query
+                    elif message_type_int == ord('S'): # Parameter Status
+                        message_body_str = message_body.decode('utf-8')
+                        parts = message_body_str.split('\x00')
+                        parameter_name = parts[0]
+                        parameter_value = parts[1] if len(parts) > 1 and parts[1] else None # Verifica se há valor
+                        self.parameter_status[parameter_name] = parameter_value # Armazena no dicionário
+                    elif message_type_int == ord('E'):  # Error Message
+                        error_msg = message_body.decode('utf-8', errors='ignore')
+                        self.logger.error(f"Erro do Servidor ao receber resultado: {error_msg}")
+                        return None  # Retorna None em caso de erro
+                    elif message_type_int == ord('Z'):  # ReadyForQuery
+                        transaction_status = chr(message_body[0])  # Estado da transação é o primeiro byte
+                        self.logger.info(f"Mensagem ReadyForQuery recebida - Estado da Transação: {transaction_status}")
+                        break  # Sai do loop ao receber ReadyForQuery
+                    elif message_type_int == ord('K'):
+                        self.pid = struct.unpack('!i', message_body[:4])[0]
+                        self.secret_key = struct.unpack('!i', message_body[4:8])[0]
+                    else:
+                        self.logger.error(f"Tipo de mensagem de resultado desconhecido: {chr(message_type_int)} (código: {message_type_int})")
+                        break  # Para em caso de tipo desconhecido
+                return results, columns  # Retorna os resultados processados
+            except socket.error as e:
+                self.logger.error(f"Erro de socket ao receber resultado: {e}")
+                return None
+            except Exception as e:
+                self.logger.error(f"Erro inesperado ao receber resultado: {e}")
+                return None
 
 
 if __name__ == "__main__":
