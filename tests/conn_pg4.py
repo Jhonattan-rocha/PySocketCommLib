@@ -738,7 +738,6 @@ class PostgreSQLSocketClient:
                     elif message_type_int == ord('Z'):  # ReadyForQuery
                         transaction_status = chr(message_body[0])  # Estado da transação é o primeiro byte
                         self.logger.info(f"Mensagem ReadyForQuery recebida - Estado da Transação: {transaction_status}")
-                        break  # Sai do loop ao receber ReadyForQuery
                     elif message_type_int == ord('K'):
                         self.pid = struct.unpack('!i', message_body[:4])[0]
                         self.secret_key = struct.unpack('!i', message_body[4:8])[0]
