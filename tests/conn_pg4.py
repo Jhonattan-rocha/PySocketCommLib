@@ -22,6 +22,7 @@ class PostgreSQLSocketClient:
         self.secret_key: str = ""
         self.parameter_status = {}
         self.notices = []
+        self.prepared_statements = {}
         # Configuração do logger para salvar em arquivo
         logging.basicConfig(filename='./psql.txt', level=logging.INFO, encoding='cp850',
                             format='%(asctime)s - %(levelname)s - %(message)s')
@@ -57,6 +58,24 @@ class PostgreSQLSocketClient:
         else:
             return None
 
+    def run_prepared_statement(self, statement_name, parameters):
+        """
+        Executa um statement preparado com parâmetros e retorna os resultados.
+        Retorna uma lista de listas, onde cada lista interna representa uma linha de dados.
+        Retorna None em caso de erro ao executar o statement preparado ou receber dados.
+        """
+        if not self.socket_connection:
+            self.logger.error("Erro: Conexão não estabelecida. Use conectar() primeiro.")
+            return None
+
+        if statement_name not in self.prepared_statements:
+            self.logger.error(f"Erro: Statement preparado '{statement_name}' não encontrado.")
+            return None
+
+        if self._execute_prepared_statement(self.socket_connection, statement_name, parameters):
+            return self._receive_result(self.socket_connection)
+        else:
+            return None
 
     def _create_postgres_connection(self, host, port, username, database_name, password):
         """
@@ -376,6 +395,43 @@ class PostgreSQLSocketClient:
         """Prepara o nome de usuário para SCRAM (escape de '=' e ',')."""
         return username.replace('=', '=3D').replace(',', '=2C')
 
+    def begin(self):
+        """Inicia uma nova transação."""
+        if not self.socket_connection:
+            self.logger.error("Conexão não estabelecida.")
+            return False
+        return self.__send_command("BEGIN") 
+
+    def commit(self):
+        """Confirma a transação atual."""
+        if not self.socket_connection:
+            self.logger.error("Conexão não estabelecida.")
+            return False
+        return self.__send_command("COMMIT")
+
+    def rollback(self):
+        """Desfaz a transação atual."""
+        if not self.socket_connection:
+            self.logger.error("Conexão não estabelecida.")
+            return False
+        return self.__send_command("ROLLBACK")
+
+    def __send_command(self, command_string):
+        """Envia um comando SQL (BEGIN, COMMIT, ROLLBACK) para o servidor."""
+        message_body = command_string.encode('utf-8') + b'\x00'
+        message_size = len(message_body) + 4
+        full_message = b'Q' + struct.pack('!i', message_size) + message_body
+        try:
+            self.socket_connection.sendall(full_message)
+            self.logger.info(f"Comando enviado: {command_string}")
+            return True
+        except socket.error as e:
+            self.logger.error(f"Erro de socket ao enviar comando: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Erro inesperado ao enviar comando: {e}")
+            return False
+    
     def _send_query(self, sock, query_string):
         """
         Envia uma query SQL para o servidor PostgreSQL.
@@ -517,11 +573,104 @@ class PostgreSQLSocketClient:
         except Exception as e:
             self.logger.error(f"Erro inesperado ao receber resultado: {e}")
             return None
+    
+    def prepare_query(self, statement_name, query_string, param_types):
+        """
+        Prepara uma query no servidor PostgreSQL para execução futura.
+        """
+        if not self.socket_connection:
+            self.logger.error("Erro: Conexão não estabelecida.")
+            return False
+
+        message = self._build_parse_message(statement_name, query_string, param_types)
+        if not self._send_message(self.socket_connection, message):
+            return False
+
+        sync_message = self._build_sync_message()
+        if not self._send_message(self.socket_connection, sync_message):
+            return False
+
+        self.prepared_statements[statement_name] = {'query': query_string, 'param_types': param_types}
+        self.logger.info(f"Statement preparado '{statement_name}' com sucesso.")
+        return True
+    
+    def _execute_prepared_statement(self, sock, statement_name, parameters):
+        """
+        Executa um statement preparado no servidor PostgreSQL.
+        """
+        bind_message = self._build_bind_message(statement_name, parameters)
+        if not self._send_message(sock, bind_message):
+            return False
+
+        execute_message = self._build_execute_message(statement_name)
+        if not self._send_message(sock, execute_message):
+            return False
+
+        sync_message = self._build_sync_message()
+        if not self._send_message(sock, sync_message):
+            return False
+
+        self.logger.info(f"Statement preparado '{statement_name}' executado.")
+        return True
+    
+    def _build_parse_message(self, statement_name, query_string, param_types):
+        """Constrói a mensagem Parse para preparar um statement."""
+        statement_name_bytes = statement_name.encode('utf-8') + b'\x00'
+        query_string_bytes = query_string.encode('utf-8') + b'\x00'
+        num_params = len(param_types) if param_types else 0
+        param_types_format = struct.pack(f'!{num_params}i', *(param_types or [])) if param_types else b''
+
+        message_body = b'parse\x00' + statement_name_bytes + query_string_bytes + struct.pack('!h', num_params) + param_types_format
+        message_size = len(message_body) + 4
+        return b'P' + struct.pack('!i', message_size) + message_body
+    
+    def _build_bind_message(self, statement_name, parameters):
+        """Constrói a mensagem Bind para associar parâmetros a um statement preparado."""
+        portal_name = b'\x00' # default portal
+        statement_name_bytes = statement_name.encode('utf-8') + b'\x00'
+        num_params = len(parameters)
+        param_formats = struct.pack(f'!{num_params}h', *(0,) * num_params) # all text format
+        param_values = b''.join([struct.pack('!i', len(str(param).encode('utf-8'))) + str(param).encode('utf-8') if param is not None else struct.pack('!i', -1) for param in parameters])
+        result_formats = struct.pack('!h', 0) # text format for results
+
+        message_body = b'bind\x00' + portal_name + statement_name_bytes + struct.pack('!h', num_params) + param_formats + struct.pack('!h', num_params) + param_values + struct.pack('!h', 1) + result_formats
+        message_size = len(message_body) + 4
+        return b'B' + struct.pack('!i', message_size) + message_body
+    
+    def _build_execute_message(self, statement_name):
+        """Constrói a mensagem Execute para executar um statement preparado."""
+        portal_name = b'\x00' # default portal
+        max_rows = 0 # no limit
+        message_body = b'execute\x00' + portal_name + struct.pack('!i', max_rows)
+        message_size = len(message_body) + 4
+        return b'E' + struct.pack('!i', message_size) + message_body
+    
+    def _build_sync_message(self):
+        """Constrói a mensagem Sync para sincronizar e garantir resposta."""
+        message_body = b'sync\x00'
+        message_size = len(message_body) + 4
+        return b'S' + struct.pack('!i', message_size) + message_body
+    
+    def _send_message(self, sock, message):
+        """Envia uma mensagem para o socket."""
+        try:
+            sock.sendall(message)
+            return True
+        except socket.error as e:
+            self.logger.error(f"Erro de socket ao enviar mensagem: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Erro inesperado ao enviar mensagem: {e}")
+            return False
 
 if __name__ == "__main__":
     db = PostgreSQLSocketClient(host='127.0.0.1', port=5432, username='postgres', password='123456', database_name='postgres')
     if db.connect():
-        print(db.run("SELECT 1;"))
-        print(db.parameter_status)
-        print(db._get_data_type_info(23))
+        statement_name = "get_valor_maior_que"
+        query_preparada = "SELECT $1;"
+        if not db.prepare_query(statement_name, query_preparada, None):
+            raise Exception("Falha ao preparar a query")
+        
+        print(db.run_prepared_statement(statement_name, [1]))
+        
         db.disconnect()
