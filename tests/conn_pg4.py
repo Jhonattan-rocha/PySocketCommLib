@@ -24,7 +24,6 @@ class PostgreSQLSocketClient:
         self.parameter_status = {}
         self.notices = []
         self.prepared_statements = {}
-        # Configuração do logger para salvar em arquivo
         logging.basicConfig(filename='./psql.txt', level=logging.INFO, encoding='cp850',
                             format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
@@ -32,12 +31,13 @@ class PostgreSQLSocketClient:
         self.ssl_certfile = ssl_certfile
         self.ssl_keyfile = ssl_keyfile
 
-    def connect(self):
+    def connect(self, time_out: int = 30):
         """
         Cria e estabelece a conexão com o servidor PostgreSQL.
         Retorna True se a conexão for bem-sucedida, False caso contrário.
         """
         self.socket_connection = self._create_postgres_connection(self.host, self.port, self.username, self.database_name, self.password)
+        self.socket_connection.settimeout(time_out)
         return self.socket_connection is not None
 
     def disconnect(self):
@@ -68,26 +68,7 @@ class PostgreSQLSocketClient:
         else:
             return None
 
-    def run_prepared_statement(self, statement_name, parameters):
-        """
-        Executa um statement preparado com parâmetros e retorna os resultados.
-        Retorna uma lista de listas, onde cada lista interna representa uma linha de dados.
-        Retorna None em caso de erro ao executar o statement preparado ou receber dados.
-        """
-        if not self.socket_connection:
-            self.logger.error("Erro: Conexão não estabelecida. Use conectar() primeiro.")
-            return None
-
-        if statement_name not in self.prepared_statements:
-            self.logger.error(f"Erro: Statement preparado '{statement_name}' não encontrado.")
-            return None
-
-        if self._execute_prepared_statement(self.socket_connection, statement_name, parameters):
-            return self._receive_result(self.socket_connection)
-        else:
-            return None
-
-    def _create_postgres_connection(self, host, port, username, database_name, password):
+    def _create_postgres_connection(self, host, port, username, database_name, password) -> socket.socket | ssl.SSLSocket:
         """
         Cria uma conexão PostgreSQL usando sockets diretamente.
         (Método interno da classe para criar a conexão)
@@ -622,7 +603,7 @@ class PostgreSQLSocketClient:
         except Exception as e:
             self.logger.error(f"Erro ao preparar statement: {e}")
             return False
-  
+
     def execute_prepared_statement(self, statement_name, parameters):
         """Executa um statement preparado com segurança contra SQL Injection."""
         if statement_name not in self.prepared_statements:
@@ -757,8 +738,7 @@ if __name__ == "__main__":
     db = PostgreSQLSocketClient(host='127.0.0.1', port=5432, username='postgres', password='123456', database_name='postgres')
 
     if db.connect():
-        db.prepare_statement("get_valor", query_string="SELECT $1;")
-        resultado = db.execute_prepared_statement("get_valor", ["42"])
-        print(resultado)
+        dado = "1; SELECT version()"
+        print(db.run(f"SELECT {dado};"))
 
         db.disconnect()

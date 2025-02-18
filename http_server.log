@@ -1,0 +1,12 @@
+2025-02-18 16:49:41,033 - INFO - Starting server on localhost:8081
+2025-02-18 16:49:55,132 - INFO - Request: ('127.0.0.1', 52767) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-18 16:49:55,382 - INFO - Request: ('127.0.0.1', 52769) - "GET /favicon.ico HTTP/1.1" 404 -
+2025-02-18 16:50:18,189 - INFO - Request: ('127.0.0.1', 52782) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-18 16:52:19,138 - INFO - Starting server on localhost:8081
+2025-02-18 16:52:20,745 - INFO - Request: ('127.0.0.1', 52829) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-18 16:54:26,756 - INFO - Starting server on localhost:8081
+2025-02-18 16:54:26,980 - INFO - Request: ('127.0.0.1', 52882) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-18 16:56:03,113 - INFO - Starting server on localhost:8081
+2025-02-18 16:56:44,009 - INFO - Starting server on localhost:8081
+2025-02-18 16:56:44,500 - INFO - Request: ('127.0.0.1', 52944) - "GET /user/ HTTP/1.1" 200 -
+2025-02-18 16:56:47,468 - INFO - Request: ('127.0.0.1', 52945) - "GET /user/ HTTP/1.1" 200 -

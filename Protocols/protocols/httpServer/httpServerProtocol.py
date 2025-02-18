@@ -2,6 +2,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import http.client
 import http.server
+import inspect
 import logging
 import mimetypes
 import os
@@ -174,21 +175,45 @@ class HttpServerProtocol:
             return
 
         for function_data in functions_to_run:
+            if function_data['path'] != path:
+                continue
             vars = Router().extract_params_from_patern_in_url(path, function_data['path'])
             params = [path, query_params, vars]
             try:
-                response = function_data['function'](handler, params=params)
-                if isinstance(response, Response):
-                    response.send(handler)
-                    return # Stop processing after the first route sends a response
+                func = function_data['function']
+                
+                if inspect.iscoroutinefunction(func):
+                    asyncio.create_task(self._run_async_handler(func, handler, params))
                 else:
-                    Response(body=b'Server handled request, response was not explicitly created.', status=200).send(handler)
-                    return # Stop processing even if old style handler
+                    response = func(handler, params=params)
+                    
+                    if isinstance(response, Response):
+                        response.send(handler)
+                        return # Stop processing after the first route sends a response
+                    else:
+                        Response(body=b'Server handled request, response was not explicitly created.', status=200).send(handler)
+                        return # Stop processing even if old style handler                
             except Exception as e:
                 self.logger.error(f"Error executing handler function: {e}")
                 Response(status=500, body=f"Server Error: {e}".encode('utf-8')).send(handler)
                 return # Stop processing on error as well
 
+    async def _run_async_handler(self, func, handler, params):
+        """
+        Executa handlers assíncronos dentro do loop do servidor corretamente.
+        """
+        try:
+            response = await func(handler, params=params)
+            if isinstance(response, Response):
+                response.send(handler)
+            else:
+                Response(body=b'Server handled request, response was not explicitly created.', status=200).send(handler)
+                return # Stop processing even if old style handler   
+                
+        except Exception as e:
+            self.logger.error(f"Erro no handler async: {e}")
+            Response(status=500, body=f"Server Error: {e}".encode('utf-8')).send(handler)
+            
     def add_handler(self, method: str, url: str):
         if method not in self.http_server_methods:
             raise ValueError(f"Method {method} is not supported.")

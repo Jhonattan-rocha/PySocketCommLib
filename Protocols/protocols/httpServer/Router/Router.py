@@ -86,7 +86,6 @@ class Router:
             return {}
 
         parsed_vars = {}
-
         for i in range(max(len(matches), len(values))):
             var_type, var_name = matches[i]
             value = values[i]
