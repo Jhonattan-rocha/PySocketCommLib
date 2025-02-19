@@ -14,3 +14,4 @@ class Response:
             handler.send_header(key, value)
         handler.end_headers()
         handler.wfile.write(self.body)
+        handler.wfile.flush()

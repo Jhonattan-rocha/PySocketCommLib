@@ -13,19 +13,19 @@ server = httpServerProtocol.HttpServerProtocol("localhost", 8081)
 router = Router()
 
 @router.get(url="/user/{int: id}")
-def test(handler, params):
+async def test(handler, params):
     print("Né que funciona 1")
     response_data = {"message": f"Received query parameters: {params}"} # Structure your data
     return httpServerProtocol.JSONResponse(data=response_data) # Return JSONResponse
 
 @router.get(url="/user/")
-def test_2(handler, params):
+async def test_2(handler, params):
     print("Né que funciona 2")
     response_data = {"message": f"Received query parameters: {params}"} # Structure your data
     return httpServerProtocol.JSONResponse(data=response_data) # Return JSONResponse
 
 @router.get(url="/")
-def test_3(handler, params):
+async def test_3(handler, params):
     print("Né que funciona 3")
     response_data = {"message": f"Received query parameters: {params}"} # Structure your data
     return httpServerProtocol.JSONResponse(data=response_data) # Return JSONResponse

@@ -6,6 +6,7 @@ import inspect
 import logging
 import mimetypes
 import os
+import ssl
 from urllib.parse import urlparse
 import re
 from typing import Any, Callable, Dict, List, Tuple, Union
@@ -13,11 +14,15 @@ from Protocols.protocols.httpServer.Responses import FileResponse, RedirectRespo
 from Protocols.protocols.httpServer.Router import Router
 
 class HttpServerProtocol:
-    def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static") -> None:
+    def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "") -> None:
         self.host: str = host
         self.port: str = port
         self.static_dir = static_dir
         self.regex_find_var_parameters = re.compile(r"/{(?P<type>\w+): (?P<name>\w+)}")
+        self.middlewares = []
+        self.use_https = use_https
+        self.certfile = certfile
+        self.keyfile = keyfile
         logging.basicConfig(filename=logging_path, level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
@@ -30,6 +35,9 @@ class HttpServerProtocol:
             'DELETE': [],
             'OPTION': []
         }
+
+    def add_middleware(self, middleware: Callable):
+        self.middlewares.append(middleware)
 
     def register_router(self, router: Router):
         """Registers a Router instance to be used by the server."""
@@ -67,8 +75,22 @@ class HttpServerProtocol:
         server_address = (self.host, self.port)
         handler_class = self._make_http_handler()
         httpd = http.server.HTTPServer(server_address, handler_class)
-        self.logger.info(f"Starting server on {self.host}:{self.port}")
-        httpd.serve_forever()
+
+        if self.use_https:
+            if not self.certfile or not self.keyfile:
+                raise ValueError("Certificado SSL não fornecido!")
+            
+            if not os.path.exists(self.keyfile) or not os.path.exists(self.certfile):
+                self.logger.info(f"Bad path for key or certfile")
+                raise FileNotFoundError("Key or certfile not found")
+            
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(certfile=self.certfile, keyfile=self.keyfile)
+            httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+            self.logger.info(f"Starting https server on {self.host}:{self.port}")
+        else:  
+            self.logger.info(f"Starting http server on {self.host}:{self.port}")
+            httpd.serve_forever()
 
     def parse_path(self, handler: http.server.BaseHTTPRequestHandler) -> Tuple[str, Dict[str, str]]:
         url_components = urlparse(handler.path)
@@ -89,7 +111,7 @@ class HttpServerProtocol:
         # Depois, busca em handlers adicionados manualmente
         all_functions.extend(self.http_server_methods[method])
 
-        # 🔍 Se houver uma correspondência exata, retorna apenas essa
+        # Se houver uma correspondência exata, retorna apenas essa
         exact_matches = [f for f in all_functions if f["path"] == path]
         if exact_matches:
             return exact_matches
@@ -144,29 +166,37 @@ class HttpServerProtocol:
         server_instance = self # Capture HttpServerProtocol instance
 
         class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+            def handle_method(handler, method):
+                server_instance._handle_method(handler, method)
+
             def do_GET(handler):
-                server_instance._handle_method(handler, 'GET')
+                handler.handle_method('GET')
 
             def do_POST(handler):
-                server_instance._handle_method(handler, 'POST')
+                handler.handle_method('POST')
 
             def do_PATCH(handler):
-                server_instance._handle_method(handler, 'PATCH')
+                handler.handle_method('PATCH')
 
             def do_PUT(handler):
-                server_instance._handle_method(handler, 'PUT')
+                handler.handle_method('PUT')
 
             def do_DELETE(handler):
-                server_instance._handle_method(handler, 'DELETE')
+                handler.handle_method('DELETE')
 
             def log_message(handler, format: str, *args):
                 server_instance.logger.info(f"Request: {handler.client_address} - {format % args}")
+
 
         return HTTPRequestHandler
 
 
     def _handle_method(self, handler: http.server.BaseHTTPRequestHandler, method: str):
         path, query_params = self.parse_path(handler)
+        executor = ThreadPoolExecutor()
+
+        for middleware in self.middlewares:
+            middleware(handler, path, method)
 
         if self.is_static_file(path):
             self.serve_static_file(handler, path)
@@ -193,16 +223,19 @@ class HttpServerProtocol:
                 func = function_data['function']
                 
                 if inspect.iscoroutinefunction(func):
-                    asyncio.create_task(self._run_async_handler(func, handler, params))
+                    asyncio.run(self._run_async_handler(func, handler, params))
                 else:
-                    response = func(handler, params=params)
-                    
-                    if isinstance(response, Response):
-                        response.send(handler)
-                        return # Stop processing after the first route sends a response
-                    else:
-                        Response(body=b'Server handled request, response was not explicitly created.', status=200).send(handler)
-                        return # Stop processing even if old style handler                
+                    def exe():
+                        response = func(handler, params=params)
+                        
+                        if isinstance(response, Response):
+                            response.send(handler)
+                            return # Stop processing after the first route sends a response
+                        else:
+                            Response(body=b'Server handled request, response was not explicitly created.', status=200).send(handler)
+                            return # Stop processing even if old style handler     
+
+                    executor.submit(exe)           
             except Exception as e:
                 self.logger.error(f"Error executing handler function: {e}")
                 Response(status=500, body=f"Server Error: {e}".encode('utf-8')).send(handler)

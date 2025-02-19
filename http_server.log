@@ -109,3 +109,72 @@
 2025-02-19 19:59:56,032 - INFO - Request: ('127.0.0.1', 38258) - "GET /user/1 HTTP/1.1" 200 -
 2025-02-19 19:59:56,206 - INFO - Request: ('127.0.0.1', 38266) - "GET /user/1 HTTP/1.1" 200 -
 2025-02-19 19:59:56,383 - INFO - Request: ('127.0.0.1', 38272) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 20:48:10,570 - INFO - Starting http server on localhost:8081
+2025-02-19 20:48:12,688 - INFO - Request: ('127.0.0.1', 37202) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 20:48:13,105 - INFO - Request: ('127.0.0.1', 37210) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 20:48:13,364 - INFO - Request: ('127.0.0.1', 37212) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 20:48:13,564 - INFO - Request: ('127.0.0.1', 37216) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 20:48:27,659 - INFO - Starting http server on localhost:8081
+2025-02-19 20:48:28,997 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:48:28,997 - INFO - Request: ('127.0.0.1', 41374) - "GET /user/1 HTTP/1.1" 500 -
+2025-02-19 20:50:42,629 - INFO - Starting http server on localhost:8081
+2025-02-19 20:51:08,734 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-1' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,744 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-2' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,744 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-3' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,745 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-4' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,745 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-5' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,745 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-6' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,746 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-7' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:08,746 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-8' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:247>>
+2025-02-19 20:51:09,722 - INFO - Starting http server on localhost:8081
+2025-02-19 20:51:13,776 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-1' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:248>>
+2025-02-19 20:51:13,787 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-2' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:248>>
+2025-02-19 20:52:22,906 - INFO - Starting http server on localhost:8081
+2025-02-19 20:53:36,842 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-1' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,852 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-2' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,853 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-3' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,853 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-4' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,853 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-5' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,854 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-6' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,854 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-7' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:36,854 - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-8' coro=<HttpServerProtocol._run_async_handler() running at /home/jhonattan/Documents/projects/PySocketCommLib/Protocols/protocols/httpServer/httpServerProtocol.py:241>>
+2025-02-19 20:53:37,746 - INFO - Starting http server on localhost:8081
+2025-02-19 20:53:38,619 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:53:38,619 - INFO - Request: ('127.0.0.1', 53742) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 20:53:38,805 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:53:38,805 - INFO - Request: ('127.0.0.1', 53748) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 20:53:53,899 - INFO - Starting http server on localhost:8081
+2025-02-19 20:53:54,937 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:53:54,938 - INFO - Request: ('127.0.0.1', 37728) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 20:53:55,279 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:53:55,279 - INFO - Request: ('127.0.0.1', 37742) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 20:53:55,588 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:53:55,588 - INFO - Request: ('127.0.0.1', 37744) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 20:53:55,799 - ERROR - Error executing handler function: no running event loop
+2025-02-19 20:53:55,800 - INFO - Request: ('127.0.0.1', 37750) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 20:54:15,118 - INFO - Starting http server on localhost:8081
+2025-02-19 20:54:17,770 - INFO - Request: ('127.0.0.1', 40552) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 20:54:18,001 - INFO - Request: ('127.0.0.1', 40568) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 20:54:18,185 - INFO - Request: ('127.0.0.1', 40582) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 20:58:30,982 - INFO - Starting http server on localhost:8081
+2025-02-19 20:58:33,011 - INFO - Request: ('127.0.0.1', 49164) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 20:58:33,387 - INFO - Request: ('127.0.0.1', 49178) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 20:58:33,563 - INFO - Request: ('127.0.0.1', 49192) - "GET /user/ HTTP/1.1" 200 -
