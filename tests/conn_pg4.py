@@ -738,7 +738,5 @@ if __name__ == "__main__":
     db = PostgreSQLSocketClient(host='127.0.0.1', port=5432, username='postgres', password='123456', database_name='postgres')
 
     if db.connect():
-        dado = "1; SELECT version()"
-        print(db.run(f"SELECT {dado};"))
-
+        print(db.run(f"SELECT version();"))
         db.disconnect()

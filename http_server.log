@@ -10,3 +10,38 @@
 2025-02-18 16:56:44,009 - INFO - Starting server on localhost:8081
 2025-02-18 16:56:44,500 - INFO - Request: ('127.0.0.1', 52944) - "GET /user/ HTTP/1.1" 200 -
 2025-02-18 16:56:47,468 - INFO - Request: ('127.0.0.1', 52945) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 08:15:15,077 - INFO - Starting server on localhost:8081
+2025-02-19 08:15:56,437 - INFO - Starting server on localhost:8081
+2025-02-19 08:15:59,013 - INFO - Request: ('127.0.0.1', 53413) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 08:15:59,382 - INFO - Request: ('127.0.0.1', 53414) - "GET /favicon.ico HTTP/1.1" 404 -
+2025-02-19 17:24:59,306 - INFO - Starting server on localhost:8081
+2025-02-19 17:26:04,018 - INFO - Starting server on localhost:8081
+2025-02-19 17:26:46,622 - INFO - Starting server on localhost:8081
+2025-02-19 17:26:46,816 - INFO - Request: ('127.0.0.1', 60515) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 17:26:47,232 - INFO - Request: ('127.0.0.1', 60516) - "GET /favicon.ico HTTP/1.1" 404 -
+2025-02-19 17:26:52,234 - INFO - Request: ('127.0.0.1', 60521) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:31:47,152 - INFO - Starting server on localhost:8081
+2025-02-19 17:31:50,874 - INFO - Request: ('127.0.0.1', 60572) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:31:51,626 - INFO - Request: ('127.0.0.1', 60574) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:31:58,427 - ERROR - Erro ao extrair parâmetros da URL: Falha ao converter 'user' para int.
+2025-02-19 17:31:58,427 - INFO - Request: ('127.0.0.1', 60577) - "GET /user/ HTTP/1.1" 400 -
+2025-02-19 17:32:27,894 - INFO - Starting server on localhost:8081
+2025-02-19 17:32:27,980 - ERROR - Error executing handler function: cannot access local variable 'params' where it is not associated with a value
+2025-02-19 17:32:27,981 - INFO - Request: ('127.0.0.1', 60588) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 17:32:32,572 - ERROR - Error executing handler function: cannot access local variable 'params' where it is not associated with a value
+2025-02-19 17:32:32,573 - INFO - Request: ('127.0.0.1', 60587) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 17:32:34,495 - ERROR - Error executing handler function: cannot access local variable 'params' where it is not associated with a value
+2025-02-19 17:32:34,495 - INFO - Request: ('127.0.0.1', 60592) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 17:32:55,646 - INFO - Request: ('127.0.0.1', 60601) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:32:58,044 - ERROR - Error executing handler function: cannot access local variable 'params' where it is not associated with a value
+2025-02-19 17:32:58,044 - INFO - Request: ('127.0.0.1', 60602) - "GET /user/ HTTP/1.1" 500 -
+2025-02-19 17:33:26,209 - INFO - Starting server on localhost:8081
+2025-02-19 17:33:29,430 - INFO - Request: ('127.0.0.1', 60624) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 17:33:32,968 - INFO - Request: ('127.0.0.1', 60625) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:33:37,529 - INFO - Request: ('127.0.0.1', 60632) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:33:39,854 - INFO - Request: ('127.0.0.1', 60633) - "GET /user/ HTTP/1.1" 200 -
+2025-02-19 17:33:54,578 - INFO - Request: ('127.0.0.1', 60644) - "GET /user/1 HTTP/1.1" 200 -
+2025-02-19 17:34:02,311 - INFO - Request: ('127.0.0.1', 60645) - "GET /user/1?query=2 HTTP/1.1" 200 -
+2025-02-19 17:34:21,973 - INFO - Request: ('127.0.0.1', 60661) - "GET /user/2?query=2 HTTP/1.1" 200 -
+2025-02-19 17:34:31,532 - INFO - Request: ('127.0.0.1', 60662) - "GET /user/2?query=26 HTTP/1.1" 200 -
+2025-02-19 17:34:38,847 - INFO - Request: ('127.0.0.1', 60672) - "GET /user/28?query=26 HTTP/1.1" 200 -

@@ -175,9 +175,13 @@ class HttpServerProtocol:
             return
 
         for function_data in functions_to_run:
-            if function_data['path'] != path:
-                continue
-            vars = Router().extract_params_from_patern_in_url(path, function_data['path'])
+            vars = {} 
+            if self.regex_find_var_parameters.search(function_data['path']):
+                try:
+                    vars = Router().extract_params_from_patern_in_url(path, function_data['path'])
+                except ValueError as e:
+                    continue
+                    
             params = [path, query_params, vars]
             try:
                 func = function_data['function']
