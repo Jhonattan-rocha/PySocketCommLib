@@ -78,17 +78,21 @@ class HttpServerProtocol:
 
     def find_functions_to_run(self, method: str, path: str) -> List[Dict[str, Union[str, Callable]]]:
         """
-        Finds route handlers from both HttpServerProtocol's direct methods and registered Routers.
-        Prioritizes Router routes if there's a conflict (you might adjust this logic).
+        Encontra funções que correspondem a uma rota. Dá prioridade a correspondências exatas.
         """
         all_functions = []
 
-        # Check registered Routers first
+        # Primeiro, busca em Routers
         for router in self.routers:
             all_functions.extend(router.find_matching_route(method, path))
 
-        # Then check HttpServerProtocol's direct methods (optional, you might remove this in favor of only using Routers)
+        # Depois, busca em handlers adicionados manualmente
         all_functions.extend(self.http_server_methods[method])
+
+        # 🔍 Se houver uma correspondência exata, retorna apenas essa
+        exact_matches = [f for f in all_functions if f["path"] == path]
+        if exact_matches:
+            return exact_matches
 
         return all_functions
 
@@ -169,19 +173,21 @@ class HttpServerProtocol:
             return
 
         functions_to_run = self.find_functions_to_run(method, path)
-
+    
         if not functions_to_run:
             Response(body=b'Method Not Allowed - No matching route', status=404).send(handler)
             return
 
         for function_data in functions_to_run:
-            vars = {} 
-            if self.regex_find_var_parameters.search(function_data['path']):
-                try:
-                    vars = Router().extract_params_from_patern_in_url(path, function_data['path'])
-                except ValueError as e:
-                    continue
-                    
+            vars = {}
+
+            if function_data['path'] != path:
+                if self.regex_find_var_parameters.search(function_data['path']):
+                    try:
+                        vars = Router().extract_params_from_patern_in_url(path, function_data['path'])
+                    except Exception as e:
+                        continue
+
             params = [path, query_params, vars]
             try:
                 func = function_data['function']

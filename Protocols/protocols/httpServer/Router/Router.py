@@ -14,7 +14,7 @@ class Router:
         }
         self.regex_find_var_parameters = re.compile(r"/{(?P<type>\w+): (?P<name>\w+)}")
 
-    def add_route(self, method: str, url: str, handler_function: Callable):
+    def __add_route(self, method: str, url: str, handler_function: Callable):
         if method not in self.routes:
             raise ValueError(f"Method {method} is not supported in Router.")
         self.routes[method].append({"path": url, "function": handler_function})
@@ -39,7 +39,7 @@ class Router:
 
     def _method_decorator(self, method: str, url: str):
         def decorator(func):
-            self.add_route(method, url, func)
+            self.__add_route(method, url, func)
             return func
         return decorator
 
@@ -51,8 +51,6 @@ class Router:
             # ---
             parsed_url_method = urlparse(route['path']).path
             parsed_url_method_parts = [part for part in parsed_url_method.split("/") if part]
-
-            matches = self.regex_find_var_parameters.findall(route['path'])
 
             if len(parsed_url_parts) != len(parsed_url_method_parts): # Different number of path segments, not a match
                 continue
