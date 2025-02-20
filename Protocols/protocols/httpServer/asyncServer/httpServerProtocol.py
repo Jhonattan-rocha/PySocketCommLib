@@ -5,8 +5,9 @@ import mimetypes
 import os
 import re
 from typing import Any, Callable, Dict, List, Tuple, Union
-from Protocols import  AsyncFileResponse, AsyncRedirectResponse, AsyncJSONResponse, AsyncResponse
-from Protocols import Router
+from Protocols.protocols.httpServer.Responses.AsyncResponses.FileResponse import FileResponse
+from Protocols.protocols.httpServer.Responses.AsyncResponses.Response import Response
+from Protocols.protocols.httpServer.Router.Router import Router
 
 class AsyncHttpServerProtocol:
     def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "") -> None:
@@ -71,7 +72,7 @@ class AsyncHttpServerProtocol:
         functions_to_run = self.find_functions_to_run(method, path)
 
         if not functions_to_run:
-            response = AsyncResponse(body=b'Method Not Allowed - No matching route', status=404)
+            response = Response(body=b'Method Not Allowed - No matching route', status=404)
             await response.send_asgi(send) # Adapt Response.send for ASGI
             return
 
@@ -96,17 +97,17 @@ class AsyncHttpServerProtocol:
                     loop = asyncio.get_running_loop()
                     response = await loop.run_in_executor(None, func, scope, receive, send, params) # Pass ASGI context
 
-                if isinstance(response, AsyncResponse):
+                if isinstance(response, Response):
                     await response.send_asgi(send) # Adapt Response.send for ASGI
                     return # Stop processing after the first route sends a response
                 else:
-                    response = AsyncResponse(body=b'Server handled request, response was not explicitly created.', status=200)
+                    response = Response(body=b'Server handled request, response was not explicitly created.', status=200)
                     await response.send_asgi(send) # Adapt Response.send for ASGI
                     return # Stop processing even if old style handler
 
             except Exception as e:
                 self.logger.error(f"Error executing handler function: {e}")
-                response = AsyncResponse(status=500, body=f"Server Error: {e}".encode('utf-8'))
+                response = Response(status=500, body=f"Server Error: {e}".encode('utf-8'))
                 await response.send_asgi(send) # Adapt Response.send for ASGI
                 return # Stop processing on error as well
 
@@ -173,19 +174,19 @@ class AsyncHttpServerProtocol:
                 if mime_type is None:
                     mime_type = 'application/octet-stream'  # Generic type if not possible to determine
 
-                # Send the file response using  AsyncFileResponse (ASGI adapted)
-                file_response =  AsyncFileResponse(file_path=file_path) #  AsyncFileResponse needs to be ASGI adapted
-                await file_response.send_asgi(send) # Adapt  AsyncFileResponse.send for ASGI
+                # Send the file response using  FileResponse (ASGI adapted)
+                file_response =  FileResponse(file_path=file_path) #  FileResponse needs to be ASGI adapted
+                await file_response.send_asgi(send) # Adapt  FileResponse.send for ASGI
 
             else:
                 # File not found
-                response = AsyncResponse(body=b'File Not Found', status=404)
+                response = Response(body=b'File Not Found', status=404)
                 await response.send_asgi(send) # Adapt Response.send for ASGI
 
         except Exception as e:
             # Error handling
             self.logger.error(f"Error serving static file {file_path}: {e}")
-            response = AsyncResponse(status=500)
+            response = Response(status=500)
             await response.send_asgi(send) # Adapt Response.send for ASGI # Generic 500 error
 
     def add_handler(self, method: str, url: str):
@@ -216,4 +217,3 @@ class AsyncHttpServerProtocol:
 
     def option(self, url: str):
         return self.add_handler('OPTION', url)
-    

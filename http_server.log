@@ -178,3 +178,7 @@ task: <Task pending name='Task-8' coro=<HttpServerProtocol._run_async_handler() 
 2025-02-19 20:58:33,011 - INFO - Request: ('127.0.0.1', 49164) - "GET /user/ HTTP/1.1" 200 -
 2025-02-19 20:58:33,387 - INFO - Request: ('127.0.0.1', 49178) - "GET /user/ HTTP/1.1" 200 -
 2025-02-19 20:58:33,563 - INFO - Request: ('127.0.0.1', 49192) - "GET /user/ HTTP/1.1" 200 -
+2025-02-20 17:08:05,889 - ERROR - Error executing handler function: 'Response' object has no attribute 'send_asgi'
+2025-02-20 17:08:06,116 - ERROR - Error serving static file ./static\favicon.ico: 'Response' object has no attribute 'send_asgi'
+2025-02-20 17:09:02,379 - ERROR - Error executing handler function: 'Response' object has no attribute 'send_asgi'
+2025-02-20 17:09:02,469 - ERROR - Error serving static file ./static\favicon.ico: 'Response' object has no attribute 'send_asgi'
