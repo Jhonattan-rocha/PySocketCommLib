@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import re
 from typing import Any, Callable, Dict, List, Tuple, Union
 from Protocols.protocols.httpServer.Responses import FileResponse, RedirectResponse, JSONResponse, Response
-from Protocols.protocols.httpServer.Router import Router
+from Protocols.protocols.httpServer.Router.Router import Router
 
 class HttpServerProtocol:
     def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "") -> None:
