@@ -10,10 +10,12 @@ from .Responses import Response
 from .Router.Router import Router
 
 class AsyncHttpServerProtocol:
-    def __init__(self, host: str = 'localhost', port: int = 8080, static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "", lifespan: Callable = None) -> None:
+    def __init__(self, host: str = 'localhost', port: int = 8080, static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "", lifespan: Callable = None, max_workers: int = 100) -> None:
         self.host: str = host
         self.port: int = port
         self.static_dir = static_dir
+        self.request_queue = asyncio.Queue(maxsize=max_workers)
+        self.max_workers = max_workers 
         self.regex_find_var_parameters = re.compile(r"/{(?P<type>\w+): (?P<name>\w+)}")
         self.use_https = use_https
         self.certfile = certfile
@@ -40,8 +42,27 @@ class AsyncHttpServerProtocol:
         """Registra uma função a ser chamada no encerramento."""
         self.shutdown_tasks.append(func)
 
+    async def start_workers(self):
+        """Inicia workers para processar as requisições na fila."""
+        for _ in range(self.max_workers):
+            asyncio.create_task(self.worker())
+    
+    async def worker(self):
+        """Processa requisições da fila de forma segura."""
+        while True:
+            try:
+                scope, receive, send = await self.request_queue.get()
+                await self.handle_asgi_request(scope, receive, send)
+                self.request_queue.task_done()
+            except Exception as e:
+                self.logger.error(f"Erro no processamento da requisição: {e}")
+                response = Response(status=500, body=f"Server Internal Error: {e}".encode())
+                await response.send_asgi(send)
+                
     async def startup(self):
         """Executa todas as funções registradas para inicialização."""
+        await self.start_workers()
+        
         for task in self.startup_tasks:
             if inspect.iscoroutinefunction(task):
                 await task()
@@ -65,72 +86,73 @@ class AsyncHttpServerProtocol:
         Suporte ao ciclo de vida ASGI (lifespan, http).
         """
         if scope['type'] == 'lifespan':
-            async with self.lifespan(self):
-                message = await receive()
-                if message["type"] == "lifespan.startup":
-                    await send({"type": "lifespan.startup.complete"})
-                elif message["type"] == "lifespan.shutdown":
-                    await send({"type": "lifespan.shutdown.complete"})
+            async with self.lifespan(self):  # Inicia o ciclo de vida corretamente
+                while True:
+                    message = await receive()
+                    if message["type"] == "lifespan.startup":
+                        await send({"type": "lifespan.startup.complete"})
+                    elif message["type"] == "lifespan.shutdown":
+                        await send({"type": "lifespan.shutdown.complete"})
+                        break  # Sai do loop quando o servidor for encerrado
         elif scope['type'] == 'http':
+            if self.request_queue is None:
+                self.logger.error("Fila de requisições não foi inicializada!")
+                response = Response(status=500, body=b"Server Error: Request queue not initialized")
+                await response.send_asgi(send)
+
             await self.handle_asgi_request(scope, receive, send)
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")
 
     async def handle_asgi_request(self, scope: dict, receive: Callable, send: Callable):
-        """
-        Handles an ASGI HTTP request.
-        """
-        method = scope['method']
-        raw_path = scope.get('raw_path', b'/') # raw_path is bytes
-        path = raw_path.decode('utf-8') # Decode bytes to string
-        query_string = scope.get('query_string', b'').decode('utf-8') # Decode bytes to string
-        query_params = dict([param.split('=') for param in query_string.split('&') if '=' in param])
+        """Garante que toda requisição receba uma resposta"""
+        try:
+            method = scope["method"]
+            raw_path = scope.get("raw_path", b"/").decode("utf-8")
+            query_string = scope.get("query_string", b"").decode("utf-8")
+            query_params = dict([param.split("=") for param in query_string.split("&") if "=" in param])
 
-        if self.is_static_file(path):
-            await self.serve_static_file_asgi(scope, receive, send, path)
-            return
+            if self.is_static_file(raw_path):
+                await self.serve_static_file_asgi(scope, receive, send, raw_path)
+                return
 
-        functions_to_run = self.find_functions_to_run(method, path)
+            functions_to_run = self.find_functions_to_run(method, raw_path)
 
-        if not functions_to_run:
-            response = Response(body=b'Method Not Allowed - No matching route', status=404)
-            await response.send_asgi(send) # Adapt Response.send for ASGI
-            return
+            if not functions_to_run:
+                response = Response(body=b"Method Not Allowed - No matching route", status=404)
+                await response.send_asgi(send)
+                return
 
-        for function_data in functions_to_run:
-            vars = {}
+            for function_data in functions_to_run:
+                vars = {}
+                if function_data["path"] != raw_path:
+                    if self.regex_find_var_parameters.search(function_data["path"]):
+                        try:
+                            vars = Router().extract_params_from_patern_in_url(raw_path, function_data["path"])
+                        except Exception as e:
+                            continue
 
-            if function_data['path'] != path:
-                if self.regex_find_var_parameters.search(function_data['path']):
-                    try:
-                        vars = Router().extract_params_from_patern_in_url(path, function_data['path'])
-                    except Exception as e:
-                        continue
-
-            params = [path, query_params, vars]
-            try:
-                func = function_data['function']
+                params = [raw_path, query_params, vars]
+                func = function_data["function"]
 
                 if inspect.iscoroutinefunction(func):
-                    response = await func(scope, receive, send, params=params) # Pass ASGI context
+                    response = await func(scope, receive, send, params=params)
                 else:
-                    # If you still have sync handlers, execute them in a thread pool (less ideal for ASGI)
                     loop = asyncio.get_running_loop()
-                    response = await loop.run_in_executor(None, func, scope, receive, send, params) # Pass ASGI context
+                    response = await loop.run_in_executor(None, func, scope, receive, send, params)
 
                 if isinstance(response, Response):
-                    await response.send_asgi(send) # Adapt Response.send for ASGI
-                    return # Stop processing after the first route sends a response
-                else:
-                    response = Response(body=b'Server handled request, response was not explicitly created.', status=200)
-                    await response.send_asgi(send) # Adapt Response.send for ASGI
-                    return # Stop processing even if old style handler
+                    await response.send_asgi(send)
+                    return
 
-            except Exception as e:
-                self.logger.error(f"Error executing handler function: {e}")
-                response = Response(status=500, body=f"Server Error: {e}".encode('utf-8'))
-                await response.send_asgi(send) # Adapt Response.send for ASGI
-                return # Stop processing on error as well
+                response = Response(body=b"Server handled request, but no response was explicitly created.", status=200)
+                await response.send_asgi(send)
+                return
+
+        except Exception as e:
+            self.logger.error(f"Erro ao processar requisição: {e}")
+            response = Response(status=500, body=f"Internal Server Error: {e}".encode("utf-8"))
+            await response.send_asgi(send)
 
 
     def parse_path(self, scope: dict) -> Tuple[str, Dict[str, str]]:
