@@ -4,7 +4,7 @@ class CORSMiddleware:
     def __init__(self, allowed_origins="*"):
         self.allowed_origins = allowed_origins.encode()
 
-    async def __call__(self, scope, receive, next):
+    async def __call__(self, scope, receive, send, next_middleware):
         async def custom_send(event):
             if event["type"] == "http.response.start":
                 headers = dict(event.get("headers", []))
@@ -13,7 +13,7 @@ class CORSMiddleware:
                 headers.setdefault(b"access-control-allow-headers", b"Content-Type, Authorization")
                 headers.setdefault(b"access-control-allow-credentials", b"true")
                 event["headers"] = list(headers.items())
-            await next()
+            await send(event)
 
         if scope["method"] == "OPTIONS":
             response = Response(
@@ -26,6 +26,7 @@ class CORSMiddleware:
                 ],
                 body=b"",
             )
-            return response;            
+            await response.send_asgi(send)
+            return
 
-        await next()
+        await next_middleware(scope, receive, send)

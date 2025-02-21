@@ -3,3 +3,4 @@ from .CORSMiddleware import CORSMiddleware
 from .gzipMiddleware import GzipMiddleware
 from .loggingMiddleware import LoggingMiddleware
 from .rateLimitMiddleware import RateLimiterMiddleware
+from .middlewareController import MiddlewareController

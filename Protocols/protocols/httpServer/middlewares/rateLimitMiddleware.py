@@ -8,7 +8,7 @@ class RateLimiterMiddleware:
         self.interval = interval
         self.requests = defaultdict(list)
 
-    async def __call__(self, scope, receive, next_middleware):
+    async def __call__(self, scope, receive, send, next_middleware):
         client = scope.get("client")
         client_ip = client[0] if client else "unknown"
 
@@ -17,7 +17,8 @@ class RateLimiterMiddleware:
 
         if len(self.requests[client_ip]) >= self.limit:
             response = Response(status=429, body=b"Too many requests")
-            return response
+            await response.send_asgi(send)
+            return
 
         self.requests[client_ip].append(current_time)
-        await next_middleware()  # Só continua se a requisição não for bloqueada
+        await next_middleware(scope, receive, send)

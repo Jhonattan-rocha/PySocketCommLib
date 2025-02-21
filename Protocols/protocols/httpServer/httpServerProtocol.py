@@ -15,7 +15,6 @@ class AsyncHttpServerProtocol:
         self.port: int = port
         self.static_dir = static_dir
         self.regex_find_var_parameters = re.compile(r"/{(?P<type>\w+): (?P<name>\w+)}")
-        self.middlewares = []
         self.use_https = use_https
         self.certfile = certfile
         self.keyfile = keyfile
@@ -31,9 +30,6 @@ class AsyncHttpServerProtocol:
             'DELETE': [],
             'OPTION': []
         }
-
-    def add_middleware(self, middleware: Callable):
-        self.middlewares.append(middleware)
 
     def register_router(self, router: Router):
         """Registers a Router instance to be used by the server."""
@@ -57,13 +53,6 @@ class AsyncHttpServerProtocol:
         path = raw_path.decode('utf-8') # Decode bytes to string
         query_string = scope.get('query_string', b'').decode('utf-8') # Decode bytes to string
         query_params = dict([param.split('=') for param in query_string.split('&') if '=' in param])
-
-        for middleware in self.middlewares:
-            # Middlewares need to be adapted for ASGI context if they used handler directly
-            middleware_response = await middleware(scope, receive, send) # Adjust middleware signature if needed for ASGI
-            if middleware_response: # Assuming middleware can return a Response to short-circuit
-                await middleware_response.send_asgi(send) # Adapt Response.send for ASGI
-                return
 
         if self.is_static_file(path):
             await self.serve_static_file_asgi(scope, receive, send, path)

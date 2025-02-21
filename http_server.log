@@ -1,0 +1,6 @@
+2025-02-21 11:16:36,378 - ERROR - Erro interno do servidor: LoggingMiddleware.__init__() takes 1 positional argument but 5 were given
+2025-02-21 11:16:36,490 - ERROR - Erro interno do servidor: LoggingMiddleware.__init__() takes 1 positional argument but 5 were given
+2025-02-21 11:16:49,625 - INFO - Recebendo GET /
+2025-02-21 11:16:49,628 - INFO - Respondendo GET / com status 200 em 0.0023s
+2025-02-21 11:16:49,743 - INFO - Recebendo GET /favicon.ico
+2025-02-21 11:16:49,744 - INFO - Respondendo GET /favicon.ico com status 404 em 0.0008s
