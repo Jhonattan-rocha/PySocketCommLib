@@ -3,12 +3,20 @@ from collections import defaultdict
 from ..Responses.Response import Response
 
 class RateLimiterMiddleware:
-    def __init__(self, limit=10, interval=60):
+    def __init__(self, limit=10, interval=60, exempt_routes=None):
         self.limit = limit
         self.interval = interval
         self.requests = defaultdict(list)
+        self.exempt_routes = exempt_routes or []  # Permitir exceções
 
     async def __call__(self, scope, receive, send, next_middleware):
+        path = scope.get("path", "")
+
+        # Permitir exceções para rotas específicas (como /health ou /status)
+        if path in self.exempt_routes:
+            await next_middleware(scope, receive, send)
+            return
+
         client = scope.get("client")
         client_ip = client[0] if client else "unknown"
 

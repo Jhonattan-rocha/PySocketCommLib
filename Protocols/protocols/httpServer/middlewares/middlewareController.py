@@ -11,7 +11,7 @@ class MiddlewareController:
 
         async def next_middleware(scope, receive, send):
             nonlocal index
-            if index < len(self.middlewares):
+            if index < len(self.middlewares) and scope.get('type', "") != 'lifespan':
                 middleware = self.middlewares[index]
                 index += 1
                 await middleware(scope, receive, send, next_middleware)

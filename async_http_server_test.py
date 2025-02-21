@@ -3,11 +3,9 @@ from Protocols import AsyncHttpServerProtocol, Response, JSONResponse
 from Protocols import Router
 from Protocols.protocols.httpServer.middlewares import (
     RateLimiterMiddleware, CORSMiddleware, ErrorHandlerMiddleware, 
-    GzipMiddleware, LoggingMiddleware, MiddlewareController
+    GzipMiddleware, LoggingMiddleware, MiddlewareController, SecurityMiddleware, CacheControlMiddleware
 )
-
-# Criando a instância do servidor
-server_instance = AsyncHttpServerProtocol()
+from contextlib import asynccontextmanager
 
 # Criando um roteador
 my_router = Router()
@@ -23,9 +21,20 @@ async def users_route(scope, receive, send, params):
     return JSONResponse(data=data)
 
 # Registrando uma rota diretamente no servidor
-@server_instance.get("/direct_route") 
+@my_router.get("/direct_route") 
 async def direct_handler(scope, receive, send, params): 
     return Response(body=b"Hello from direct route!", content_type='text/plain')
+
+@asynccontextmanager
+async def lifespan(app):
+    await app.startup()
+    print("Iniciou")
+    yield
+    print("Fechou")
+    await app.shutdown()
+
+# Criando a instância do servidor
+server_instance = AsyncHttpServerProtocol(lifespan=lifespan)
 
 # Registrando o roteador no servidor
 server_instance.register_router(my_router)
@@ -36,9 +45,11 @@ app = MiddlewareController(server_instance, [
     CORSMiddleware("*"),
     ErrorHandlerMiddleware(),
     GzipMiddleware(1000),
-    LoggingMiddleware()
+    LoggingMiddleware(),
+    SecurityMiddleware(),
+    CacheControlMiddleware()
 ])
 
 # Executando o servidor com Uvicorn
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000, lifespan="on")

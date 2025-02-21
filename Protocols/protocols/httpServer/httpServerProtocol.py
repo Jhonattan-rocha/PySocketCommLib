@@ -10,7 +10,7 @@ from .Responses import Response
 from .Router.Router import Router
 
 class AsyncHttpServerProtocol:
-    def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "") -> None:
+    def __init__(self, host: str = 'localhost', port: int = 8080, static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "", lifespan: Callable = None) -> None:
         self.host: str = host
         self.port: int = port
         self.static_dir = static_dir
@@ -18,9 +18,8 @@ class AsyncHttpServerProtocol:
         self.use_https = use_https
         self.certfile = certfile
         self.keyfile = keyfile
-        logging.basicConfig(filename=logging_path, level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s')
-        self.logger = logging.getLogger(__name__)
+        self.lifespan = lifespan
+        self.logger = logging.getLogger("httpServer")
         self.routers: List[Router] = [] # List to hold registered routers
         self.http_server_methods = { # Keep for direct handlers if needed, or deprecate
             'GET': [],
@@ -30,16 +29,49 @@ class AsyncHttpServerProtocol:
             'DELETE': [],
             'OPTION': []
         }
+        self.startup_tasks = []  # Lista de funções de inicialização
+        self.shutdown_tasks = []  # Lista de funções de encerramento
 
+    def on_startup(self, func: Callable):
+        """Registra uma função a ser chamada na inicialização."""
+        self.startup_tasks.append(func)
+
+    def on_shutdown(self, func: Callable):
+        """Registra uma função a ser chamada no encerramento."""
+        self.shutdown_tasks.append(func)
+
+    async def startup(self):
+        """Executa todas as funções registradas para inicialização."""
+        for task in self.startup_tasks:
+            if inspect.iscoroutinefunction(task):
+                await task()
+            else:
+                task()
+
+    async def shutdown(self):
+        """Executa todas as funções registradas para encerramento."""
+        for task in self.shutdown_tasks:
+            if inspect.iscoroutinefunction(task):
+                await task()
+            else:
+                task()
+                
     def register_router(self, router: Router):
         """Registers a Router instance to be used by the server."""
         self.routers.append(router)
 
     async def __call__(self, scope: dict, receive: Callable, send: Callable):
         """
-        Aplicação ASGI com middlewares encadeados corretamente.
+        Suporte ao ciclo de vida ASGI (lifespan, http).
         """
-        if scope['type'] == 'http':
+        if scope['type'] == 'lifespan':
+            async with self.lifespan(self):
+                message = await receive()
+                if message["type"] == "lifespan.startup":
+                    await send({"type": "lifespan.startup.complete"})
+                elif message["type"] == "lifespan.shutdown":
+                    await send({"type": "lifespan.shutdown.complete"})
+        elif scope['type'] == 'http':
             await self.handle_asgi_request(scope, receive, send)
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")

@@ -2,9 +2,9 @@ import time
 import logging
 
 class LoggingMiddleware:
-    def __init__(self):
+    def __init__(self, filepath: str = './http_server.log'):
+        logging.basicConfig(filename=filepath, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger("httpServer")
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     async def __call__(self, scope, receive, send, next_middleware):
         start_time = time.time()

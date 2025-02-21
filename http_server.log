@@ -1,6 +1,28 @@
-2025-02-21 11:16:36,378 - ERROR - Erro interno do servidor: LoggingMiddleware.__init__() takes 1 positional argument but 5 were given
-2025-02-21 11:16:36,490 - ERROR - Erro interno do servidor: LoggingMiddleware.__init__() takes 1 positional argument but 5 were given
-2025-02-21 11:16:49,625 - INFO - Recebendo GET /
-2025-02-21 11:16:49,628 - INFO - Respondendo GET / com status 200 em 0.0023s
-2025-02-21 11:16:49,743 - INFO - Recebendo GET /favicon.ico
-2025-02-21 11:16:49,744 - INFO - Respondendo GET /favicon.ico com status 404 em 0.0008s
+2025-02-21 12:48:05,938 - INFO - Recebendo GET /
+2025-02-21 12:48:05,939 - INFO - Respondendo GET / com status 200 em 0.0008s
+2025-02-21 12:48:09,616 - INFO - Recebendo GET /
+2025-02-21 12:48:09,617 - INFO - Respondendo GET / com status 200 em 0.0004s
+2025-02-21 12:50:02,609 - INFO - Recebendo GET /
+2025-02-21 12:50:02,610 - INFO - Respondendo GET / com status 200 em 0.0010s
+2025-02-21 12:50:03,216 - INFO - Recebendo GET /
+2025-02-21 12:50:03,216 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:50:03,398 - INFO - Recebendo GET /
+2025-02-21 12:50:03,399 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:50:03,583 - INFO - Recebendo GET /
+2025-02-21 12:50:03,583 - INFO - Respondendo GET / com status 200 em 0.0002s
+2025-02-21 12:50:03,752 - INFO - Recebendo GET /
+2025-02-21 12:50:03,753 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 13:01:03,368 - INFO - Recebendo GET /
+2025-02-21 13:01:03,370 - INFO - Respondendo GET / com status 200 em 0.0013s
+2025-02-21 13:01:05,414 - INFO - Recebendo GET /
+2025-02-21 13:01:05,415 - INFO - Respondendo GET / com status 200 em 0.0004s
+2025-02-21 13:01:05,722 - INFO - Recebendo GET /
+2025-02-21 13:01:05,722 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 13:01:05,933 - INFO - Recebendo GET /
+2025-02-21 13:01:05,934 - INFO - Respondendo GET / com status 200 em 0.0002s
+2025-02-21 13:01:06,157 - INFO - Recebendo GET /
+2025-02-21 13:01:06,157 - INFO - Respondendo GET / com status 200 em 0.0004s
+2025-02-21 13:01:32,160 - INFO - Recebendo GET /
+2025-02-21 13:01:32,161 - INFO - Respondendo GET / com status 200 em 0.0006s
+2025-02-21 13:01:42,331 - INFO - Recebendo GET /
+2025-02-21 13:01:42,332 - INFO - Respondendo GET / com status 200 em 0.0003s

@@ -4,3 +4,5 @@ from .gzipMiddleware import GzipMiddleware
 from .loggingMiddleware import LoggingMiddleware
 from .rateLimitMiddleware import RateLimiterMiddleware
 from .middlewareController import MiddlewareController
+from .SegurityMiddleware import SecurityMiddleware
+from .cacheControllMiddleware import CacheControlMiddleware

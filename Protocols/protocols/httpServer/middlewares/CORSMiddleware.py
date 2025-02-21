@@ -8,16 +8,16 @@ class CORSMiddleware:
         async def custom_send(event):
             if event["type"] == "http.response.start":
                 headers = dict(event.get("headers", []))
-                headers.setdefault(b"access-control-allow-origin", self.allowed_origins)
-                headers.setdefault(b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS")
-                headers.setdefault(b"access-control-allow-headers", b"Content-Type, Authorization")
-                headers.setdefault(b"access-control-allow-credentials", b"true")
+                headers[b"access-control-allow-origin"] = self.allowed_origins
+                headers[b"access-control-allow-methods"] = b"GET, POST, PUT, DELETE, OPTIONS"
+                headers[b"access-control-allow-headers"] = b"Content-Type, Authorization"
+                headers[b"access-control-allow-credentials"] = b"true"
                 event["headers"] = list(headers.items())
             await send(event)
 
-        if scope["method"] == "OPTIONS":
+        if scope.get("method", "") == "OPTIONS":
             response = Response(
-                status=200,
+                status=204,  # 204 é melhor para preflight requests
                 headers=[
                     (b"access-control-allow-origin", self.allowed_origins),
                     (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
@@ -29,4 +29,4 @@ class CORSMiddleware:
             await response.send_asgi(send)
             return
 
-        await next_middleware(scope, receive, send)
+        await next_middleware(scope, receive, custom_send)

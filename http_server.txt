@@ -1,0 +1,51 @@
+2025-02-21 11:59:46,762 - INFO - Recebendo  
+2025-02-21 11:59:56,207 - INFO - Recebendo GET /users
+2025-02-21 11:59:56,208 - INFO - Respondendo GET /users com status 200 em 0.0007s
+2025-02-21 12:00:02,892 - INFO - Recebendo GET /users
+2025-02-21 12:00:02,892 - INFO - Respondendo GET /users com status 200 em 0.0004s
+2025-02-21 12:50:55,941 - INFO - Recebendo GET /
+2025-02-21 12:50:55,942 - INFO - Respondendo GET / com status 200 em 0.0010s
+2025-02-21 12:51:05,420 - INFO - Recebendo GET /
+2025-02-21 12:51:05,421 - INFO - Respondendo GET / com status 200 em 0.0009s
+2025-02-21 12:51:06,017 - INFO - Recebendo GET /
+2025-02-21 12:51:06,018 - INFO - Respondendo GET / com status 200 em 0.0010s
+2025-02-21 12:51:06,316 - INFO - Recebendo GET /
+2025-02-21 12:51:06,317 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:58:05,334 - INFO - Recebendo GET /
+2025-02-21 12:58:05,335 - INFO - Respondendo GET / com status 200 em 0.0011s
+2025-02-21 12:58:05,677 - INFO - Recebendo GET /
+2025-02-21 12:58:05,678 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:58:06,678 - INFO - Recebendo GET /
+2025-02-21 12:58:06,678 - INFO - Respondendo GET / com status 200 em 0.0002s
+2025-02-21 12:58:07,754 - INFO - Recebendo GET /
+2025-02-21 12:58:07,754 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:58:08,953 - INFO - Recebendo GET /
+2025-02-21 12:58:08,954 - INFO - Respondendo GET / com status 200 em 0.0006s
+2025-02-21 12:58:13,920 - INFO - Recebendo GET /
+2025-02-21 12:58:13,920 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:58:14,103 - INFO - Recebendo GET /favicon.ico
+2025-02-21 12:58:14,104 - INFO - Respondendo GET /favicon.ico com status 404 em 0.0009s
+2025-02-21 12:58:17,433 - INFO - Recebendo GET /
+2025-02-21 12:58:17,433 - INFO - Respondendo GET / com status 200 em 0.0002s
+2025-02-21 12:58:17,614 - INFO - Recebendo GET /favicon.ico
+2025-02-21 12:58:17,615 - INFO - Respondendo GET /favicon.ico com status 404 em 0.0006s
+2025-02-21 12:58:42,545 - INFO - Recebendo GET /
+2025-02-21 12:58:42,546 - INFO - Respondendo GET / com status 200 em 0.0008s
+2025-02-21 12:58:43,181 - INFO - Recebendo GET /
+2025-02-21 12:58:43,182 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:58:43,861 - INFO - Recebendo GET /
+2025-02-21 12:58:43,861 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:58:44,461 - INFO - Recebendo GET /
+2025-02-21 12:58:44,461 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:59:15,743 - INFO - Recebendo GET /
+2025-02-21 12:59:15,744 - INFO - Respondendo GET / com status 200 em 0.0010s
+2025-02-21 12:59:16,286 - INFO - Recebendo GET /
+2025-02-21 12:59:16,286 - INFO - Respondendo GET / com status 200 em 0.0004s
+2025-02-21 12:59:16,472 - INFO - Recebendo GET /
+2025-02-21 12:59:16,472 - INFO - Respondendo GET / com status 200 em 0.0004s
+2025-02-21 12:59:16,637 - INFO - Recebendo GET /
+2025-02-21 12:59:16,637 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:59:16,821 - INFO - Recebendo GET /
+2025-02-21 12:59:16,821 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-21 12:59:16,999 - INFO - Recebendo GET /
+2025-02-21 12:59:16,999 - INFO - Respondendo GET / com status 200 em 0.0003s
