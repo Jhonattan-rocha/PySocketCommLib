@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any, Callable
-from Protocols.protocols.httpServer.Responses.AsyncResponses.Response import Response
+from .Response import Response
 
 class JSONResponse(Response):
     def __init__(self, data: Any, status: int = 200, headers: Dict[str, str] = None):

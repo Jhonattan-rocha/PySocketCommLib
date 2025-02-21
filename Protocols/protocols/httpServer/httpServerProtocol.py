@@ -41,7 +41,7 @@ class AsyncHttpServerProtocol:
 
     async def __call__(self, scope: dict, receive: Callable, send: Callable):
         """
-        ASGI application callable.
+        Aplicação ASGI com middlewares encadeados corretamente.
         """
         if scope['type'] == 'http':
             await self.handle_asgi_request(scope, receive, send)

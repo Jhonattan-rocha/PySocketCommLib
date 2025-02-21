@@ -1,5 +1,5 @@
 from typing import Dict, Callable
-from Protocols.protocols.httpServer.Responses.AsyncResponses.Response import Response
+from .Response import Response
 
 class RedirectResponse(Response):
     def __init__(self, url: str, status: int = 302, headers: Dict[str, str] = None): # 302 Found is a common redirect status
