@@ -5,9 +5,9 @@ import mimetypes
 import os
 import re
 from typing import Any, Callable, Dict, List, Tuple, Union
-from Protocols.protocols.httpServer.Responses.AsyncResponses.FileResponse import FileResponse
-from Protocols.protocols.httpServer.Responses.AsyncResponses.Response import Response
-from Protocols.protocols.httpServer.Router.Router import Router
+from .Responses import FileResponse
+from .Responses import Response
+from .Router.Router import Router
 
 class AsyncHttpServerProtocol:
     def __init__(self, host: str = 'localhost', port: int = 8080, logging_path: str = "./http_server.log", static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "") -> None:
@@ -60,7 +60,7 @@ class AsyncHttpServerProtocol:
 
         for middleware in self.middlewares:
             # Middlewares need to be adapted for ASGI context if they used handler directly
-            middleware_response = middleware(scope, receive, send, path, method) # Adjust middleware signature if needed for ASGI
+            middleware_response = await middleware(scope, receive, send) # Adjust middleware signature if needed for ASGI
             if middleware_response: # Assuming middleware can return a Response to short-circuit
                 await middleware_response.send_asgi(send) # Adapt Response.send for ASGI
                 return

@@ -1,7 +1,6 @@
-import json, os, mimetypes, http
-from typing import Dict
-from Protocols.protocols.httpServer.Responses.Response import Response
-
+import os, mimetypes
+from typing import Dict,Callable
+from .Response import Response
 
 class FileResponse(Response):
     def __init__(self, file_path: str, status: int = 200, headers: Dict[str, str] = None, content_type: str = None, block_size: int = 8192):
@@ -17,19 +16,28 @@ class FileResponse(Response):
         custom_headers['Content-type'] = content_type if content_type else mime_type
         super().__init__(status=status, headers=custom_headers, content_type=mime_type) # Content type is already set in headers, but kept for clarity
 
-    def send(self, handler: http.server.BaseHTTPRequestHandler):
+    async def send_asgi(self, send: Callable):
         if '..' in self.file_path:
-            Response(body=b'Forbidden', status=403).send(handler)
+            response = Response(body=b'Forbidden', status=403)
+            await response.send_asgi(send) # Use ASGI send for forbidden
             return
+
+        await send({
+            'type': 'http.response.start',
+            'status': self.status,
+            'headers': [(k.encode('utf-8'), v.encode('utf-8')) for k, v in self.headers.items()],
+        })
+
         try:
             with open(self.file_path, 'rb') as f:
-                handler.send_response(self.status)
-                for key, value in self.headers.items():
-                    handler.send_header(key, value)
-                handler.end_headers()
                 chunk = f.read(self.block_size)
                 while chunk:
-                    handler.wfile.write(chunk)
+                    await send({
+                        'type': 'http.response.body',
+                        'body': chunk,
+                        'more_body': bool(chunk), # Set more_body to True if there's more to send
+                    })
                     chunk = f.read(self.block_size)
         except Exception as e:
-            handler.send_error(500, f"Error reading file: {e}")
+            response = Response(status=500, body=f"Error reading file: {e}".encode('utf-8'))
+            await response.send_asgi(send) # Use ASGI send for error

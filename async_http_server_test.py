@@ -1,6 +1,6 @@
 from Protocols import AsyncHttpServerProtocol, AsyncResponse, AsyncJSONResponse
 from Protocols import Router
-import os
+from Protocols.protocols.httpServer.middlewares import RateLimiterMiddleware, CORSMiddleware, ErrorHandlerMiddleware, GzipMiddleware, LoggingMiddleware
 
 server_instance = AsyncHttpServerProtocol() # Instance name changed to server_instance
 
@@ -19,5 +19,9 @@ async def users_route(scope, receive, send, params): # ASGI handler signature
 async def direct_handler(scope, receive, send, params): # ASGI handler signature
     return AsyncResponse(body=b"Hello from direct route!", content_type='text/plain')
 
+server_instance.add_middleware(RateLimiterMiddleware(server_instance, 60, 60))
+server_instance.add_middleware(CORSMiddleware(server_instance, "*"))
+server_instance.add_middleware(ErrorHandlerMiddleware(server_instance))
+server_instance.add_middleware(GzipMiddleware())
+server_instance.add_middleware(LoggingMiddleware(server_instance))
 server_instance.register_router(my_router)
-    
