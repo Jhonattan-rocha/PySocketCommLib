@@ -15,7 +15,8 @@ class AsyncHttpServerProtocol:
         self.port: int = port
         self.static_dir = static_dir
         self.request_queue = asyncio.Queue(maxsize=max_workers)
-        self.max_workers = max_workers 
+        self.max_workers = max_workers
+        self.workers = []
         self.regex_find_var_parameters = re.compile(r"/{(?P<type>\w+): (?P<name>\w+)}")
         self.use_https = use_https
         self.certfile = certfile
@@ -45,13 +46,15 @@ class AsyncHttpServerProtocol:
     async def start_workers(self):
         """Inicia workers para processar as requisições na fila."""
         for _ in range(self.max_workers):
-            asyncio.create_task(self.worker())
+            self.workers.append(asyncio.create_task(self.worker()))
     
     async def worker(self):
         """Processa requisições da fila de forma segura."""
         while True:
             try:
                 scope, receive, send = await self.request_queue.get()
+                if not scope:
+                    break
                 await self.handle_asgi_request(scope, receive, send)
                 self.request_queue.task_done()
             except Exception as e:
@@ -68,9 +71,11 @@ class AsyncHttpServerProtocol:
                 await task()
             else:
                 task()
-
+        
     async def shutdown(self):
         """Executa todas as funções registradas para encerramento."""
+        for task in self.workers:
+            task.cancel()
         for task in self.shutdown_tasks:
             if inspect.iscoroutinefunction(task):
                 await task()
@@ -100,7 +105,7 @@ class AsyncHttpServerProtocol:
                 response = Response(status=500, body=b"Server Error: Request queue not initialized")
                 await response.send_asgi(send)
 
-            await self.handle_asgi_request(scope, receive, send)
+            await self.request_queue.put((scope, receive, send))
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")
 

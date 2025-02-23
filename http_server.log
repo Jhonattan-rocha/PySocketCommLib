@@ -1,154 +1,48 @@
-2025-02-21 16:42:40,243 - INFO - Recebendo GET /
-2025-02-21 16:42:40,245 - INFO - Respondendo GET / com status 200 em 0.0013s
-2025-02-21 16:42:40,245 - ERROR - Erro ao processar requisi��o: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-2025-02-21 16:42:40,245 - INFO - Respondendo GET / com status 500 em 0.0016s
-2025-02-21 16:42:40,245 - ERROR - Erro no processamento da requisi��o: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-2025-02-21 16:42:40,245 - INFO - Respondendo GET / com status 500 em 0.0019s
-2025-02-21 16:42:40,245 - ERROR - Task exception was never retrieved
-future: <Task finished name='Task-4' coro=<AsyncHttpServerProtocol.worker() done, defined at C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py:50> exception=RuntimeError("Unexpected ASGI message 'http.response.start' sent, after response already completed.")>
-Traceback (most recent call last):
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 145, in handle_asgi_request
-    await response.send_asgi(send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\Responses\Response.py", line 11, in send_asgi
-    await send({
-    ...<3 lines>...
-    })
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\cacheControllMiddleware.py", line 9, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\SegurityMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\loggingMiddleware.py", line 21, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\gzipMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\CORSMiddleware.py", line 16, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 513, in send
-    raise RuntimeError(msg % message_type)
-RuntimeError: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 55, in worker
-    await self.handle_asgi_request(scope, receive, send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 155, in handle_asgi_request
-    await response.send_asgi(send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\Responses\Response.py", line 11, in send_asgi
-    await send({
-    ...<3 lines>...
-    })
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\cacheControllMiddleware.py", line 9, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\SegurityMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\loggingMiddleware.py", line 21, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\gzipMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\CORSMiddleware.py", line 16, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 513, in send
-    raise RuntimeError(msg % message_type)
-RuntimeError: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 60, in worker
-    await response.send_asgi(send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\Responses\Response.py", line 11, in send_asgi
-    await send({
-    ...<3 lines>...
-    })
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\cacheControllMiddleware.py", line 9, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\SegurityMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\loggingMiddleware.py", line 21, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\gzipMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\CORSMiddleware.py", line 16, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 513, in send
-    raise RuntimeError(msg % message_type)
-RuntimeError: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-2025-02-21 16:44:20,113 - INFO - Recebendo GET /
-2025-02-21 16:44:20,115 - INFO - Respondendo GET / com status 200 em 0.0027s
-2025-02-21 16:44:20,116 - ERROR - Erro ao processar requisi��o: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-2025-02-21 16:44:20,116 - INFO - Respondendo GET / com status 500 em 0.0031s
-2025-02-21 16:44:20,116 - ERROR - Erro no processamento da requisi��o: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-2025-02-21 16:44:20,117 - INFO - Respondendo GET / com status 500 em 0.0034s
-2025-02-21 16:44:20,117 - ERROR - Task exception was never retrieved
-future: <Task finished name='Task-3' coro=<AsyncHttpServerProtocol.worker() done, defined at C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py:50> exception=RuntimeError("Unexpected ASGI message 'http.response.start' sent, after response already completed.")>
-Traceback (most recent call last):
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 145, in handle_asgi_request
-    await response.send_asgi(send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\Responses\Response.py", line 11, in send_asgi
-    await send({
-    ...<3 lines>...
-    })
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\cacheControllMiddleware.py", line 9, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\SegurityMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\loggingMiddleware.py", line 21, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\gzipMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\CORSMiddleware.py", line 16, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 513, in send
-    raise RuntimeError(msg % message_type)
-RuntimeError: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 55, in worker
-    await self.handle_asgi_request(scope, receive, send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 155, in handle_asgi_request
-    await response.send_asgi(send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\Responses\Response.py", line 11, in send_asgi
-    await send({
-    ...<3 lines>...
-    })
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\cacheControllMiddleware.py", line 9, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\SegurityMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\loggingMiddleware.py", line 21, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\gzipMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\CORSMiddleware.py", line 16, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 513, in send
-    raise RuntimeError(msg % message_type)
-RuntimeError: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\httpServerProtocol.py", line 60, in worker
-    await response.send_asgi(send)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\Responses\Response.py", line 11, in send_asgi
-    await send({
-    ...<3 lines>...
-    })
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\cacheControllMiddleware.py", line 9, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\SegurityMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\loggingMiddleware.py", line 21, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\gzipMiddleware.py", line 15, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\Documents\GitHub\PySocketCommLib\Protocols\protocols\httpServer\middlewares\CORSMiddleware.py", line 16, in custom_send
-    await send(event)
-  File "C:\Users\Jhonattan\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 513, in send
-    raise RuntimeError(msg % message_type)
-RuntimeError: Unexpected ASGI message 'http.response.start' sent, after response already completed.
-2025-02-21 16:47:13,508 - INFO - Recebendo GET /
-2025-02-21 16:47:13,508 - INFO - Respondendo GET / com status 200 em 0.0008s
+2025-02-22 21:41:15,517 - INFO - Recebendo GET /
+2025-02-22 21:41:15,517 - INFO - Respondendo GET / com status 200 em 0.0005s
+2025-02-22 21:41:15,719 - INFO - Recebendo GET /
+2025-02-22 21:41:15,719 - INFO - Respondendo GET / com status 200 em 0.0005s
+2025-02-22 21:41:15,873 - INFO - Recebendo GET /
+2025-02-22 21:41:15,873 - INFO - Respondendo GET / com status 200 em 0.0006s
+2025-02-22 21:41:51,670 - INFO - Recebendo GET /
+2025-02-22 21:41:51,670 - INFO - Respondendo GET / com status 200 em 0.0002s
+2025-02-22 21:41:51,670 - INFO - Respondendo GET / com status 200 em 0.0006s
+2025-02-22 21:41:51,670 - ERROR - Erro ao processar requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:51,671 - INFO - Respondendo GET / com status 500 em 0.0007s
+2025-02-22 21:41:51,671 - ERROR - Erro no processamento da requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:51,671 - INFO - Respondendo GET / com status 500 em 0.0008s
+2025-02-22 21:41:54,272 - INFO - Recebendo GET /
+2025-02-22 21:41:54,272 - INFO - Respondendo GET / com status 200 em 0.0005s
+2025-02-22 21:41:54,274 - INFO - Respondendo GET / com status 200 em 0.0024s
+2025-02-22 21:41:54,274 - ERROR - Erro ao processar requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,274 - INFO - Respondendo GET / com status 500 em 0.0029s
+2025-02-22 21:41:54,275 - ERROR - Erro no processamento da requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,275 - INFO - Respondendo GET / com status 500 em 0.0032s
+2025-02-22 21:41:54,509 - INFO - Recebendo GET /
+2025-02-22 21:41:54,510 - INFO - Respondendo GET / com status 200 em 0.0005s
+2025-02-22 21:41:54,511 - INFO - Respondendo GET / com status 200 em 0.0021s
+2025-02-22 21:41:54,512 - ERROR - Erro ao processar requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,512 - INFO - Respondendo GET / com status 500 em 0.0025s
+2025-02-22 21:41:54,512 - ERROR - Erro no processamento da requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,512 - INFO - Respondendo GET / com status 500 em 0.0029s
+2025-02-22 21:41:54,698 - INFO - Recebendo GET /
+2025-02-22 21:41:54,698 - INFO - Respondendo GET / com status 200 em 0.0003s
+2025-02-22 21:41:54,699 - INFO - Respondendo GET / com status 200 em 0.0011s
+2025-02-22 21:41:54,699 - ERROR - Erro ao processar requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,699 - INFO - Respondendo GET / com status 500 em 0.0014s
+2025-02-22 21:41:54,699 - ERROR - Erro no processamento da requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,699 - INFO - Respondendo GET / com status 500 em 0.0016s
+2025-02-22 21:41:54,905 - INFO - Recebendo GET /
+2025-02-22 21:41:54,905 - INFO - Respondendo GET / com status 200 em 0.0001s
+2025-02-22 21:41:54,905 - INFO - Respondendo GET / com status 200 em 0.0005s
+2025-02-22 21:41:54,905 - ERROR - Erro ao processar requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,905 - INFO - Respondendo GET / com status 500 em 0.0006s
+2025-02-22 21:41:54,905 - ERROR - Erro no processamento da requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:54,905 - INFO - Respondendo GET / com status 500 em 0.0007s
+2025-02-22 21:41:55,080 - INFO - Recebendo GET /
+2025-02-22 21:41:55,080 - INFO - Respondendo GET / com status 200 em 0.0002s
+2025-02-22 21:41:55,081 - INFO - Respondendo GET / com status 200 em 0.0008s
+2025-02-22 21:41:55,081 - ERROR - Erro ao processar requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:55,081 - INFO - Respondendo GET / com status 500 em 0.0010s
+2025-02-22 21:41:55,081 - ERROR - Erro no processamento da requisição: Unexpected ASGI message 'http.response.start' sent, after response already completed.
+2025-02-22 21:41:55,081 - INFO - Respondendo GET / com status 500 em 0.0011s
