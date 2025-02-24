@@ -54,13 +54,16 @@ class AsyncHttpServerProtocol:
             try:
                 scope, receive, send = await self.request_queue.get()
                 if not scope:
-                    break
+                    continue
+                
+                self.logger.info(f"Processandoa request: {scope}")
                 await self.handle_asgi_request(scope, receive, send)
-                self.request_queue.task_done()
             except Exception as e:
                 self.logger.error(f"Erro no processamento da requisição: {e}")
                 response = Response(status=500, body=f"Server Internal Error: {e}".encode())
                 await response.send_asgi(send)
+            finally:
+                self.request_queue.task_done()
                 
     async def startup(self):
         """Executa todas as funções registradas para inicialização."""
@@ -100,12 +103,14 @@ class AsyncHttpServerProtocol:
                         await send({"type": "lifespan.shutdown.complete"})
                         break  # Sai do loop quando o servidor for encerrado
         elif scope['type'] == 'http':
-            if self.request_queue is None:
+            if not self.request_queue:
                 self.logger.error("Fila de requisições não foi inicializada!")
                 response = Response(status=500, body=b"Server Error: Request queue not initialized")
                 await response.send_asgi(send)
 
             await self.request_queue.put((scope, receive, send))
+            
+            await asyncio.sleep(5)
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")
 
@@ -140,18 +145,23 @@ class AsyncHttpServerProtocol:
                 params = [raw_path, query_params, vars]
                 func = function_data["function"]
 
+                response = Response()
+                
                 if inspect.iscoroutinefunction(func):
-                    response = await func(scope, receive, send, params=params)
+                    response = await func(params=params)
                 else:
                     loop = asyncio.get_running_loop()
-                    response = await loop.run_in_executor(None, func, scope, receive, send, params)
+                    response = await loop.run_in_executor(None, func, params)
 
                 if isinstance(response, Response):
                     await response.send_asgi(send)
                     return
+                
+                if not response:
+                    return
 
-                response = Response(body=b"Server handled request, but no response was explicitly created.", status=200)
-                await response.send_asgi(send)
+                response_error = Response(body=b"Server handled request, but no response was explicitly created.", status=200)
+                await response_error.send_asgi(send)
                 return
 
         except Exception as e:
@@ -223,7 +233,7 @@ class AsyncHttpServerProtocol:
                     mime_type = 'application/octet-stream'  # Generic type if not possible to determine
 
                 # Send the file response using  FileResponse (ASGI adapted)
-                file_response =  FileResponse(file_path=file_path) #  FileResponse needs to be ASGI adapted
+                file_response = FileResponse(file_path=file_path) #  FileResponse needs to be ASGI adapted
                 await file_response.send_asgi(send) # Adapt  FileResponse.send for ASGI
 
             else:
