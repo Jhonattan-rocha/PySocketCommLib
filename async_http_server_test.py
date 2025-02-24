@@ -34,7 +34,7 @@ async def lifespan(app):
     await app.shutdown()
 
 # Criando a instância do servidor
-server_instance = AsyncHttpServerProtocol(lifespan=lifespan, max_workers=1)
+server_instance = AsyncHttpServerProtocol(lifespan=lifespan, max_workers=2, static_dir="./static")
 
 # Registrando o roteador no servidor
 server_instance.register_router(my_router)

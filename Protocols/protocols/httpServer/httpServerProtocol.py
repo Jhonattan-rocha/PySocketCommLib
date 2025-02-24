@@ -51,8 +51,9 @@ class AsyncHttpServerProtocol:
     async def worker(self):
         """Processa requisições da fila de forma segura."""
         while True:
+            event: asyncio.Event = None
             try:
-                scope, receive, send = await self.request_queue.get()
+                scope, receive, send, event = await self.request_queue.get()
                 if not scope:
                     continue
                 
@@ -64,6 +65,7 @@ class AsyncHttpServerProtocol:
                 await response.send_asgi(send)
             finally:
                 self.request_queue.task_done()
+                event.set()
                 
     async def startup(self):
         """Executa todas as funções registradas para inicialização."""
@@ -108,9 +110,10 @@ class AsyncHttpServerProtocol:
                 response = Response(status=500, body=b"Server Error: Request queue not initialized")
                 await response.send_asgi(send)
 
-            await self.request_queue.put((scope, receive, send))
+            event = asyncio.Event()
+            await self.request_queue.put((scope, receive, send, event))
             
-            await asyncio.sleep(5)
+            await event.wait()
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")
 
