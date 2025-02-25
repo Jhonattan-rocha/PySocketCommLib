@@ -6,3 +6,4 @@ from .rateLimitMiddleware import RateLimiterMiddleware
 from .middlewareController import MiddlewareController
 from .SegurityMiddleware import SecurityMiddleware
 from .cacheControllMiddleware import CacheControlMiddleware
+from .HttpVersionMiddleware import HTTPVersionMiddleware

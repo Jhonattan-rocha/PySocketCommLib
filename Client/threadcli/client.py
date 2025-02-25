@@ -14,7 +14,6 @@ from Options import Client_ops, SSLContextOps
 from Crypt import Crypt
 from Connection_type import Types
 from TaskManager import TaskManager
-from Protocols import config
 
 # Configure logging to file
 logging.basicConfig(filename='./client_thread.txt', level=logging.INFO,
@@ -35,7 +34,6 @@ class Client(threading.Thread):
         self.uuid = uuid.uuid4()
         self.events = Events()
         self.taskManager = TaskManager()
-        self.configureProtocol = config
         self.configureConnection = {}
         self.history_udp_messages: Queue[tuple] = Queue(Options.MAX_HISTORY_UDP_MESSAGES)
         self.__running: bool = True

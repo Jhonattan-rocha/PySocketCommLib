@@ -11,7 +11,6 @@ from Files import File
 from Options import Client_ops, SSLContextOps
 from Crypt import Crypt
 from TaskManager import AsyncTaskManager
-from Protocols import config
 
 
 logging.basicConfig(filename='./client_async.txt', level=logging.INFO,
@@ -33,7 +32,6 @@ class Client:
         self.loop = asyncio.get_event_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
-        self.configureProtocol = config
         self.configureConnection = {}
         self.__running: bool = True
         self.reader = None

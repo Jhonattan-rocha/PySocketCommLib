@@ -2,7 +2,7 @@ import uvicorn
 from Protocols import AsyncHttpServerProtocol, Response, JSONResponse
 from Protocols import Router
 from Protocols.protocols.httpServer.middlewares import (
-    RateLimiterMiddleware, CORSMiddleware, ErrorHandlerMiddleware, 
+    RateLimiterMiddleware, CORSMiddleware, ErrorHandlerMiddleware, HTTPVersionMiddleware,
     GzipMiddleware, LoggingMiddleware, MiddlewareController, SecurityMiddleware, CacheControlMiddleware
 )
 from contextlib import asynccontextmanager
@@ -41,6 +41,7 @@ server_instance.register_router(my_router)
 
 # Criando o controlador de middlewares
 app = MiddlewareController(server_instance, [
+    HTTPVersionMiddleware(),
     RateLimiterMiddleware(60, 10),
     CORSMiddleware("*"),
     ErrorHandlerMiddleware(),

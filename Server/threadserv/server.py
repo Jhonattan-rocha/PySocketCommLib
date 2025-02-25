@@ -14,7 +14,6 @@ from Client import ThreadClient
 from Connection_type.Types import Types
 from Files import File
 from TaskManager import TaskManager
-from Protocols import config
 import logging
 
 logging.basicConfig(level=logging.INFO, filename="./server_thread.txt",
@@ -35,7 +34,6 @@ class Server(threading.Thread):
         self.conn_type: Types | tuple = Options.conn_type
         self.events = Events()
         self.taskManager = TaskManager()
-        self.configureProtocol = config
         self.configureConnection = {}
         self.server_socket: socket.socket | None = None
         self.hitory_udp_message: Queue[tuple] = Queue(Options.MAX_HISTORY_UDP_MESSAGES)
