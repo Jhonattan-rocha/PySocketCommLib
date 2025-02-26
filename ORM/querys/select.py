@@ -1,4 +1,6 @@
-class Query:
+from ..abstracts.querys import BaseQuery
+
+class Select(BaseQuery):
     def __init__(self, client):
         self.client = client
         self._select_clause = []
@@ -16,15 +18,9 @@ class Query:
         self._from_clause = table
         return self
 
-    def where(self, condition):
-        if isinstance(condition, list):
-            self._where_clause.extend(condition)
-        else:
-            self._where_clause.append(condition)
-        return self
-
-    def and_where(self, condition):
-        self._where_clause.append(condition)
+    def where(self, *conditions, operator="AND"):
+        condition_str = f" {operator} ".join(conditions)
+        self._where_clause.append(condition_str)
         return self
 
     def or_where(self, condition):
@@ -82,7 +78,3 @@ class Query:
             sql += f" LIMIT {self._limit_clause}"
 
         return sql
-
-    def fetch(self):
-        sql_query = self.to_sql()
-        return self.client.run(sql_query)
