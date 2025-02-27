@@ -1,14 +1,17 @@
 from ..abstracts.querys import BaseQuery
+from ..abstracts.connection_types import Connection
+from ..abstracts.dialetecs import SQLDialect
+from typing import Any, Tuple
 
 class Select(BaseQuery):
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, client: Connection, dialect: SQLDialect, table_name: str): # Added dialect and table_name to constructor
+        super().__init__(client, dialect, table_name) # Initialize BaseQuery properly
         self._select_clause = []
         self._from_clause = None
-        self._where_clause = [] 
+        self._where_clause = []
         self._order_by_clause = []
         self._limit_clause = None
-        self._join_clause = [] 
+        self._joins_clause = [] # Corrected attribute name to _joins_clause for consistency
 
     def select(self, *columns):
         self._select_clause.extend(columns)
@@ -24,9 +27,8 @@ class Select(BaseQuery):
         return self
 
     def or_where(self, condition):
-         self._where_clause.append(f"OR {condition}")
-         return self
-
+        self._where_clause.append(f"OR {condition}")
+        return self
 
     def order_by(self, *columns, ascending=True):
         order_direction = "ASC" if ascending else "DESC"
@@ -40,7 +42,7 @@ class Select(BaseQuery):
         return self
 
     def join(self, table, condition, join_type="INNER"):
-        self._join_clause.append({"table": table, "condition": condition, "type": join_type.upper()})
+        self._joins_clause.append({"table": table, "condition": condition, "type": join_type.upper()}) # Use _joins_clause
         return self
 
     def left_join(self, table, condition):
@@ -52,29 +54,19 @@ class Select(BaseQuery):
     def full_outer_join(self, table, condition):
         return self.join(table, condition, join_type="FULL OUTER")
 
-    def to_sql(self):
-        sql = "SELECT "
-        if not self._select_clause:
-            sql += "*"
-        else:
-            sql += ", ".join(self._select_clause)
+    def to_sql(self) -> Tuple[str, tuple]:
+        if not self._from_clause:
+            raise ValueError("FROM clause is required for SELECT query.")
 
-        if self._from_clause:
-            sql += f" FROM {self._from_clause}"
+        return self.dialect.select(
+            table_name=self._from_clause, # Use _from_clause for table name
+            columns=self._select_clause,
+            where_condition=self._where_clause, # Pass where as is, dialect handles joining
+            order_by=self._order_by_clause,
+            limit=self._limit_clause,
+            joins=self._joins_clause # Use _joins_clause
+        )
 
-            if self._join_clause:
-                for join_info in self._join_clause:
-                    sql += f" {join_info['type']} JOIN {join_info['table']} ON {join_info['condition']}"
-
-        if self._where_clause:
-            # Junta multiplas condições WHERE com AND. Ajustar para OR complexos seria mais elaborado.
-            sql += " WHERE " + " AND ".join(self._where_clause) if self._where_clause else ""
-
-
-        if self._order_by_clause:
-            sql += " ORDER BY " + ", ".join(self._order_by_clause)
-
-        if self._limit_clause is not None:
-            sql += f" LIMIT {self._limit_clause}"
-
-        return sql
+    def run(self) -> Any: # Run method for Select Query
+        sql, params = self.to_sql()
+        return self.client.run(sql, params)

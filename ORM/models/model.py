@@ -1,7 +1,7 @@
 from ..abstracts.field_types import BaseField
 from ..abstracts.dialetecs import SQLDialect 
 from ..abstracts.connection_types import Connection
-from typing import Tuple, Dict, List, Any
+from typing import Tuple, Dict, List, Any, Optional
 
 class BaseModel:
     """
@@ -9,13 +9,13 @@ class BaseModel:
     Provides ORM-like functionality for interacting with databases.
     """
     dialect: SQLDialect = None  # Dialect to be set by concrete models
-    connection: Connection = None # Connection instance to be set
+    connection: Connection = None  # Connection instance to be set
 
     @classmethod
     def set_connection(cls, connection: Connection):
         """Sets the connection to be used by the model."""
         cls.connection = connection
-        cls.dialect = connection.dialect # Set dialect from connection
+        cls.dialect = connection.dialect  # Set dialect from connection
 
     @classmethod
     def get_table_name(cls):
@@ -64,9 +64,9 @@ class BaseModel:
             elif db_column_name in kwargs:
                 setattr(self, name, kwargs[db_column_name])
             else:
-                setattr(self, name, None) # Default to None if not provided
+                setattr(self, name, field.default) # Set to field's default if provided, else remains None (default behavior of setattr if not set explicitly)
 
-        self._data = {} # To track data for insert/update (not fully implemented here)
+        self._data = {}  # To track data for insert/update (not fully implemented here)
 
     @classmethod
     def insert_sql(cls, data: Dict[str, Any]) -> Tuple[str, tuple]:
@@ -82,13 +82,15 @@ class BaseModel:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
 
         table_name = self.__class__.get_table_name()
-        fields, _ = self.__class__.get_fields()
+        fields, primary_keys = self.__class__.get_fields()
         data_to_insert = {}
         for name, field in fields.items():
             db_column_name = field.db_column_name if field.db_column_name else name
             data_to_insert[db_column_name] = getattr(self, name)
 
         sql, params = self.__class__.insert_sql(data_to_insert)
+        print(sql, params)
+        
         self.__class__.connection.run(sql, params)
 
     @classmethod
@@ -121,7 +123,21 @@ class BaseModel:
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.update_sql(data, where_condition)
-        update_values = list(data.values()) 
-        all_params = tuple(update_values) 
-        cls.connection.run(sql, all_params)
-        
+        cls.connection.run(sql, params)
+
+    @classmethod
+    def select_sql(cls, columns: List[str] = None, where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
+        """Generates SELECT SQL and parameters for the model."""
+        if cls.dialect is None:
+            raise ValueError("No SQL dialect defined for the model. Ensure connection is set.")
+        table_name = cls.get_table_name()
+        columns_to_select = columns if columns else ["*"] # Select all if no columns specified
+        return cls.dialect.select(table_name, columns_to_select, where_condition, order_by, limit, joins)
+
+    @classmethod
+    def select(cls, columns: List[str] = None, where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
+        """Selects records based on various conditions."""
+        if not cls.connection:
+            raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
+        sql, params = cls.select_sql(columns, where_condition, order_by, limit, joins)
+        return cls.connection.run(sql, params)
