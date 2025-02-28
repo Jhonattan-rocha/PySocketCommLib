@@ -13,16 +13,16 @@ if conn.connect():
         name = TextField(nullable=False)
         age = IntegerField(nullable=True)
         signup_date = DateTimeField(default="NOW()") # Example default value
-        data = JSONField(nullable=True) # Example JSON field
+        data = TextField(nullable=True) # Example JSON field
 
     # Create Table
     User.create_table()
     print(f"Table '{User.get_table_name()}' created.")
 
     # Insert Data
-    user1 = User(name="Alice", age=30, data={"city": "New York"})
+    user1 = User(id=1, name="Alice", age=30, data='{"city": "New York"}')
     user1.save()
-    user2 = User(name="Bob", age=25, data={"city": "Los Angeles"})
+    user2 = User(id=2, name="Bob", age=25, data='{"city": "Los Angeles"}')
     user2.save()
     print("Users inserted.")
 

@@ -732,3 +732,21 @@ class PostgreSQLSocketClient:
             except Exception as e:
                 self.logger.error(f"Erro inesperado ao receber resultado: {e}")
                 return None
+
+if __name__ == "__main__":
+    db = PostgreSQLSocketClient(host="localhost", port=5432, username="postgres", password="123456", database_name="postgres")
+    if db.connect():
+        query_name = 'versao'
+        params = ['version()']
+        
+        query = 'SELECT $1;'
+        
+        is_prepare = db.prepare_statement(statement_name=query_name, query_string=query, param_types=None)
+        
+        if is_prepare:
+            print(f"Query com parametros criada com o nome: {query_name}")
+            
+        result = db.execute_prepared_statement(query_name, params)
+        
+        print(result)
+        

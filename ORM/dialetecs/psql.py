@@ -2,7 +2,8 @@ from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from ..drivers.psql import PostgreSQLSocketClient
 from ..abstracts.field_types import BaseField
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, Generator
+import uuid
 
 class PsqlConnection(Connection):
     def connect(self):
@@ -24,18 +25,22 @@ class PsqlConnection(Connection):
             self._conn.disconnect()
             self._conn = None
 
-    def run(self, sql: str) -> Any:
+    def run(self, sql: str, params: Optional[tuple] = None) -> Any:
         if not self._conn:
             raise Exception("Database connection is not established. Call connect() first.")
-        return self._conn.run(sql)
-    
-    def run(self, sql: str, table_name: str, action: str, params: Optional[tuple] = None):
-        if not self._conn:
-            raise Exception("Database connection is not established. Call connect() first.")
+        query_signature = sql
+        new_statement_name = uuid.uuid4().__str__()
+        prepared_statement_name = self._prepared_statement_cache.get(query_signature)
         
-        self._conn.prepare_statement(f"{table_name}_{action}", sql)
+        if not params:
+            return self._conn.run(sql)
         
-        self._conn.execute_prepared_statement()
+        if prepared_statement_name:
+            return self._conn.execute_prepared_statement(prepared_statement_name, [str(param) for param in params])
+        else:
+            self._conn.prepare_statement(new_statement_name, sql, None) 
+            self._prepared_statement_cache[query_signature] = new_statement_name 
+            return self._conn.execute_prepared_statement(new_statement_name, [str(param) for param in params])
 
 class PostgreSQLDialect(SQLDialect):
     """Generates SQL for PostgreSQL databases."""
@@ -80,14 +85,14 @@ class PostgreSQLDialect(SQLDialect):
     def insert(self, table_name: str, data: Dict[str, Any]) -> Tuple[str, tuple]:
         quoted_table_name = self.quote_identifier(table_name)
         columns = ', '.join([self.quote_identifier(col) for col in data.keys()]) # Quote column names
-        placeholders = ', '.join([self.placeholder()] * len(data)) # Use dialect placeholder
+        placeholders = ', '.join(self.placeholder(len(data))) # Use dialect placeholder
         sql = f"INSERT INTO {quoted_table_name} ({columns}) VALUES ({placeholders})"
         params = tuple(data.values())
         return sql, params
 
     def update(self, table_name: str, data: Dict[str, Any], where_condition: str) -> Tuple[str, tuple]:
         quoted_table_name = self.quote_identifier(table_name)
-        set_clause = ', '.join([f"{self.quote_identifier(key)} = {self.placeholder()}" for key in data.keys()]) # Quote column names, use placeholder
+        set_clause = ', '.join([f"{self.quote_identifier(key)} = {placeholder}" for key, placeholder in zip(data.keys(), self.placeholder(len(data)))]) # Quote column names, use placeholder
         sql = f"UPDATE {quoted_table_name} SET {set_clause} WHERE {where_condition}"
         params = tuple(data.values())
         return sql, params
@@ -126,5 +131,5 @@ class PostgreSQLDialect(SQLDialect):
     def quote_identifier(self, identifier: str) -> str:
         return f'"{identifier}"' # Double quotes for PostgreSQL identifiers
 
-    def placeholder(self) -> str:
-        return "%s" # PostgreSQL placeholder
+    def placeholder(self, data_len: int) -> list[str]:
+        return [f'${i}' for i in range(1, data_len+1)]

@@ -1,0 +1,29 @@
+{
+  "statusCode": 201,
+  "response": {
+    "id": 2018,
+    "message": "Item adicionado com sucesso: Problema com Sistema (2018)"
+  },
+  "request": {
+    "url": "https://cloud.imktec.com.br:11213/glpi/apirest.php/Ticket/",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "App-Token": "ghznXhfMVzlk1v1Hb7jP5upDblFtfjvlqW7lNkK6",
+      "Authorization": "user_token 7h2Q6POOspfyhUxTds35HiE1u1Fhiq5iepDTuH0r",
+      "Session-Token": "6fktb7cdvg2v0rujuijfh1n5et"
+    },
+    "timeout": false,
+    "json": {
+      "input": {
+        "name": "Problema com Sistema",
+        "content": "para",
+        "_users_id_requester": "0",
+        "type": "1",
+        "status": "1",
+        "users_id_recipient": "2",
+        "sla_waiting_duration": 10
+      }
+    }
+  }
+}

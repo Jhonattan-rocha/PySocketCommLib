@@ -14,7 +14,8 @@ class Connection(ABC):
         self.password = password
         self.database = database
         self._conn = None
-        self.dialect: SQLDialect = None 
+        self.dialect: SQLDialect = None
+        self._prepared_statement_cache = {}
 
     @abstractmethod
     def connect(self) -> bool:

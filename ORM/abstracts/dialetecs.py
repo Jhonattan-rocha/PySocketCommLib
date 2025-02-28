@@ -48,6 +48,6 @@ class SQLDialect(ABC):
         pass
 
     @abstractmethod
-    def placeholder(self) -> str:
+    def placeholder(self, data_len: int) -> list[str]:
         """Abstract method to get the placeholder for parameterized queries."""
         pass
