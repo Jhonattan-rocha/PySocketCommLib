@@ -1,11 +1,12 @@
 from ..abstracts.querys import BaseQuery
 from ..abstracts.connection_types import Connection
-from ..abstracts.dialetecs import SQLDialect
 from typing import Any, Dict, Tuple
 
 class Insert(BaseQuery): # Added Insert query builder
-    def __init__(self, client: Connection, dialect: SQLDialect, table_name: str):
-        super().__init__(client, dialect, table_name)
+    def __init__(self, table_name: str='', client: Connection=None):
+        super().__init__(table_name)
+        if client:
+            self.set_connection(client)
         self._data_to_insert: Dict[str, Any] = {}
 
     def values(self, **kwargs):

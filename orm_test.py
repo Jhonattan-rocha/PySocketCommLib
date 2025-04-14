@@ -1,10 +1,12 @@
 from ORM.dialetecs.psql import PsqlConnection
 from ORM.models.model import BaseModel
-from ORM.abstracts.field_types import IntegerField, TextField, JSONField, DateTimeField
-from ORM.querys import Insert, Update, Delete, Select
+from ORM.abstracts.querys import BaseQuery
+from ORM.abstracts.field_types import IntegerField, TextField, DateTimeField
+from ORM.querys import Insert, Update
 
-conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="123456", database="postgres") # Replace with your credentials
+conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="19751983", database="postgres")
 if conn.connect():
+    BaseQuery.set_connection(conn)
     BaseModel.set_connection(conn) # Set connection for BaseModel
 
     # Define a Model
@@ -24,6 +26,11 @@ if conn.connect():
     user1.save()
     user2 = User(id=2, name="Bob", age=25, data='{"city": "Los Angeles"}')
     user2.save()
+    user3 = Insert(User.get_table_name()).values(id=3, name="Junior", age=30, data='{"city": "São Paulo"}')
+    user3.run()
+
+    Update(User.get_table_name()).set(name="Alice2").where("id = 1").run()
+
     print("Users inserted.")
 
     conn.disconnect()

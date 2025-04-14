@@ -89,7 +89,6 @@ class BaseModel:
             data_to_insert[db_column_name] = getattr(self, name)
 
         sql, params = self.__class__.insert_sql(data_to_insert)
-        print(sql, params)
         
         self.__class__.connection.run(sql, params)
 

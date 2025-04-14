@@ -1,11 +1,12 @@
 from ..abstracts.querys import BaseQuery
 from ..abstracts.connection_types import Connection
-from ..abstracts.dialetecs import SQLDialect
 from typing import Any, Tuple
 
 class Select(BaseQuery):
-    def __init__(self, client: Connection, dialect: SQLDialect, table_name: str): # Added dialect and table_name to constructor
-        super().__init__(client, dialect, table_name) # Initialize BaseQuery properly
+    def __init__(self, table_name: str='', client: Connection=None):
+        super().__init__(table_name)
+        if client:
+            self.set_connection(client)
         self._select_clause = []
         self._from_clause = None
         self._where_clause = []
