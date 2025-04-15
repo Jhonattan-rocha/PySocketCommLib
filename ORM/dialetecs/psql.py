@@ -1,8 +1,8 @@
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from ..drivers.psql import PostgreSQLSocketClient
-from ..abstracts.field_types import BaseField
-from typing import Any, Dict, List, Tuple, Optional, Generator
+from ..abstracts.field_types import BaseField, ForeignKeyField
+from typing import Any, Dict, List, Tuple, Optional
 import uuid
 
 class PsqlConnection(Connection):
@@ -62,7 +62,20 @@ class PostgreSQLDialect(SQLDialect):
             column_definitions.append(column_definition)
 
         primary_key_constraint = self.get_primary_key_constraint(primary_keys)
-        return f"CREATE TABLE IF NOT EXISTS {quoted_table_name} ({', '.join(column_definitions)}{primary_key_constraint})"
+        foreign_keys = []
+
+        for name, field in columns.items():
+            if isinstance(field, ForeignKeyField):
+                db_column_name = field.db_column_name if field.db_column_name else name
+                fk_clause = field.get_foreign_key_clause(db_column_name)
+                foreign_keys.append(fk_clause)
+
+        # Junte os FKs com o resto da definição
+        full_definitions = column_definitions
+        if foreign_keys:
+            full_definitions.extend(foreign_keys)
+
+        return f"CREATE TABLE IF NOT EXISTS {quoted_table_name} ({', '.join(full_definitions)}{primary_key_constraint})"
 
 
     def get_sql_type(self, field: BaseField) -> str:

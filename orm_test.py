@@ -7,7 +7,7 @@ from ORM.querys import Insert, Update
 conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="19751983", database="postgres")
 if conn.connect():
     BaseQuery.set_connection(conn)
-    BaseModel.set_connection(conn) # Set connection for BaseModel
+    BaseModel.set_connection(conn)
 
     # Define a Model
     class User(BaseModel):

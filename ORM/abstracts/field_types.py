@@ -45,3 +45,36 @@ class DateTimeField(BaseField):
 class JSONField(BaseField): 
     def get_sql_type(self) -> str:
         return "JSONB" 
+
+class UUIDField(BaseField):
+    def get_sql_type(self) -> str:
+        return "UUID"
+
+class DecimalField(BaseField):
+    def get_sql_type(self) -> str:
+        return "DECIMAL"
+
+class ForeignKeyField(BaseField):
+    def __init__(
+        self,
+        reference_table: str,
+        reference_column: str = "id",
+        on_delete: str = "CASCADE",
+        on_update: str = "CASCADE",
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.reference_table = reference_table
+        self.reference_column = reference_column
+        self.on_delete = on_delete
+        self.on_update = on_update
+
+    def get_sql_type(self) -> str:
+        return "INTEGER"
+
+    def get_foreign_key_clause(self, column_name: str) -> str:
+        return (
+            f'FOREIGN KEY ("{column_name}") '
+            f'REFERENCES "{self.reference_table}"("{self.reference_column}") '
+            f'ON DELETE {self.on_delete} ON UPDATE {self.on_update}'
+        )

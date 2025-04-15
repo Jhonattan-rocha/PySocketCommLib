@@ -1,3 +1,4 @@
+from ORM.cache import MemoryCache
 from ..abstracts.field_types import BaseField
 from ..abstracts.dialetecs import SQLDialect 
 from ..abstracts.connection_types import Connection
@@ -10,6 +11,59 @@ class BaseModel:
     """
     dialect: SQLDialect = None  # Dialect to be set by concrete models
     connection: Connection = None  # Connection instance to be set
+    _cache = MemoryCache()
+    
+    @classmethod
+    def build_where_clause(cls, conditions: dict) -> str:
+        clause_parts = []
+        for key, value in conditions.items():
+            if "__" in key:
+                field, op = key.split("__", 1)
+            else:
+                field, op = key, "eq"
+
+            column = f'"{field}"'
+            sql_part = ""
+
+            if op == "eq":
+                sql_part = f"{column} = '{value}'"
+            elif op == "lt":
+                sql_part = f"{column} < '{value}'"
+            elif op == "lte":
+                sql_part = f"{column} <= '{value}'"
+            elif op == "gt":
+                sql_part = f"{column} > '{value}'"
+            elif op == "gte":
+                sql_part = f"{column} >= '{value}'"
+            elif op == "like":
+                sql_part = f"{column} LIKE '%{value}%'"
+            elif op == "in":
+                formatted = ", ".join(f"'{v}'" for v in value)
+                sql_part = f"{column} IN ({formatted})"
+            else:
+                raise ValueError(f"Unsupported operator: {op}")
+
+            clause_parts.append(sql_part)
+
+        return " AND ".join(clause_parts)
+
+    @classmethod
+    def filter(cls, **conditions):
+        where_clause = cls.build_where_clause(conditions)
+        return cls.select(where_condition=where_clause)
+
+    @classmethod
+    def get(cls, **conditions):
+        where = cls.build_where_clause(conditions)
+        key = f"{cls.get_table_name()}|{where}"
+        cached = cls._cache.get(key)
+        if cached:
+            return cached
+        result = cls.select(where_condition=where, limit=1)
+        if result:
+            cls._cache.set(key, result[0])
+            return result[0]
+        return None
 
     @classmethod
     def set_connection(cls, connection: Connection):
@@ -68,6 +122,9 @@ class BaseModel:
 
         self._data = {}  # To track data for insert/update (not fully implemented here)
 
+    def clear_cache(self):
+        self._cache.clear_prefix(self.get_table_name())
+
     @classmethod
     def insert_sql(cls, data: Dict[str, Any]) -> Tuple[str, tuple]:
         """Generates INSERT SQL and parameters for the model."""
@@ -78,6 +135,7 @@ class BaseModel:
 
     def save(self):
         """Saves (inserts or updates) the model instance to the database."""
+        self.clear_cache()
         if not self.__class__.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
 
@@ -103,6 +161,7 @@ class BaseModel:
     @classmethod
     def delete(cls, where_condition: str):
         """Deletes records based on a WHERE condition."""
+        cls.clear_cache()
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql = cls.delete_sql(where_condition)
@@ -119,6 +178,7 @@ class BaseModel:
     @classmethod
     def update(cls, data: Dict[str, Any], where_condition: str):
         """Updates records based on a WHERE condition."""
+        cls.clear_cache()
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.update_sql(data, where_condition)
@@ -136,6 +196,7 @@ class BaseModel:
     @classmethod
     def select(cls, columns: List[str] = None, where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
         """Selects records based on various conditions."""
+        cls.clear_cache()
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.select_sql(columns, where_condition, order_by, limit, joins)
