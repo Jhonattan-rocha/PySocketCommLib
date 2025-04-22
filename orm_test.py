@@ -2,7 +2,7 @@ from ORM.dialetecs.psql import PsqlConnection
 from ORM.models.model import BaseModel
 from ORM.abstracts.querys import BaseQuery
 from ORM.abstracts.field_types import IntegerField, TextField, DateTimeField
-from ORM.querys import Insert, Update
+from ORM.querys import Insert, Update, Delete
 
 conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="19751983", database="postgres")
 if conn.connect():
@@ -30,6 +30,8 @@ if conn.connect():
     user3.run()
 
     Update(User.get_table_name()).set(name="Alice2").where("id = 1").run()
+
+    Delete(User.get_table_name()).where('id = 3').run()
 
     print("Users inserted.")
 
