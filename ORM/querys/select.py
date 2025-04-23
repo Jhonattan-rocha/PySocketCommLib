@@ -8,7 +8,7 @@ class Select(BaseQuery):
         if client:
             self.set_connection(client)
         self._select_clause = []
-        self._from_clause = None
+        self._from_clause = table_name
         self._where_clause = []
         self._order_by_clause = []
         self._limit_clause = None

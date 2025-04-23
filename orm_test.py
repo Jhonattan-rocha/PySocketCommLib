@@ -2,7 +2,7 @@ from ORM.dialetecs.psql import PsqlConnection
 from ORM.models.model import BaseModel
 from ORM.abstracts.querys import BaseQuery
 from ORM.abstracts.field_types import IntegerField, TextField, DateTimeField
-from ORM.querys import Insert, Update, Delete
+from ORM.querys import Insert, Update, Delete, Select
 
 conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="19751983", database="postgres")
 if conn.connect():
@@ -11,7 +11,7 @@ if conn.connect():
 
     # Define a Model
     class User(BaseModel):
-        id = IntegerField(primary_key=True)
+        id = IntegerField(primary_key=True, nullable=False)
         name = TextField(nullable=False)
         age = IntegerField(nullable=True)
         signup_date = DateTimeField(default="NOW()") # Example default value
@@ -33,7 +33,11 @@ if conn.connect():
 
     Delete(User.get_table_name()).where('id = 3').run()
 
+    query = Select(User.get_table_name()).select("name")
+
     print("Users inserted.")
+    print(query.to_sql())
+    print(query.run())
 
     conn.disconnect()
 else:
