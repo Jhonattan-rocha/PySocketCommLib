@@ -36,9 +36,7 @@ if conn.connect():
     query = Select(User.get_table_name()).select("name")
 
     print("Users inserted.")
-    print(query.to_sql())
     print(query.run())
-
     conn.disconnect()
 else:
     print("Failed to connect to database.")
