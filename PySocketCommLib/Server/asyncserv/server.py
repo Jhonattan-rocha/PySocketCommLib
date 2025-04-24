@@ -12,7 +12,6 @@ from Options import Client_ops, SSLContextOps, Server_ops
 from Crypt import Crypt
 from Client import AsyncClient
 from TaskManager import AsyncTaskManager
-from Protocols.configure import config
 
 # Configuração básica do logger para salvar em arquivo
 logging.basicConfig(filename='./server_async.txt',  # Nome do arquivo de log
@@ -34,7 +33,6 @@ class Server:
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
-        self.configureProtocol = config
         self.configureConnection = {}
         self.__clients: list[AsyncClient] = []
         self.__running: bool = True
