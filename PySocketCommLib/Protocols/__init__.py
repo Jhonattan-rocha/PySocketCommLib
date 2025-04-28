@@ -6,4 +6,3 @@ from .protocols.httpServer.Responses.FileResponse import FileResponse
 from .protocols.httpServer.Responses.Response import Response
 from .protocols.httpServer.Responses.RedirectResponse import RedirectResponse
 from .protocols.httpServer.Responses.JSONResponse import JSONResponse
-from .configure import config
