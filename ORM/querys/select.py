@@ -13,6 +13,12 @@ class Select(BaseQuery):
         self._order_by_clause = []
         self._limit_clause = None
         self._joins_clause = []
+        self._offset_clause = None
+
+    def offset(self, count):
+        if isinstance(count, int) and count >= 0:
+            self._offset_clause = count
+        return self
 
     def select(self, *columns):
         self._select_clause.extend(columns)
@@ -65,7 +71,8 @@ class Select(BaseQuery):
             where_condition=self._where_clause, # Pass where as is, dialect handles joining
             order_by=self._order_by_clause,
             limit=self._limit_clause,
-            joins=self._joins_clause # Use _joins_clause
+            joins=self._joins_clause, # Use _joins_clause
+            offset=self._offset_clause
         )
 
     def run(self) -> Any: # Run method for Select Query

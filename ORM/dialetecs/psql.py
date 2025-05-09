@@ -114,7 +114,7 @@ class PostgreSQLDialect(SQLDialect):
         quoted_table_name = self.quote_identifier(table_name)
         return f"DELETE FROM {quoted_table_name} WHERE {where_condition}"
 
-    def select(self, table_name: str, columns: List[str], where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
+    def select(self, table_name: str, columns: List[str], where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, offset: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
         quoted_table_name = self.quote_identifier(table_name)
         select_columns = ', '.join([self.quote_identifier(col) for col in columns]) if columns else "*" # Quote column names, default to *
         sql = f"SELECT {select_columns} FROM {quoted_table_name}"
@@ -137,6 +137,9 @@ class PostgreSQLDialect(SQLDialect):
 
         if limit is not None:
             sql += f" LIMIT {limit}"
+        
+        if offset is not None:
+            sql += f" OFFSET {offset}"
 
         return sql, tuple(params) # Return empty tuple for params as we aren't handling where params in this basic select
 
