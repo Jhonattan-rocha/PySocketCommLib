@@ -1,7 +1,6 @@
 import asyncio
 import ssl
 import struct
-import sys
 import logging 
 from Abstracts.Auth import Auth
 from Auth.NoAuth import NoAuth
@@ -11,6 +10,7 @@ from Files import File
 from Options import Client_ops, SSLContextOps, Server_ops
 from Crypt import Crypt
 from Client import AsyncClient
+from Server import TokenBucket
 from TaskManager import AsyncTaskManager
 
 # Configuração básica do logger para salvar em arquivo
@@ -33,11 +33,13 @@ class Server:
         self.loop = asyncio.get_running_loop()
         self.events = Events()
         self.taskManager = AsyncTaskManager()
+        self.server: asyncio.Server | None = None
         self.configureConnection = {}
         self.__clients: list[AsyncClient] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
         self.ssl_context: ssl.SSLContext | None = None
+        self.rate_limits: dict[str, TokenBucket] = {}  # uuid -> TokenBucket
 
         if Options.ssl_ops:
             self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
@@ -147,6 +149,23 @@ class Server:
                 pass
 
     async def receive_message(self, recv_bytes: int = 2048, reader: asyncio.StreamReader = None, block: bool = False):
+        client = None
+
+        for cli in self.__clients:
+            if cli.reader == reader:
+                client = cli
+        
+        uuid = client.uuid 
+
+        if uuid not in self.rate_limits:
+            self.rate_limits[uuid] = TokenBucket(rate=2, capacity=5) 
+
+        bucket = self.rate_limits[uuid]
+        if not await bucket.allow():
+            logger.warning(f"Rate limit excedido para o cliente {uuid}")
+            await client.send_message(b"Rate limit excedido. Aguarde.")
+            return
+
         try:
             length_bytes = await reader.read(8)
             if not length_bytes:
@@ -222,6 +241,18 @@ class Server:
         for client in self.__clients:
             if str(client.uuid) == uuid:
                 return client
+    
+    async def check_is_close(self, client: AsyncClient | None = None):
+        if client:
+            if client.writer.is_closing():
+                self.__clients.remove(client)
+        else:
+            while self.__running:
+                for cli in self.__clients:
+                    if cli.writer.is_closing:
+                        self.__clients.remove(cli)
+                
+                asyncio.sleep(10)
 
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         address = writer.get_extra_info('peername')
@@ -250,20 +281,30 @@ class Server:
 
     async def break_server(self):
         logger.info("Servidor Async sendo interrompido...")
+        if not self.server:
+            logger.error("Servidor não inciado")
+            return
+        
         for client in self.__clients:
             await client.disconnect()
         self.__running = False
-        sys.exit(0)
+        for task in asyncio.all_tasks():
+            task.cancel()  
+
+        await self.server.close()      
 
     async def start(self) -> None:
         try:
             # Criação do servidor
             server = await asyncio.start_server(
                 self.run, self.HOST, self.PORT, ssl=self.ssl_context)
+            
+            self.server = server
 
             addr = server.sockets[0].getsockname()
             logger.info(f'Servidor Async rodando no endereço:{addr}')
 
+            asyncio.create_task(self.check_is_close)
             self.__running = True
             async with server:
                 await server.serve_forever()
