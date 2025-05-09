@@ -20,4 +20,4 @@ class Delete(BaseQuery):
 
     def run(self) -> Any: # Run method for Delete Query
         sql, params = self.to_sql()
-        return self.client.run(sql, params)
+        return self.client.dialect.parser(self.client.run(sql, params))

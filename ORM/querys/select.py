@@ -12,7 +12,7 @@ class Select(BaseQuery):
         self._where_clause = []
         self._order_by_clause = []
         self._limit_clause = None
-        self._joins_clause = [] # Corrected attribute name to _joins_clause for consistency
+        self._joins_clause = []
 
     def select(self, *columns):
         self._select_clause.extend(columns)
@@ -70,4 +70,4 @@ class Select(BaseQuery):
 
     def run(self) -> Any: # Run method for Select Query
         sql, params = self.to_sql()
-        return self.client.run(sql, params)
+        return self.client.dialect.parser(self.client.run(sql, params))
