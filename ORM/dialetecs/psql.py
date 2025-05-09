@@ -146,3 +146,8 @@ class PostgreSQLDialect(SQLDialect):
 
     def placeholder(self, data_len: int) -> list[str]:
         return [f'${i}' for i in range(1, data_len+1)]
+    
+    def parser(self, result: tuple):
+        rows, columns = result
+        column_names = [col["name"] for col in columns]
+        return [dict(zip(column_names, row)) for row in rows]

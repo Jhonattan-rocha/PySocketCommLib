@@ -4,7 +4,7 @@ from ORM.abstracts.querys import BaseQuery
 from ORM.abstracts.field_types import IntegerField, TextField, DateTimeField
 from ORM.querys import Insert, Update, Delete, Select
 
-conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="19751983", database="postgres")
+conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="123456", database="motoapp")
 if conn.connect():
     BaseQuery.set_connection(conn)
     BaseModel.set_connection(conn)

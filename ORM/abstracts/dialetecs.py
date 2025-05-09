@@ -51,3 +51,8 @@ class SQLDialect(ABC):
     def placeholder(self, data_len: int) -> list[str]:
         """Abstract method to get the placeholder for parameterized queries."""
         pass
+
+    @abstractmethod
+    def parser(self, result: tuple):
+        """Abstract method to serialize results."""
+        pass
