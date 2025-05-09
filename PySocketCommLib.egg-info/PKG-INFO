@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: PySocketCommLib
+Version: 0.1
+Author: https://github.com/Jhonattan-rocha
+Author-email: jhonattan246rocha@gmail.com
+License-File: LICENSE
+Requires-Dist: cryptography
+Dynamic: author
+Dynamic: author-email
+Dynamic: license-file
+Dynamic: requires-dist

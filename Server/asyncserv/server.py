@@ -10,7 +10,7 @@ from Files import File
 from Options import Client_ops, SSLContextOps, Server_ops
 from Crypt import Crypt
 from Client import AsyncClient
-from Server import TokenBucket
+from Server import AsyncTokenBucket
 from TaskManager import AsyncTaskManager
 
 # Configuração básica do logger para salvar em arquivo
@@ -39,7 +39,7 @@ class Server:
         self.__running: bool = True
         self.crypt: Crypt | None = None
         self.ssl_context: ssl.SSLContext | None = None
-        self.rate_limits: dict[str, TokenBucket] = {}  # uuid -> TokenBucket
+        self.rate_limits: dict[str, AsyncTokenBucket] = {}  # uuid -> AsyncTokenBucket
 
         if Options.ssl_ops:
             self.ssl_context: ssl.SSLContext = Options.ssl_ops.ssl_context
@@ -158,7 +158,7 @@ class Server:
         uuid = client.uuid 
 
         if uuid not in self.rate_limits:
-            self.rate_limits[uuid] = TokenBucket(rate=2, capacity=5) 
+            self.rate_limits[uuid] = AsyncTokenBucket(rate=2, capacity=5) 
 
         bucket = self.rate_limits[uuid]
         if not await bucket.allow():
