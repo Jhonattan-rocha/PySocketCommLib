@@ -4,7 +4,7 @@ from ORM.abstracts.querys import BaseQuery
 from ORM.abstracts.field_types import IntegerField, TextField, DateTimeField
 from ORM.querys import Insert, Update, Delete, Select
 
-conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="123456", database="motoapp")
+conn = PsqlConnection(host="localhost", port=5432, user="postgres", password="123456", database="postgres")
 if conn.connect():
     BaseQuery.set_connection(conn)
     BaseModel.set_connection(conn)
@@ -33,7 +33,7 @@ if conn.connect():
 
     Delete(User.get_table_name()).where('id = 3').run()
 
-    query = Select(User.get_table_name()).select("name")
+    query = Select(User.get_table_name())
 
     print("Users inserted.")
     print(query.run())

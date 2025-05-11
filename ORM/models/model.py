@@ -201,3 +201,16 @@ class BaseModel:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.select_sql(columns, where_condition, order_by, limit, joins)
         return cls.connection.run(sql, params)
+
+    def to_dict(self) -> dict:
+        """
+        Serializa os campos da instância que são BaseField em um dicionário.
+        """
+        fields, _ = self.__class__.get_fields()
+        result = {}
+
+        for name in fields:
+            value = getattr(self, name)
+            result[name] = value
+
+        return result

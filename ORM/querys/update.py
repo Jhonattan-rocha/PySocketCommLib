@@ -25,4 +25,5 @@ class Update(BaseQuery):
 
     def run(self) -> Any: # Run method for Update Query
         sql, params = self.to_sql()
-        return self.client.dialect.parser(self.client.run(sql, params))
+        result = self.client.run(sql, params)
+        return self.client.dialect.parser(result) if result else result
