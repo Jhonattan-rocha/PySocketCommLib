@@ -166,7 +166,7 @@ class AsyncHttpServerProtocol:
                 body_data = {}
                 try:
                     import json
-                    body_bytes = json.loads(body_bytes.decode())
+                    body_data = json.loads(body_bytes.decode())
                 except Exception as e:
                     body_data = body_bytes
 
