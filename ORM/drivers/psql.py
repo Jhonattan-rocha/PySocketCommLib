@@ -555,6 +555,8 @@ class PostgreSQLSocketClient:
                         value_end = message_body.find(b'\x00', offset)
                         field_value = message_body[offset:value_end].decode('utf-8', errors='ignore')
                         notice_details[field_type] = field_value
+                        if offset == len(message_body) or value_end == -1:
+                            break
                         offset = value_end + 1
                     self.notices.append(notice_details) # Adiciona a notice à lista
                 elif message_type_int == ord('K'):
@@ -566,7 +568,7 @@ class PostgreSQLSocketClient:
                 else:
                     self.logger.error(f"Tipo de mensagem de resultado desconhecido: {chr(message_type_int)} (código: {message_type_int})")
                     break # Para em caso de tipo desconhecido
-            return results, columns_info # Retorna os resultados processados
+            return results, columns # Retorna os resultados processados
         except socket.error as e:
             self.logger.error(f"Erro de socket ao receber resultado: {e}")
             return None
@@ -736,17 +738,6 @@ class PostgreSQLSocketClient:
 if __name__ == "__main__":
     db = PostgreSQLSocketClient(host="localhost", port=5432, username="postgres", password="123456", database_name="postgres")
     if db.connect():
-        query_name = 'versao'
-        params = ['version()']
-        
-        query = 'SELECT $1;'
-        
-        is_prepare = db.prepare_statement(statement_name=query_name, query_string=query, param_types=None)
-        
-        if is_prepare:
-            print(f"Query com parametros criada com o nome: {query_name}")
-            
-        result = db.execute_prepared_statement(query_name, params)
-        
-        print(result)
-        
+        result = db.run("CREATE TABLE IF NOT EXISTS minha_tabela (id SERIAL PRIMARY KEY, nome TEXT)")
+        print(db.notices)
+        print("Criado com sucesso")
