@@ -117,6 +117,23 @@ class AsyncHttpServerProtocol:
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")
 
+    async def receive_body(self, receive: Callable) -> bytes:
+        """
+        Recebe o corpo completo da requisição ASGI.
+        """
+        body = b""
+        more_body = True
+
+        while more_body:
+            message = await receive()
+            if message["type"] == "http.request":
+                body += message.get("body", b"")
+                more_body = message.get("more_body", False)
+            else:
+                break
+
+        return body
+
     async def handle_asgi_request(self, scope: dict, receive: Callable, send: Callable):
         """Garante que toda requisição receba uma resposta"""
         try:
@@ -145,7 +162,15 @@ class AsyncHttpServerProtocol:
                         except Exception as e:
                             continue
 
-                params = [raw_path, query_params, vars]
+                body_bytes = await self.receive_body(receive)
+                body_data = {}
+                try:
+                    import json
+                    body_bytes = json.loads(body_bytes.decode())
+                except Exception as e:
+                    body_data = body_bytes
+
+                params = [raw_path, query_params, vars, body_data]
                 func = function_data["function"]
 
                 response = Response()
