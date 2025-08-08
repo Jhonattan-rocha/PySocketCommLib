@@ -1,0 +1,1498 @@
+{
+  "summary": {
+    "total_files_analyzed": 127,
+    "files_with_relative_imports": 33,
+    "files_with_absolute_imports": 94,
+    "problematic_files": 0,
+    "unique_modules": 56
+  },
+  "relative_imports": {
+    "cli.py": [
+      {
+        "level": 1,
+        "module": "",
+        "names": [
+          "__version__"
+        ]
+      }
+    ],
+    "__init__.py": [
+      {
+        "level": 1,
+        "module": "Server",
+        "names": [
+          "AsyncServer",
+          "ThreadServer"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Client",
+        "names": [
+          "AsyncClient",
+          "ThreadClient"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Auth",
+        "names": [
+          "NoAuth",
+          "SimpleTokenAuth"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Crypt",
+        "names": [
+          "Crypt"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Events",
+        "names": [
+          "Events"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Files",
+        "names": [
+          "File"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Options",
+        "names": [
+          "Server_ops",
+          "Client_ops",
+          "SSLContextOps"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "TaskManager",
+        "names": [
+          "AsyncTaskManager",
+          "TaskManager"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "ORM",
+        "names": [
+          "BaseModel",
+          "BaseField",
+          "IntegerField",
+          "TextField",
+          "FloatField",
+          "BooleanField",
+          "DateTimeField",
+          "DecimalField",
+          "ForeignKeyField",
+          "JSONField",
+          "UUIDField",
+          "Select",
+          "Insert",
+          "Update",
+          "Delete"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Connection_type",
+        "names": [
+          "Types"
+        ]
+      }
+    ],
+    "Abstracts\\__init__.py": [
+      {
+        "level": 1,
+        "module": "AsyncCrypts",
+        "names": [
+          "AsyncCrypts"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "AsyncTask",
+        "names": [
+          "AsyncTask"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Auth",
+        "names": [
+          "Auth"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "SyncCrypts",
+        "names": [
+          "SyncCrypts"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "ThreadTask",
+        "names": [
+          "ThreadTask"
+        ]
+      }
+    ],
+    "Auth\\__init__.py": [
+      {
+        "level": 1,
+        "module": "NoAuth",
+        "names": [
+          "NoAuth"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "SimpleAuth",
+        "names": [
+          "SimpleTokenAuth"
+        ]
+      }
+    ],
+    "ORM\\__init__.py": [
+      {
+        "level": 1,
+        "module": "abstracts.field_types",
+        "names": [
+          "BaseField",
+          "BooleanField",
+          "TextField",
+          "FloatField",
+          "IntegerField",
+          "DateTimeField",
+          "DecimalField",
+          "ForeignKeyField",
+          "JSONField",
+          "UUIDField"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "abstracts.querys",
+        "names": [
+          "BaseQuery"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "abstracts.dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "cache",
+        "names": [
+          "MemoryCache"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "dialetecs.mysql",
+        "names": [
+          "MySQLDialect"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "dialetecs.psql",
+        "names": [
+          "PostgreSQLDialect",
+          "PsqlConnection"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "dialetecs.sqlite",
+        "names": [
+          "SqliteDialect",
+          "SqliteConnection"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "drivers.psql",
+        "names": [
+          "PostgreSQLSocketClient"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "models.model",
+        "names": [
+          "BaseModel"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "pools",
+        "names": [
+          "AsyncConnectionPool",
+          "ConnectionPool"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "querys",
+        "names": [
+          "Delete",
+          "Insert",
+          "Select",
+          "Update"
+        ]
+      }
+    ],
+    "Protocols\\__init__.py": [
+      {
+        "level": 1,
+        "module": "protocols.httpServer.httpServerProtocol",
+        "names": [
+          "AsyncHttpServerProtocol"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.websocket.client",
+        "names": [
+          "WebSocketClient"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.websocket.server",
+        "names": [
+          "WebSocketServer"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.httpServer.Router.Router",
+        "names": [
+          "Router"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.httpServer.Responses.FileResponse",
+        "names": [
+          "FileResponse"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.httpServer.Responses.Response",
+        "names": [
+          "Response"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.httpServer.Responses.RedirectResponse",
+        "names": [
+          "RedirectResponse"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "protocols.httpServer.Responses.JSONResponse",
+        "names": [
+          "JSONResponse"
+        ]
+      }
+    ],
+    "Server\\asyncserv\\server.py": [
+      {
+        "level": 3,
+        "module": "Abstracts.Auth",
+        "names": [
+          "Auth"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Auth.NoAuth",
+        "names": [
+          "NoAuth"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Auth.SimpleAuth",
+        "names": [
+          "SimpleTokenAuth"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Events",
+        "names": [
+          "Events"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Files",
+        "names": [
+          "File"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Options",
+        "names": [
+          "Client_ops",
+          "SSLContextOps",
+          "Server_ops"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Crypt",
+        "names": [
+          "Crypt"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "Client",
+        "names": [
+          "AsyncClient"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "helpers.rate_limiter",
+        "names": [
+          "AsyncTokenBucket"
+        ]
+      },
+      {
+        "level": 3,
+        "module": "TaskManager",
+        "names": [
+          "AsyncTaskManager"
+        ]
+      }
+    ],
+    "Server\\asyncserv\\helpers\\__init__.py": [
+      {
+        "level": 1,
+        "module": "rate_limiter",
+        "names": [
+          "AsyncTokenBucket"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\httpServerProtocol.py": [
+      {
+        "level": 1,
+        "module": "Responses",
+        "names": [
+          "FileResponse"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Responses",
+        "names": [
+          "Response"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "Router.Router",
+        "names": [
+          "Router"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\CORSMiddleware.py": [
+      {
+        "level": 2,
+        "module": "Responses.Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\errorMiddleware.py": [
+      {
+        "level": 2,
+        "module": "Responses.Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\rateLimitMiddleware.py": [
+      {
+        "level": 2,
+        "module": "Responses.Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\SegurityMiddleware.py": [
+      {
+        "level": 2,
+        "module": "Responses.Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\__init__.py": [
+      {
+        "level": 1,
+        "module": "errorMiddleware",
+        "names": [
+          "ErrorHandlerMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "CORSMiddleware",
+        "names": [
+          "CORSMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "gzipMiddleware",
+        "names": [
+          "GzipMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "loggingMiddleware",
+        "names": [
+          "LoggingMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "rateLimitMiddleware",
+        "names": [
+          "RateLimiterMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "middlewareController",
+        "names": [
+          "MiddlewareController"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "SegurityMiddleware",
+        "names": [
+          "SecurityMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "cacheControllMiddleware",
+        "names": [
+          "CacheControlMiddleware"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "HttpVersionMiddleware",
+        "names": [
+          "HTTPVersionMiddleware"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\FileResponse.py": [
+      {
+        "level": 1,
+        "module": "Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\JSONResponse.py": [
+      {
+        "level": 1,
+        "module": "Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\RedirectResponse.py": [
+      {
+        "level": 1,
+        "module": "Response",
+        "names": [
+          "Response"
+        ]
+      }
+    ],
+    "ORM\\abstracts\\connection_types.py": [
+      {
+        "level": 2,
+        "module": "abstracts.dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      }
+    ],
+    "ORM\\abstracts\\dialetecs.py": [
+      {
+        "level": 1,
+        "module": "field_types",
+        "names": [
+          "BaseField"
+        ]
+      }
+    ],
+    "ORM\\abstracts\\querys.py": [
+      {
+        "level": 1,
+        "module": "connection_types",
+        "names": [
+          "Connection"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      }
+    ],
+    "ORM\\dialetecs\\mysql.py": [
+      {
+        "level": 2,
+        "module": "abstracts.dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.field_types",
+        "names": [
+          "BaseField"
+        ]
+      }
+    ],
+    "ORM\\dialetecs\\psql.py": [
+      {
+        "level": 2,
+        "module": "abstracts.dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "drivers.psql",
+        "names": [
+          "PostgreSQLSocketClient"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.field_types",
+        "names": [
+          "BaseField",
+          "ForeignKeyField"
+        ]
+      }
+    ],
+    "ORM\\dialetecs\\sqlite.py": [
+      {
+        "level": 2,
+        "module": "abstracts.dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.field_types",
+        "names": [
+          "BaseField"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\migrations\\migration.py": [
+      {
+        "level": 1,
+        "module": "operations",
+        "names": [
+          "Operation"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "connections.connection_types",
+        "names": [
+          "ConnectionType"
+        ]
+      }
+    ],
+    "ORM\\migrations\\operations.py": [
+      {
+        "level": 2,
+        "module": "abstracts.field_types",
+        "names": [
+          "BaseField"
+        ]
+      }
+    ],
+    "ORM\\migrations\\__init__.py": [
+      {
+        "level": 1,
+        "module": "migration",
+        "names": [
+          "Migration",
+          "MigrationManager"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "operations",
+        "names": [
+          "CreateTable",
+          "DropTable",
+          "AddColumn",
+          "DropColumn",
+          "AlterColumn"
+        ]
+      }
+    ],
+    "ORM\\models\\model.py": [
+      {
+        "level": 2,
+        "module": "abstracts.field_types",
+        "names": [
+          "BaseField"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.dialetecs",
+        "names": [
+          "SQLDialect"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\pools\\__init__.py": [
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\querys\\delete.py": [
+      {
+        "level": 2,
+        "module": "abstracts.querys",
+        "names": [
+          "BaseQuery"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\querys\\insert.py": [
+      {
+        "level": 2,
+        "module": "abstracts.querys",
+        "names": [
+          "BaseQuery"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\querys\\select.py": [
+      {
+        "level": 2,
+        "module": "abstracts.querys",
+        "names": [
+          "BaseQuery"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\querys\\update.py": [
+      {
+        "level": 2,
+        "module": "abstracts.querys",
+        "names": [
+          "BaseQuery"
+        ]
+      },
+      {
+        "level": 2,
+        "module": "abstracts.connection_types",
+        "names": [
+          "Connection"
+        ]
+      }
+    ],
+    "ORM\\querys\\__init__.py": [
+      {
+        "level": 1,
+        "module": "select",
+        "names": [
+          "Select"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "delete",
+        "names": [
+          "Delete"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "update",
+        "names": [
+          "Update"
+        ]
+      },
+      {
+        "level": 1,
+        "module": "insert",
+        "names": [
+          "Insert"
+        ]
+      }
+    ]
+  },
+  "absolute_imports": {
+    "cli.py": [
+      "argparse",
+      "sys",
+      "os",
+      "json",
+      "asyncio",
+      "pathlib",
+      "typing",
+      "config",
+      "Options.Ops"
+    ],
+    "config.py": [
+      "os",
+      "json",
+      "logging",
+      "typing",
+      "pathlib",
+      "logging.handlers"
+    ],
+    "demo_improvements.py": [
+      "sys",
+      "os",
+      "asyncio",
+      "pathlib",
+      "config",
+      "ORM.abstracts.field_types"
+    ],
+    "final_validation.py": [
+      "sys",
+      "os",
+      "json",
+      "tempfile",
+      "pathlib",
+      "config",
+      "ORM.abstracts.field_types",
+      "asyncio",
+      "importlib.util",
+      "importlib.util"
+    ],
+    "import_analyzer.py": [
+      "os",
+      "ast",
+      "sys",
+      "pathlib",
+      "typing",
+      "collections",
+      "json"
+    ],
+    "setup.py": [
+      "setuptools",
+      "os"
+    ],
+    "test_improvements.py": [
+      "sys",
+      "os",
+      "json",
+      "tempfile",
+      "pathlib",
+      "config",
+      "ORM.fields",
+      "ORM.migrations.operations",
+      "asyncio",
+      "Server.asyncserv.helpers.rate_limiter",
+      "__init__"
+    ],
+    "Abstracts\\AsyncCrypts.py": [
+      "abc",
+      "typing",
+      "Options"
+    ],
+    "Abstracts\\AsyncTask.py": [
+      "uuid",
+      "typing",
+      "abc"
+    ],
+    "Abstracts\\Auth.py": [
+      "abc",
+      "concurrent.futures",
+      "typing",
+      "typing",
+      "asyncio",
+      "random",
+      "uuid",
+      "hashlib",
+      "string"
+    ],
+    "Abstracts\\SyncCrypts.py": [
+      "abc",
+      "typing",
+      "Options"
+    ],
+    "Abstracts\\ThreadTask.py": [
+      "threading",
+      "uuid",
+      "typing",
+      "abc",
+      "queue"
+    ],
+    "Auth\\NoAuth.py": [
+      "Abstracts.Auth"
+    ],
+    "Auth\\SimpleAuth.py": [
+      "Abstracts.Auth"
+    ],
+    "Client\\__init__.py": [
+      "Client.asyncli.client",
+      "Client.threadcli.client"
+    ],
+    "Connection_type\\Types.py": [
+      "socket"
+    ],
+    "Connection_type\\__init__.py": [
+      "Connection_type.Types"
+    ],
+    "Crypt\\crypt_main.py": [
+      "Options",
+      "Crypt",
+      "Crypt"
+    ],
+    "Crypt\\__init__.py": [
+      "Crypt.Crypts.AESCrypt",
+      "Crypt.Crypts.FernetCrypt",
+      "Crypt.Crypts.RSACrypt",
+      "Crypt.Crypts_map.Async",
+      "Crypt.Crypts_map.Sync",
+      "Crypt.crypt_main"
+    ],
+    "Events\\Events.py": [
+      "asyncio",
+      "concurrent.futures",
+      "re",
+      "threading",
+      "typing"
+    ],
+    "Events\\__init__.py": [
+      "Events.Events"
+    ],
+    "examples\\complete_example.py": [
+      "asyncio",
+      "logging",
+      "pathlib",
+      "PySocketCommLib",
+      "PySocketCommLib.Events",
+      "PySocketCommLib.TaskManager"
+    ],
+    "examples\\simple_client.py": [
+      "asyncio",
+      "json",
+      "logging",
+      "typing",
+      "ssl"
+    ],
+    "Files\\File.py": [
+      "concurrent.futures",
+      "os",
+      "asyncio",
+      "typing",
+      "io",
+      "gzip"
+    ],
+    "Files\\__init__.py": [
+      "Files.File"
+    ],
+    "Options\\Ops.py": [
+      "ssl",
+      "Abstracts.Auth",
+      "Connection_type.Types",
+      "typing"
+    ],
+    "Options\\__init__.py": [
+      "Options.Ops"
+    ],
+    "Server\\__init__.py": [
+      "Server.asyncserv.server",
+      "Server.asyncserv.helpers.rateLimit",
+      "Server.threadserv.server"
+    ],
+    "TaskManager\\AsyncTaskManager.py": [
+      "Abstracts.AsyncTask",
+      "asyncio"
+    ],
+    "TaskManager\\TaskManager.py": [
+      "Abstracts.ThreadTask",
+      "queue"
+    ],
+    "TaskManager\\__init__.py": [
+      "TaskManager.AsyncTaskManager",
+      "TaskManager.TaskManager"
+    ],
+    "tests\\async_client_test.py": [
+      "os",
+      "sys",
+      "Client.asyncli.client",
+      "Options.Ops",
+      "asyncio"
+    ],
+    "tests\\async_http_server_test.py": [
+      "uvicorn",
+      "Protocols",
+      "Protocols",
+      "Protocols.protocols.httpServer.middlewares",
+      "contextlib"
+    ],
+    "tests\\async_server_test.py": [
+      "os",
+      "sys",
+      "asyncio",
+      "Server.asyncserv.server",
+      "Options.Ops"
+    ],
+    "tests\\client_ssl.py": [
+      "socket",
+      "ssl"
+    ],
+    "tests\\client_test.py": [
+      "os",
+      "sys",
+      "Client.threadcli.client",
+      "Options.Ops"
+    ],
+    "tests\\conn_pg.py": [
+      "socket",
+      "struct",
+      "sys",
+      "hashlib",
+      "hmac",
+      "base64",
+      "os",
+      "hashlib"
+    ],
+    "tests\\conn_pg2.py": [
+      "socket",
+      "struct",
+      "sys",
+      "hashlib",
+      "hmac",
+      "base64",
+      "os",
+      "hashlib"
+    ],
+    "tests\\conn_pg3.py": [
+      "socket",
+      "struct",
+      "sys",
+      "hashlib",
+      "hmac",
+      "base64",
+      "os"
+    ],
+    "tests\\conn_pg4.py": [
+      "socket",
+      "ssl",
+      "struct",
+      "sys",
+      "hashlib",
+      "hmac",
+      "base64",
+      "os",
+      "logging"
+    ],
+    "tests\\conn_sqlite.py": [
+      "sqlite3",
+      "typing"
+    ],
+    "tests\\http_test.py": [
+      "os",
+      "sys",
+      "Protocols.protocols.httpServer.syncServer",
+      "Protocols.protocols.httpServer.Router.Router"
+    ],
+    "tests\\orm_test.py": [
+      "ORM.dialetecs.psql",
+      "ORM.models.model",
+      "ORM.abstracts.querys",
+      "ORM.abstracts.field_types",
+      "ORM.querys"
+    ],
+    "tests\\server_ssl.py": [
+      "socket",
+      "ssl"
+    ],
+    "tests\\server_test.py": [
+      "os",
+      "sys",
+      "time",
+      "Server.threadserv.server",
+      "Options.Ops"
+    ],
+    "tests\\test.py": [
+      "re"
+    ],
+    "tests\\test_orm.py": [
+      "unittest",
+      "tempfile",
+      "os",
+      "pathlib",
+      "ORM.abstracts.field_types",
+      "ORM.models.model",
+      "ORM.connections.connection_types",
+      "ORM.migrations.operations",
+      "ORM.migrations.migration",
+      "shutil"
+    ],
+    "tests\\test_server.py": [
+      "unittest",
+      "asyncio",
+      "tempfile",
+      "ssl",
+      "unittest.mock",
+      "Server.asyncserv.server",
+      "Options.Ops",
+      "config",
+      "Server.asyncserv.helpers.rate_limiter",
+      "time"
+    ],
+    "tests\\thread_client_test.py": [
+      "os",
+      "sys",
+      "Client",
+      "Options.Ops"
+    ],
+    "tests\\thread_server_test.py": [
+      "os",
+      "sys",
+      "time",
+      "Server.threadserv.server",
+      "Options.Ops"
+    ],
+    "tests\\thread_websocket_server_test.py": [
+      "os",
+      "sys",
+      "time",
+      "Server.threadserv.server",
+      "Options.Ops"
+    ],
+    "tests\\websocket_client_test.py": [
+      "socket",
+      "base64",
+      "os",
+      "struct"
+    ],
+    "tests\\websocket_server_test.py": [
+      "socket",
+      "threading",
+      "base64",
+      "hashlib",
+      "struct"
+    ],
+    "Server\\asyncserv\\server.py": [
+      "asyncio",
+      "ssl",
+      "struct",
+      "logging",
+      "typing"
+    ],
+    "Server\\threadserv\\server.py": [
+      "socket",
+      "ssl",
+      "struct",
+      "threading",
+      "sys",
+      "queue",
+      "Abstracts.Auth",
+      "Auth.NoAuth",
+      "Auth.SimpleAuth",
+      "Events",
+      "Options",
+      "Crypt",
+      "Client",
+      "Connection_type.Types",
+      "Files",
+      "TaskManager",
+      "logging"
+    ],
+    "Server\\asyncserv\\helpers\\rateLimit.py": [
+      "time",
+      "asyncio"
+    ],
+    "Server\\asyncserv\\helpers\\rate_limiter.py": [
+      "asyncio",
+      "time",
+      "typing"
+    ],
+    "Protocols\\protocols\\httpServer\\httpServerProtocol.py": [
+      "asyncio",
+      "inspect",
+      "logging",
+      "mimetypes",
+      "os",
+      "re",
+      "typing",
+      "json"
+    ],
+    "Protocols\\protocols\\websocket\\client.py": [
+      "os",
+      "struct",
+      "base64",
+      "socket"
+    ],
+    "Protocols\\protocols\\websocket\\server.py": [
+      "socket",
+      "base64",
+      "hashlib",
+      "struct"
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\errorMiddleware.py": [
+      "traceback",
+      "logging"
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\gzipMiddleware.py": [
+      "gzip"
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\loggingMiddleware.py": [
+      "time",
+      "logging"
+    ],
+    "Protocols\\protocols\\httpServer\\middlewares\\rateLimitMiddleware.py": [
+      "time",
+      "collections"
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\FileResponse.py": [
+      "os",
+      "mimetypes",
+      "typing"
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\JSONResponse.py": [
+      "json",
+      "typing"
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\RedirectResponse.py": [
+      "typing"
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\Response.py": [
+      "typing",
+      "logging",
+      "uuid"
+    ],
+    "Protocols\\protocols\\httpServer\\Responses\\__init__.py": [
+      "Protocols.protocols.httpServer.Responses.FileResponse",
+      "Protocols.protocols.httpServer.Responses.Response",
+      "Protocols.protocols.httpServer.Responses.JSONResponse",
+      "Protocols.protocols.httpServer.Responses.RedirectResponse"
+    ],
+    "Protocols\\protocols\\httpServer\\Router\\Router.py": [
+      "typing",
+      "urllib.parse",
+      "re"
+    ],
+    "ORM\\abstracts\\connection_types.py": [
+      "abc",
+      "typing"
+    ],
+    "ORM\\abstracts\\dialetecs.py": [
+      "abc",
+      "typing"
+    ],
+    "ORM\\abstracts\\field_types.py": [
+      "abc",
+      "typing"
+    ],
+    "ORM\\abstracts\\querys.py": [
+      "abc",
+      "typing"
+    ],
+    "ORM\\cache\\__init__.py": [
+      "time",
+      "typing"
+    ],
+    "ORM\\dialetecs\\mysql.py": [
+      "typing"
+    ],
+    "ORM\\dialetecs\\psql.py": [
+      "typing",
+      "uuid"
+    ],
+    "ORM\\dialetecs\\sqlite.py": [
+      "sqlite3",
+      "typing"
+    ],
+    "ORM\\drivers\\psql.py": [
+      "socket",
+      "ssl",
+      "struct",
+      "sys",
+      "hashlib",
+      "hmac",
+      "base64",
+      "os",
+      "logging"
+    ],
+    "ORM\\migrations\\migration.py": [
+      "os",
+      "json",
+      "hashlib",
+      "importlib.util",
+      "datetime",
+      "typing",
+      "pathlib"
+    ],
+    "ORM\\migrations\\operations.py": [
+      "abc",
+      "typing"
+    ],
+    "ORM\\models\\model.py": [
+      "ORM.cache",
+      "typing"
+    ],
+    "ORM\\pools\\__init__.py": [
+      "queue",
+      "asyncio",
+      "typing"
+    ],
+    "ORM\\querys\\delete.py": [
+      "typing"
+    ],
+    "ORM\\querys\\insert.py": [
+      "typing"
+    ],
+    "ORM\\querys\\select.py": [
+      "typing"
+    ],
+    "ORM\\querys\\update.py": [
+      "typing"
+    ],
+    "Crypt\\Crypts\\AESCrypt.py": [
+      "asyncio",
+      "concurrent.futures",
+      "Abstracts.SyncCrypts",
+      "Options.Ops",
+      "cryptography.hazmat.backends",
+      "cryptography.hazmat.primitives.ciphers",
+      "cryptography.hazmat.primitives",
+      "base64",
+      "typing",
+      "os",
+      "string",
+      "random"
+    ],
+    "Crypt\\Crypts\\FernetCrypt.py": [
+      "random",
+      "string",
+      "asyncio",
+      "typing",
+      "Abstracts.SyncCrypts",
+      "Options",
+      "cryptography.fernet",
+      "concurrent.futures"
+    ],
+    "Crypt\\Crypts\\RSACrypt.py": [
+      "asyncio",
+      "concurrent.futures",
+      "typing",
+      "Abstracts.AsyncCrypts",
+      "Options",
+      "cryptography.hazmat.primitives",
+      "cryptography.hazmat.primitives.asymmetric",
+      "cryptography.hazmat.backends",
+      "cryptography.hazmat.primitives"
+    ],
+    "Crypt\\Crypts_map\\Async.py": [
+      "Crypt.Crypts.RSACrypt",
+      "Abstracts.AsyncCrypts"
+    ],
+    "Crypt\\Crypts_map\\Sync.py": [
+      "Crypt",
+      "Crypt",
+      "Abstracts.SyncCrypts"
+    ],
+    "Client\\asyncli\\client.py": [
+      "asyncio",
+      "ssl",
+      "struct",
+      "uuid",
+      "logging",
+      "Abstracts.Auth",
+      "Auth.NoAuth",
+      "Auth.SimpleAuth",
+      "Events",
+      "Files",
+      "Options",
+      "Crypt",
+      "TaskManager"
+    ],
+    "Client\\threadcli\\client.py": [
+      "socket",
+      "ssl",
+      "struct",
+      "threading",
+      "uuid",
+      "logging",
+      "queue",
+      "Abstracts.Auth",
+      "Auth.NoAuth",
+      "Auth.SimpleAuth",
+      "Events",
+      "Files",
+      "Options",
+      "Crypt",
+      "Connection_type",
+      "TaskManager"
+    ]
+  },
+  "import_conflicts": {
+    "name_conflicts": [
+      {
+        "module": "Server",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Crypt",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Abstracts",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Events",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Options",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Files",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "TaskManager",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Auth",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Client",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Connection_type",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "ORM",
+        "conflict_type": "directory_name_conflict"
+      },
+      {
+        "module": "Protocols",
+        "conflict_type": "directory_name_conflict"
+      }
+    ]
+  },
+  "problematic_files": [],
+  "recommendations": [
+    "Converter imports relativos para absolutos para melhor compatibilidade",
+    "Resolver conflitos de nomes entre módulos e diretórios",
+    "Implementar importações consistentes em todo o projeto",
+    "Considerar uso de __init__.py para controlar exports",
+    "Atualizar CLI para usar importações absolutas",
+    "Modernizar testes legados com imports corretos"
+  ]
+}

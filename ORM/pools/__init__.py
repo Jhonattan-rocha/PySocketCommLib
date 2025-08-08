@@ -1,6 +1,6 @@
 from queue import Queue
 import asyncio
-from ..abstracts.connection_types import Connection
+from PySocketCommLib.ORM.pools..abstracts.connection_types import Connection
 from typing import Type
 
 class ConnectionPool:

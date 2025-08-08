@@ -1,0 +1,20 @@
+# Core dependencies
+cryptography>=41.0.0
+psycopg2-binary>=2.9.0  # PostgreSQL adapter
+aiofiles>=23.0.0  # Async file operations
+websockets>=11.0.0  # WebSocket support
+aiohttp>=3.8.0  # HTTP client/server support
+pydantic>=2.0.0  # Data validation
+typing-extensions>=4.5.0  # Extended typing support
+
+# Optional dependencies for specific databases
+# mysql-connector-python>=8.0.0  # MySQL support
+# aiosqlite>=0.19.0  # Async SQLite support
+
+# Development dependencies (install with pip install -e .[dev])
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
+# pytest-cov>=4.0.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0

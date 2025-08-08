@@ -1,0 +1,93 @@
+{
+  "total_fixes": 13,
+  "fixes_by_type": {
+    "specific_fix": 1,
+    "general_fix": 11,
+    "cli_fix": 1
+  },
+  "fixes_by_file": {
+    "cli.py": 2,
+    "__init__.py": 10,
+    "Abstracts\\__init__.py": 1
+  },
+  "fixes_applied": [
+    {
+      "file": "cli.py",
+      "type": "specific_fix",
+      "old": "from . import __version__",
+      "new": "from PySocketCommLib import __version__"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Server import",
+      "new": "from PySocketCommLib.Server import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Client import",
+      "new": "from PySocketCommLib.Client import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Auth import",
+      "new": "from PySocketCommLib.Auth import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .ORM import",
+      "new": "from PySocketCommLib.ORM import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Crypt import",
+      "new": "from PySocketCommLib.Crypt import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Events import",
+      "new": "from PySocketCommLib.Events import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Files import",
+      "new": "from PySocketCommLib.Files import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Options import",
+      "new": "from PySocketCommLib.Options import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .TaskManager import",
+      "new": "from PySocketCommLib.TaskManager import"
+    },
+    {
+      "file": "__init__.py",
+      "type": "general_fix",
+      "old": "from .Connection_type import",
+      "new": "from PySocketCommLib.Connection_type import"
+    },
+    {
+      "file": "Abstracts\\__init__.py",
+      "type": "general_fix",
+      "old": "from .Auth import",
+      "new": "from PySocketCommLib.Auth import"
+    },
+    {
+      "file": "cli.py",
+      "type": "cli_fix",
+      "old": "from . import __version__",
+      "new": "from PySocketCommLib import __version__"
+    }
+  ]
+}
