@@ -1,11 +1,10 @@
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import re
 import threading
 from typing import Any, Callable
+from ..Abstracts.AsyncExecutorMixin import AsyncExecutorMixin
 
 
-class Events:
+class Events(AsyncExecutorMixin):
     """
     Sistema de eventos simples baseado em flags embutidas na mensagem.
 
@@ -70,8 +69,3 @@ class Events:
         with self.__lock:
             self.__events.pop(flag, None)
 
-    async def async_executor(self, Call: Callable[..., Any], *args) -> Any:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, Call, *args)
-        return res

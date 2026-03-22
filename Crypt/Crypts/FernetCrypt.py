@@ -1,11 +1,8 @@
 import random
 import string
-import asyncio
-from typing import Any, Callable
 from ...Abstracts.SyncCrypts import SyncCrypts
 from ...Options import SyncCrypt_ops
 from cryptography.fernet import Fernet
-from concurrent.futures import ThreadPoolExecutor
 
 class FernetCrypt(SyncCrypts):
     def __init__(self, Options: SyncCrypt_ops) -> None:
@@ -47,8 +44,3 @@ class FernetCrypt(SyncCrypts):
     def get_key(self) -> bytes:
         return self.__sync_key
 
-    async def async_executor(self, Call: Callable[..., Any], *args):
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, Call, *args)
-        return res

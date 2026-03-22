@@ -1,11 +1,8 @@
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 from ...Abstracts.SyncCrypts import SyncCrypts
 from ...Options.Ops import SyncCrypt_ops
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from base64 import b64encode, b64decode
-from typing import Callable, Any
 import os
 
 
@@ -55,8 +52,3 @@ class AESCrypt(SyncCrypts):
             raise AttributeError("A chave deve ter 16, 24 ou 32 bytes")
         self.__key = key
 
-    async def async_executor(self, Call: Callable[..., Any], *args):
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, Call, *args)
-        return res

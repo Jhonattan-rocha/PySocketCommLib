@@ -1,12 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor
 import os
-import asyncio
-from typing import Callable, Any
 import io
 import gzip
+from ..Abstracts.AsyncExecutorMixin import AsyncExecutorMixin
 
 
-class File:
+class File(AsyncExecutorMixin):
     def __init__(self, path: str = "", mode: str = "+ab", encoding: str = "utf8") -> None:
         self.path = path
         self.mode = mode
@@ -92,11 +90,6 @@ class File:
     def get_full_path(self):
         return os.path.realpath(self.path)
 
-    async def async_executor(self, Call: Callable[..., Any], *args):
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as executor:
-            res = await loop.run_in_executor(executor, Call, *args)
-        return res
 
 
 if __name__ == "__main__":

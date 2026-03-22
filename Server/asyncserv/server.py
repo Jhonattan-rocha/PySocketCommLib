@@ -294,6 +294,7 @@ class AsyncServer:
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         address = writer.get_extra_info('peername')
         logger.info(f"Nova conexão: {address}")
+        client = None
         try:
             client = AsyncClient(Client_ops(host=self.HOST, port=self.PORT,
                                             ssl_ops=self.server_options.ssl_ops,
@@ -311,9 +312,26 @@ class AsyncServer:
 
             await self.save_clients(client)
 
+            # Loop de mensagens — mantém a conexão viva e dispara eventos
+            while not writer.is_closing() and self.__running:
+                try:
+                    data = await self.receive_message(reader=reader)
+                    if not data:
+                        break
+                except RuntimeError:
+                    break
+                except Exception as e:
+                    logger.error(f"Erro no loop de mensagens de {address}: {e}")
+                    break
+
         except Exception as e:
             logger.error(f"Erro ao lidar com cliente {address}: {e}")
         finally:
+            if client is not None and client in self.__clients:
+                self.__clients.remove(client)
+                logger.info(f"Cliente desconectado: {address}, UUID: {client.uuid}")
+            if not writer.is_closing():
+                writer.close()
             logger.info(f"Handler de {address} finalizado.")
 
     async def break_server(self):

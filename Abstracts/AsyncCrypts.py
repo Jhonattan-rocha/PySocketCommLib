@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable
 from ..Options import AsyncCrypt_ops
+from .AsyncExecutorMixin import AsyncExecutorMixin
 
 
-class AsyncCrypts(ABC):
+class AsyncCrypts(AsyncExecutorMixin, ABC):
     @abstractmethod
     def __init__(self, Options: AsyncCrypt_ops) -> None:
         pass
@@ -26,9 +26,4 @@ class AsyncCrypts(ABC):
 
     @abstractmethod
     def decrypt_with_private_key(self, data: bytes, private_key=None) -> bytes:
-        pass
-
-    #--async
-    @abstractmethod
-    async def async_executor(self, Call: Callable[..., Any], *args):
         pass
