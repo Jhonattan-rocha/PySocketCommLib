@@ -1,8 +1,10 @@
-from ORM.cache import MemoryCache
+import asyncio
+from ..cache import MemoryCache
 from ..abstracts.field_types import BaseField
-from ..abstracts.dialetecs import SQLDialect 
+from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from typing import Tuple, Dict, List, Any, Optional
+
 
 class BaseModel:
     """
@@ -12,7 +14,7 @@ class BaseModel:
     dialect: SQLDialect = None  # Dialect to be set by concrete models
     connection: Connection = None  # Connection instance to be set
     _cache = MemoryCache()
-    
+
     @classmethod
     def build_where_clause(cls, conditions: dict) -> Tuple[str, tuple]:
         """
@@ -149,9 +151,9 @@ class BaseModel:
             elif db_column_name in kwargs:
                 setattr(self, name, kwargs[db_column_name])
             else:
-                setattr(self, name, field.default) # Set to field's default if provided, else remains None (default behavior of setattr if not set explicitly)
+                setattr(self, name, field.default)
 
-        self._data = {}  # To track data for insert/update (not fully implemented here)
+        self._data = {}
 
     def clear_cache(self):
         self._cache.clear_prefix(self.get_table_name())
@@ -170,7 +172,6 @@ class BaseModel:
         if not self.__class__.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
 
-        table_name = self.__class__.get_table_name()
         fields, primary_keys = self.__class__.get_fields()
         data_to_insert = {}
         for name, field in fields.items():
@@ -178,7 +179,6 @@ class BaseModel:
             data_to_insert[db_column_name] = getattr(self, name)
 
         sql, params = self.__class__.insert_sql(data_to_insert)
-        
         self.__class__.connection.run(sql, params)
 
     @classmethod
@@ -192,7 +192,6 @@ class BaseModel:
     @classmethod
     def delete(cls, where_condition: str):
         """Deletes records based on a WHERE condition."""
-        cls.clear_cache()
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql = cls.delete_sql(where_condition)
@@ -209,7 +208,7 @@ class BaseModel:
     @classmethod
     def update(cls, data: Dict[str, Any], where_condition: str):
         """Updates records based on a WHERE condition."""
-        cls.clear_cache()
+        cls._cache.clear_prefix(cls.get_table_name())
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.update_sql(data, where_condition)
@@ -243,9 +242,50 @@ class BaseModel:
         """
         fields, _ = self.__class__.get_fields()
         result = {}
-
         for name in fields:
             value = getattr(self, name)
             result[name] = value
-
         return result
+
+    # -------------------------------------------------------------------------
+    # Métodos async — executam os sync correspondentes em thread pool
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    async def async_select(cls, columns: List[str] = None, where_condition: Optional[str] = None,
+                           where_params: Optional[tuple] = None, order_by: Optional[List[str]] = None,
+                           limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Versão assíncrona de select(), executa em thread pool."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, lambda: cls.select(columns, where_condition, where_params, order_by, limit)
+        )
+
+    @classmethod
+    async def async_filter(cls, **conditions) -> List[Dict[str, Any]]:
+        """Versão assíncrona de filter()."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: cls.filter(**conditions))
+
+    @classmethod
+    async def async_get(cls, **conditions):
+        """Versão assíncrona de get()."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: cls.get(**conditions))
+
+    async def async_save(self):
+        """Versão assíncrona de save()."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.save)
+
+    @classmethod
+    async def async_update(cls, data: Dict[str, Any], where_condition: str):
+        """Versão assíncrona de update()."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, lambda: cls.update(data, where_condition))
+
+    @classmethod
+    async def async_delete(cls, where_condition: str):
+        """Versão assíncrona de delete()."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, lambda: cls.delete(where_condition))

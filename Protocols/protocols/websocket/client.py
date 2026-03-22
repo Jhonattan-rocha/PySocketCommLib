@@ -28,7 +28,7 @@ class WebSocketClient:
             payload_length = struct.unpack(">Q", message[offset:offset + 8])[0]
             offset += 8
 
-        return message[offset:offset + payload_length].decode('cp850')
+        return message[offset:offset + payload_length].decode('utf-8', errors='replace')
 
 
     def encode_message_with_mask(self, message_bytes: bytes) -> bytearray:
@@ -66,12 +66,12 @@ class WebSocketClient:
         
         return frame
 
-    def handshake(self, client: socket.socket):
-        # Envia a requisição HTTP para fazer o upgrade para WebSocket
-        key = base64.b64encode(b"123kg-pasduouo-pasojdpa").decode()
+    def handshake(self, client: socket.socket, host: str = "localhost", port: int = 8080, path: str = "/"):
+        # RFC 6455: chave deve ser 16 bytes aleatórios codificados em base64
+        key = base64.b64encode(os.urandom(16)).decode()
         handshake = (
-            "GET / HTTP/1.1\r\n"
-            "Host: localhost:8080\r\n"
+            f"GET {path} HTTP/1.1\r\n"
+            f"Host: {host}:{port}\r\n"
             "Upgrade: websocket\r\n"
             "Connection: Upgrade\r\n"
             f"Sec-WebSocket-Key: {key}\r\n"

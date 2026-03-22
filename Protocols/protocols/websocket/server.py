@@ -63,10 +63,10 @@ class WebSocketServer:
             for i in range(payload_length):
                 decoded_bytes.append(message[offset + i] ^ mask[i % 4])
 
-            return decoded_bytes.decode('cp850')
+            return decoded_bytes.decode('utf-8', errors='replace')
         else:
             # Se não estiver mascarada, retornar diretamente os dados
-            return message[offset:offset + payload_length].decode('cp850')
+            return message[offset:offset + payload_length].decode('utf-8', errors='replace')
     
     def handshake(self, client_socket: socket.socket):
         request = client_socket.recv(1024).decode()

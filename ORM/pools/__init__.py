@@ -1,12 +1,14 @@
-from queue import Queue
+from queue import Queue, Empty
 import asyncio
-from PySocketCommLib.ORM.pools..abstracts.connection_types import Connection
+from ..abstracts.connection_types import Connection
 from typing import Type
 
+
 class ConnectionPool:
-    """Synchronous Connection Pool."""
-    def __init__(self, connection_class: Type[Connection], min_conn=1, max_conn=10, **conn_kwargs): # Added type hint for connection_class
-        self.pool: Queue[Connection] = Queue(maxsize=max(max_conn, min_conn)) # Added type hint for pool
+    """Pool de conexões síncrono com suporte a context manager."""
+
+    def __init__(self, connection_class: Type[Connection], min_conn: int = 1, max_conn: int = 10, **conn_kwargs):
+        self.pool: Queue[Connection] = Queue(maxsize=max(max_conn, min_conn))
         self.connection_class = connection_class
         self.conn_kwargs = conn_kwargs
         self._min_conn = min_conn
@@ -14,37 +16,50 @@ class ConnectionPool:
 
     def initialize_pool(self):
         if self._initialized:
-            return  # Avoid re-initialization
+            return
         for _ in range(self._min_conn):
             conn = self._create_connection()
             self.pool.put(conn)
         self._initialized = True
 
-    def _create_connection(self) -> Connection:  # Added return type hint
+    def _create_connection(self) -> Connection:
         conn = self.connection_class(**self.conn_kwargs)
-        if not conn.connect():  # Handle connection failure during pool creation
-            raise ConnectionError(f"Failed to create connection for pool using {self.connection_class.__name__} and kwargs: {self.conn_kwargs}")
+        if not conn.connect():
+            raise ConnectionError(
+                f"Falha ao criar conexão no pool usando {self.connection_class.__name__}"
+            )
         return conn
 
-    def get_connection(self) -> Connection:  # Added return type hint
-        """Picks a connection from the pool. Initializes pool on first call."""
+    def get_connection(self) -> Connection:
         if not self._initialized:
             self.initialize_pool()
         return self.pool.get()
 
-    def release_connection(self, conn: Connection):  # Added type hint
-        """Returns a connection back to the pool."""
-        if conn and conn.connection:  # Check if connection is valid before returning
+    def release_connection(self, conn: Connection):
+        if conn and getattr(conn, 'socket_connection', None) or getattr(conn, 'connection', None):
             self.pool.put(conn)
         else:
-            print("Warning: Releasing an invalid connection. Discarding it.")
-            # Consider logging error details here, maybe remove from pool count if implemented
+            # Conexão inválida — cria uma nova para manter o pool
+            try:
+                new_conn = self._create_connection()
+                self.pool.put(new_conn)
+            except Exception:
+                pass  # Se não conseguir reconectar, o pool encolhe
+
+    def __enter__(self) -> Connection:
+        self._current_conn = self.get_connection()
+        return self._current_conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release_connection(self._current_conn)
+        self._current_conn = None
 
 
 class AsyncConnectionPool:
-    """Asynchronous Connection Pool (Conceptual - needs async drivers for real async)."""
-    def __init__(self, connection_class: Type[Connection], min_conn=1, max_conn=10, **conn_kwargs):  # Added type hint for connection_class
-        self.pool: asyncio.Queue[Connection] = asyncio.Queue(maxsize=max(max_conn, min_conn))  # Added type hint for pool
+    """Pool de conexões assíncrono com suporte a context manager."""
+
+    def __init__(self, connection_class: Type[Connection], min_conn: int = 1, max_conn: int = 10, **conn_kwargs):
+        self.pool: asyncio.Queue[Connection] = asyncio.Queue(maxsize=max(max_conn, min_conn))
         self.connection_class = connection_class
         self.conn_kwargs = conn_kwargs
         self._min_conn = min_conn
@@ -58,22 +73,33 @@ class AsyncConnectionPool:
             await self.pool.put(conn)
         self._initialized = True
 
-    async def _create_connection(self) -> Connection:  # Added return type hint
+    async def _create_connection(self) -> Connection:
         conn = self.connection_class(**self.conn_kwargs)
-        if not await conn.connect():  # Assuming async connect method and handling connection failure
-            raise ConnectionError(f"Async connection failed for pool using {self.connection_class.__name__} and kwargs: {self.conn_kwargs}")
+        if not await conn.connect():
+            raise ConnectionError(
+                f"Falha ao criar conexão async no pool usando {self.connection_class.__name__}"
+            )
         return conn
 
-    async def get_connection(self) -> Connection:  # Added return type hint
-        """Picks a connection from the pool. Initializes pool on first call."""
+    async def get_connection(self) -> Connection:
         if not self._initialized:
             await self.initialize_pool()
         return await self.pool.get()
 
-    async def release_connection(self, conn: Connection):  # Added type hint
-        """Returns a connection back to the pool."""
-        if conn and conn.connection:  # Check if connection is valid before returning
+    async def release_connection(self, conn: Connection):
+        if conn and (getattr(conn, 'socket_connection', None) or getattr(conn, 'connection', None)):
             await self.pool.put(conn)
         else:
-            print("Warning: Releasing an invalid connection. Discarding it.")
-            # Consider logging error details here and handling pool count if implemented
+            try:
+                new_conn = await self._create_connection()
+                await self.pool.put(new_conn)
+            except Exception:
+                pass
+
+    async def __aenter__(self) -> Connection:
+        self._current_conn = await self.get_connection()
+        return self._current_conn
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.release_connection(self._current_conn)
+        self._current_conn = None

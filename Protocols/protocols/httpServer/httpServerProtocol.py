@@ -34,6 +34,7 @@ class AsyncHttpServerProtocol:
         }
         self.startup_tasks = []  # Lista de funções de inicialização
         self.shutdown_tasks = []  # Lista de funções de encerramento
+        self.websocket_handlers: Dict[str, Callable] = {}  # path → handler(scope, receive, send)
 
     def on_startup(self, func: Callable):
         """Registra uma função a ser chamada na inicialização."""
@@ -91,9 +92,46 @@ class AsyncHttpServerProtocol:
         """Registers a Router instance to be used by the server."""
         self.routers.append(router)
 
+    def websocket(self, path: str):
+        """
+        Decorator para registrar um handler de WebSocket em um caminho específico.
+
+        Uso:
+            @server.websocket("/ws")
+            async def handler(scope, receive, send):
+                await send({"type": "websocket.accept"})
+                while True:
+                    msg = await receive()
+                    if msg["type"] == "websocket.disconnect":
+                        break
+                    await send({"type": "websocket.send", "text": msg.get("text", "")})
+        """
+        def decorator(func: Callable):
+            self.websocket_handlers[path] = func
+            return func
+        return decorator
+
+    async def handle_websocket(self, scope: dict, receive: Callable, send: Callable):
+        """Roteia a conexão WebSocket para o handler registrado."""
+        path = scope.get("path", "/")
+        handler = self.websocket_handlers.get(path)
+        if handler is None:
+            self.logger.warning(f"Nenhum handler WebSocket para: {path}")
+            await send({"type": "websocket.close", "code": 4004})
+            return
+        try:
+            if inspect.iscoroutinefunction(handler):
+                await handler(scope, receive, send)
+            else:
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, handler, scope, receive, send)
+        except Exception as e:
+            self.logger.error(f"Erro no handler WebSocket {path}: {e}")
+            await send({"type": "websocket.close", "code": 1011})
+
     async def __call__(self, scope: dict, receive: Callable, send: Callable):
         """
-        Suporte ao ciclo de vida ASGI (lifespan, http).
+        Suporte ao ciclo de vida ASGI (lifespan, http, websocket).
         """
         if scope['type'] == 'lifespan':
             async with self.lifespan(self):  # Inicia o ciclo de vida corretamente
@@ -112,8 +150,11 @@ class AsyncHttpServerProtocol:
 
             event = asyncio.Event()
             await self.request_queue.put((scope, receive, send, event))
-            
+
             await event.wait()
+        elif scope['type'] == 'websocket':
+            # WebSocket é long-lived: bypassa a fila e chama o handler diretamente
+            await self.handle_websocket(scope, receive, send)
         else:
             raise ValueError(f"Unsupported scope type: {scope['type']}")
 
