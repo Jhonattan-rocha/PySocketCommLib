@@ -2,20 +2,20 @@ import asyncio
 import ssl
 import struct
 import uuid
-import logging 
-from Abstracts.Auth import Auth
-from Auth.NoAuth import NoAuth
-from Auth.SimpleAuth import SimpleTokenAuth
-from Events import Events
-from Files import File
-from Options import Client_ops, SSLContextOps
-from Crypt import Crypt
-from TaskManager import AsyncTaskManager
+import logging
+from ...Abstracts.Auth import Auth
+from ...Auth.NoAuth import NoAuth
+from ...Auth.SimpleAuth import SimpleTokenAuth
+from ...Events import Events
+from ...Files import File
+from ...Options import Client_ops, SSLContextOps
+from ...Crypt import Crypt
+from ...TaskManager import AsyncTaskManager
 
 
 logging.basicConfig(filename='./client_async.txt', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__) # Get logger for this module
+logger = logging.getLogger(__name__)
 
 
 class Client:
@@ -65,13 +65,11 @@ class Client:
             return NoAuth()
 
     def ssl_configure(self, ssl_ops: SSLContextOps):
-        # Define o contexto SSL
         self.ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
         self.ssl_context.check_hostname = ssl_ops.check_hostname
 
         if ssl_ops.SERVER_CERTFILE:
-            # Carrega manualmente o certificado do servidor
             self.ssl_context.load_verify_locations(cafile=ssl_ops.SERVER_CERTFILE)
         logger.info("Configuração SSL aplicada.")
 
@@ -79,7 +77,7 @@ class Client:
         await file.async_executor(file.compress_file)
         await self.send_message(b"".join([chunk for chunk in await file.async_executor(file.read, bytes_block_length)]),
                                  bytes_block_length)
-        logger.debug(f"Arquivo enviado: {file.name}")
+        logger.debug(f"Arquivo enviado: {file.path}")
 
     async def receive_file(self, bytes_block_length: int = 2048) -> File:
         file = File()
@@ -104,19 +102,16 @@ class Client:
         return self.__running
 
     async def send_message(self, message: bytes, sent_bytes: int = 2048, block: bool = False):
-        try:
-            message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
-        except Exception as e:
-            logger.error(f"Erro ao criptografar mensagem: {e}")
+        if self.crypt and self.crypt.sync_crypt:
+            try:
+                message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
+            except Exception as e:
+                logger.error(f"Erro ao criptografar mensagem: {e}")
 
+        encoded = self.encoder(message)
+        lng = len(encoded)
         try:
-            message = await self.encoder(message)
-        except Exception as e:
-            logger.error(f"Erro ao codificar mensagem: {e}")
-
-        lng = len(message)
-        try:
-            self.writer.write(await self.encoder(struct.pack("!Q", lng)))
+            self.writer.write(self.encoder(struct.pack("!Q", lng)))
             await self.writer.drain()
         except Exception as e:
             logger.error(f"Erro ao enviar tamanho da mensagem: {e}")
@@ -124,9 +119,9 @@ class Client:
 
         if block:
             try:
-                self.writer.write(message)
+                self.writer.write(encoded)
                 await self.writer.drain()
-                logger.debug(f"Mensagem bloqueada enviada: {message[:50]}...")
+                logger.debug(f"Mensagem bloqueada enviada: {encoded[:50]}...")
                 return
             except Exception as e:
                 logger.error(f"Erro ao enviar mensagem bloqueada: {e}")
@@ -134,28 +129,31 @@ class Client:
         offset = 0
         while offset < lng:
             try:
-                self.writer.write(message[offset:offset + sent_bytes])
+                self.writer.write(encoded[offset:offset + sent_bytes])
                 await self.writer.drain()
                 offset += sent_bytes
             except Exception as e:
                 logger.error(f"Erro ao enviar mensagem: {e}")
                 return
-        logger.debug(f"Mensagem enviada: {message[:50]}...")
+        logger.debug(f"Mensagem enviada: {encoded[:50]}...")
 
     async def __extract_number(self, data):
         if isinstance(data, (int, float)):
             return data
 
-        if isinstance(data, (str, bytes)):
+        if isinstance(data, str):
             try:
                 return int(data)
-            except Exception as e:
+            except Exception:
                 pass
 
         if isinstance(data, (bytes, bytearray)):
             try:
-                decoded_value = struct.unpack("!Q", data)[0]
-                return decoded_value
+                return int(data)
+            except Exception:
+                pass
+            try:
+                return struct.unpack("!Q", data)[0]
             except struct.error:
                 pass
 
@@ -163,8 +161,8 @@ class Client:
         try:
             lng_bytes = await self.reader.read(8)
             if not lng_bytes:
-                return b""  # Retorna bytes vazios se a conexão for fechada
-            length = await self.__extract_number(await self.decoder(lng_bytes))
+                return b""
+            length = await self.__extract_number(self.decoder(lng_bytes))
         except Exception as e:
             logger.error(f"Erro ao receber o tamanho da mensagem: {e}")
             return b""
@@ -172,14 +170,18 @@ class Client:
         if block:
             try:
                 message = await self.reader.read(length)
-                dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, await self.decoder(message))
+                raw = self.decoder(message)
+                if self.crypt and self.crypt.sync_crypt:
+                    dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, raw)
+                else:
+                    dec = raw
                 if await self.events.async_executor(self.events.size) > 0:
-                    await self.events.async_executor(self.events.scam, dec)
+                    await self.events.async_executor(self.events.scan, dec)
                 logger.debug(f"Mensagem bloqueada recebida: {dec[:50]}...")
                 return dec
             except Exception as e:
-                logger.error(f"Erro ao decriptar mensagem bloqueada ou scam evento: {e}")
-                return await self.decoder(message)
+                logger.error(f"Erro ao decriptar mensagem bloqueada: {e}")
+                return self.decoder(message)
 
         chunks = []
         bytes_received = 0
@@ -188,7 +190,7 @@ class Client:
                 chunk = await self.reader.read(recv_bytes)
             except Exception as e:
                 logger.error(f"Erro ao receber chunk da mensagem: {e}")
-                raise RuntimeError('Conexão interrompida') from e # Relevando a exceção para tratamento de conexão interrompida
+                raise RuntimeError('Conexão interrompida') from e
 
             if not chunk:
                 raise RuntimeError('Conexão interrompida')
@@ -196,15 +198,19 @@ class Client:
             bytes_received += len(chunk)
 
         res = b"".join(chunks)
+        raw = self.decoder(res)
         try:
-            dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, await self.decoder(res))
+            if self.crypt and self.crypt.sync_crypt:
+                dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, raw)
+            else:
+                dec = raw
             if await self.events.async_executor(self.events.size) > 0:
-                await self.events.async_executor(self.events.scam, dec)
+                await self.events.async_executor(self.events.scan, dec)
             logger.debug(f"Mensagem recebida: {dec[:50]}...")
             return dec
         except Exception as e:
-            logger.error(f"Erro ao decriptar mensagem ou scam evento: {e}")
-            return await self.decoder(res)
+            logger.error(f"Erro ao decriptar mensagem: {e}")
+            return raw
 
     async def disconnect(self):
         try:
@@ -231,19 +237,14 @@ class Client:
 
                 self.__running = True
             elif not ignore_err:
-                raise RuntimeError("Conexão já estabelecida") #This will not be raised as connection is checked at the beginning
+                raise RuntimeError("Conexão já estabelecida")
         except Exception as e:
             self.__running = False
             logger.error(f"Erro ao conectar ao servidor: {e}")
 
     async def start(self) -> None:
         await self.connect(False)
-        if self.is_running():
+        if await self.is_running():
             logger.info("Cliente conectado e rodando.")
         else:
             logger.error("Cliente falhou ao conectar ou não está rodando.")
-
-
-if __name__ == "__main__":
-    client = Client()
-    asyncio.run(client.start())

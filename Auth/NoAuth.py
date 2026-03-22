@@ -1,4 +1,4 @@
-from Abstracts.Auth import Auth, Client
+from ..Abstracts.Auth import Auth, Client
 
 class NoAuth(Auth):
     def __init__(self):

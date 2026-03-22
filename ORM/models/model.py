@@ -14,8 +14,26 @@ class BaseModel:
     _cache = MemoryCache()
     
     @classmethod
-    def build_where_clause(cls, conditions: dict) -> str:
+    def build_where_clause(cls, conditions: dict) -> Tuple[str, tuple]:
+        """
+        Constrói uma cláusula WHERE parametrizada, segura contra SQL injection.
+
+        Retorna uma tupla (cláusula_sql, params) onde os valores nunca são
+        interpolados diretamente na string SQL.
+        """
         clause_parts = []
+        params = []
+
+        # O placeholder depende do dialeto (? para SQLite, $1 $2... para PostgreSQL)
+        def placeholder(index: int) -> str:
+            if cls.dialect is None:
+                return "?"
+            dialect_name = type(cls.dialect).__name__.lower()
+            if "postgres" in dialect_name or "psql" in dialect_name:
+                return f"${index}"
+            return "?"
+
+        param_index = 1
         for key, value in conditions.items():
             if "__" in key:
                 field, op = key.split("__", 1)
@@ -23,43 +41,56 @@ class BaseModel:
                 field, op = key, "eq"
 
             column = f'"{field}"'
-            sql_part = ""
 
             if op == "eq":
-                sql_part = f"{column} = '{value}'"
+                clause_parts.append(f"{column} = {placeholder(param_index)}")
+                params.append(value)
+                param_index += 1
             elif op == "lt":
-                sql_part = f"{column} < '{value}'"
+                clause_parts.append(f"{column} < {placeholder(param_index)}")
+                params.append(value)
+                param_index += 1
             elif op == "lte":
-                sql_part = f"{column} <= '{value}'"
+                clause_parts.append(f"{column} <= {placeholder(param_index)}")
+                params.append(value)
+                param_index += 1
             elif op == "gt":
-                sql_part = f"{column} > '{value}'"
+                clause_parts.append(f"{column} > {placeholder(param_index)}")
+                params.append(value)
+                param_index += 1
             elif op == "gte":
-                sql_part = f"{column} >= '{value}'"
+                clause_parts.append(f"{column} >= {placeholder(param_index)}")
+                params.append(value)
+                param_index += 1
             elif op == "like":
-                sql_part = f"{column} LIKE '%{value}%'"
+                clause_parts.append(f"{column} LIKE {placeholder(param_index)}")
+                params.append(f"%{value}%")
+                param_index += 1
             elif op == "in":
-                formatted = ", ".join(f"'{v}'" for v in value)
-                sql_part = f"{column} IN ({formatted})"
+                if not value:
+                    raise ValueError("Operador 'in' requer uma lista não vazia")
+                placeholders = ", ".join(placeholder(param_index + i) for i in range(len(value)))
+                clause_parts.append(f"{column} IN ({placeholders})")
+                params.extend(value)
+                param_index += len(value)
             else:
-                raise ValueError(f"Unsupported operator: {op}")
+                raise ValueError(f"Operador não suportado: {op}")
 
-            clause_parts.append(sql_part)
-
-        return " AND ".join(clause_parts)
+        return " AND ".join(clause_parts), tuple(params)
 
     @classmethod
     def filter(cls, **conditions):
-        where_clause = cls.build_where_clause(conditions)
-        return cls.select(where_condition=where_clause)
+        where_clause, params = cls.build_where_clause(conditions)
+        return cls.select(where_condition=where_clause, where_params=params)
 
     @classmethod
     def get(cls, **conditions):
-        where = cls.build_where_clause(conditions)
-        key = f"{cls.get_table_name()}|{where}"
+        where, params = cls.build_where_clause(conditions)
+        key = f"{cls.get_table_name()}|{where}|{params}"
         cached = cls._cache.get(key)
         if cached:
             return cached
-        result = cls.select(where_condition=where, limit=1)
+        result = cls.select(where_condition=where, where_params=params, limit=1)
         if result:
             cls._cache.set(key, result[0])
             return result[0]
@@ -185,22 +216,26 @@ class BaseModel:
         cls.connection.run(sql, params)
 
     @classmethod
-    def select_sql(cls, columns: List[str] = None, where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
+    def select_sql(cls, columns: List[str] = None, where_condition: Optional[str] = None,
+                   where_params: Optional[tuple] = None, order_by: Optional[List[str]] = None,
+                   limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
         """Generates SELECT SQL and parameters for the model."""
         if cls.dialect is None:
             raise ValueError("No SQL dialect defined for the model. Ensure connection is set.")
         table_name = cls.get_table_name()
-        columns_to_select = columns if columns else ["*"] # Select all if no columns specified
-        return cls.dialect.select(table_name, columns_to_select, where_condition, order_by, limit, joins)
+        columns_to_select = columns if columns else ["*"]
+        sql, _ = cls.dialect.select(table_name, columns_to_select, where_condition, order_by, limit, joins)
+        return sql, where_params or ()
 
     @classmethod
-    def select(cls, columns: List[str] = None, where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
+    def select(cls, columns: List[str] = None, where_condition: Optional[str] = None,
+               where_params: Optional[tuple] = None, order_by: Optional[List[str]] = None,
+               limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
         """Selects records based on various conditions."""
-        cls.clear_cache()
         if not cls.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
-        sql, params = cls.select_sql(columns, where_condition, order_by, limit, joins)
-        return cls.connection.run(sql, params)
+        sql, params = cls.select_sql(columns, where_condition, where_params, order_by, limit, joins)
+        return cls.connection.run(sql, params if params else None)
 
     def to_dict(self) -> dict:
         """

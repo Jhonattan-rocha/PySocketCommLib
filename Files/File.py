@@ -13,6 +13,10 @@ class File:
         self.file = None
         self.encoding = encoding
 
+    @property
+    def name(self) -> str:
+        return os.path.basename(self.path)
+
     def compress_file(self):
         bytes_c = gzip.compress(self.file.read())
         self.file = io.BytesIO(bytes_c)

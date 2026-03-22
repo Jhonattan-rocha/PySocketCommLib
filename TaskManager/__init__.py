@@ -1,2 +1,2 @@
-from TaskManager.AsyncTaskManager import AsyncTaskManager
-from TaskManager.TaskManager import TaskManager
+from .AsyncTaskManager import AsyncTaskManager
+from .TaskManager import TaskManager

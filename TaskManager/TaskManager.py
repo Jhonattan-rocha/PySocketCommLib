@@ -1,4 +1,4 @@
-from Abstracts.ThreadTask import ThreadTask
+from ..Abstracts.ThreadTask import ThreadTask
 import queue
 
 

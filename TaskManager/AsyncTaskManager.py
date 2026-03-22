@@ -1,4 +1,4 @@
-from Abstracts.AsyncTask import AsyncTask 
+from ..Abstracts.AsyncTask import AsyncTask
 import asyncio
 
 class AsyncTaskManager:

@@ -3,22 +3,21 @@ import ssl
 import struct
 import threading
 import uuid
-import logging # Import logging module
+import logging
 from queue import Queue
-from Abstracts.Auth import Auth
-from Auth.NoAuth import NoAuth
-from Auth.SimpleAuth import SimpleTokenAuth
-from Events import Events
-from Files import File
-from Options import Client_ops, SSLContextOps
-from Crypt import Crypt
-from Connection_type import Types
-from TaskManager import TaskManager
+from ...Abstracts.Auth import Auth
+from ...Auth.NoAuth import NoAuth
+from ...Auth.SimpleAuth import SimpleTokenAuth
+from ...Events import Events
+from ...Files import File
+from ...Options import Client_ops, SSLContextOps
+from ...Crypt import Crypt
+from ...Connection_type import Types
+from ...TaskManager import TaskManager
 
-# Configure logging to file
 logging.basicConfig(filename='./client_thread.txt', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__) # Get logger for this module
+logger = logging.getLogger(__name__)
 
 class Client(threading.Thread):
     def __init__(self, Options: Client_ops) -> None:
@@ -68,20 +67,18 @@ class Client(threading.Thread):
             return NoAuth()
 
     def ssl_configure(self, ssl_ops: SSLContextOps):
-        # Define o contexto SSL
         self.ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
         self.ssl_context.check_hostname = ssl_ops.check_hostname
 
         if ssl_ops.SERVER_CERTFILE:
-            # Carrega manualmente o certificado do servidor
             self.ssl_context.load_verify_locations(cafile=ssl_ops.SERVER_CERTFILE)
         logger.info("Configuração SSL aplicada.")
 
     def send_file(self, file: File, bytes_block_length: int = 2048) -> None:
         file.compress_file()
         self.send_message(b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
-        logger.debug(f"Arquivo enviado: {file.name}")
+        logger.debug(f"Arquivo enviado: {file.path}")
 
     def receive_file(self, bytes_block_length: int = 2048) -> File:
         file = File()
@@ -95,16 +92,19 @@ class Client(threading.Thread):
         if isinstance(data, (int, float)):
             return data
 
-        if isinstance(data, (str, bytes)):
+        if isinstance(data, str):
             try:
                 return int(data)
-            except Exception as e:
+            except Exception:
                 pass
 
         if isinstance(data, (bytes, bytearray)):
             try:
-                decoded_value = struct.unpack("!Q", data)[0]
-                return decoded_value
+                return int(data)
+            except Exception:
+                pass
+            try:
+                return struct.unpack("!Q", data)[0]
             except struct.error:
                 pass
 
@@ -117,13 +117,14 @@ class Client(threading.Thread):
         if block:
             message = self.connection.recv(msglen)
             try:
-                dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(message))
+                raw = self.decoder(message)
+                dec_message = self.crypt.sync_crypt.decrypt_message(raw) if self.crypt and self.crypt.sync_crypt else raw
                 if self.events.size() > 0:
-                    self.events.scam(dec_message)
+                    self.events.scan(dec_message)
                 logger.debug(f"Mensagem bloqueada recebida: {dec_message[:50]}...")
                 return dec_message
             except Exception as e:
-                logger.error(f"Erro ao decriptar mensagem bloqueada ou scam evento: {e}")
+                logger.error(f"Erro ao decriptar mensagem bloqueada: {e}")
                 return self.decoder(message)
 
         chunks = []
@@ -137,29 +138,27 @@ class Client(threading.Thread):
 
         message = b"".join(chunks)
         try:
-            dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(message))
+            raw = self.decoder(message)
+            dec_message = self.crypt.sync_crypt.decrypt_message(raw) if self.crypt and self.crypt.sync_crypt else raw
             if self.events.size() > 0:
-                self.events.scam(dec_message)
+                self.events.scan(dec_message)
             logger.debug(f"Mensagem recebida: {dec_message[:50]}...")
             return dec_message
         except Exception as e:
-            logger.error(f"Erro ao decriptar mensagem ou scam evento: {e}")
+            logger.error(f"Erro ao decriptar mensagem: {e}")
             return self.decoder(message)
 
     def send_message_udp(self, client_address, message: bytes, sent_bytes: int = 2048):
         self.history_udp_messages.put((client_address, message))
-        try:
-            message = self.crypt.sync_crypt.encrypt_message(message)
-        except Exception as e:
-            logger.error(f"Erro ao criptografar mensagem UDP: {e}")
+        if self.crypt and self.crypt.sync_crypt:
+            try:
+                message = self.crypt.sync_crypt.encrypt_message(message)
+            except Exception as e:
+                logger.error(f"Erro ao criptografar mensagem UDP: {e}")
 
-        try:
-            message = self.encoder(message.decode("cp850"))
-        except Exception as e:
-            logger.error(f"Erro ao codificar mensagem UDP para cp850: {e}")
-
-        self.connection.sendto(message.encode('cp850'), client_address)
-        logger.debug(f"Mensagem UDP enviada para {client_address}: {message[:50]}...")
+        encoded = self.encoder(message)
+        self.connection.sendto(encoded, client_address)
+        logger.debug(f"Mensagem UDP enviada para {client_address}: {encoded[:50]}...")
 
     def receive_message_udp(self, recv_bytes: int = 2048):
         try:
@@ -172,28 +171,26 @@ class Client(threading.Thread):
             return b"", address
 
         try:
-            dec_message = self.crypt.sync_crypt.decrypt_message(self.decoder(data))
+            raw = self.decoder(data)
+            dec_message = self.crypt.sync_crypt.decrypt_message(raw) if self.crypt and self.crypt.sync_crypt else raw
             if self.events.size() > 0:
-                self.events.scam(dec_message)
+                self.events.scan(dec_message)
             self.history_udp_messages.put((address, dec_message))
             logger.debug(f"Mensagem UDP recebida de {address}: {dec_message[:50]}...")
             return dec_message, address
         except Exception as e:
-            logger.error(f"Erro ao decriptar mensagem UDP ou scam evento: {e}")
+            logger.error(f"Erro ao decriptar mensagem UDP: {e}")
             return self.decoder(data), address
 
     def send_message(self, message: bytes, sent_bytes: int = 2048, block: bool = False) -> None:
-        try:
-            message = self.crypt.sync_crypt.encrypt_message(message)
-        except Exception as e:
-            logger.error(f"Erro ao criptografar mensagem: {e}")
+        if self.crypt and self.crypt.sync_crypt:
+            try:
+                message = self.crypt.sync_crypt.encrypt_message(message)
+            except Exception as e:
+                logger.error(f"Erro ao criptografar mensagem: {e}")
 
-        try:
-            message = self.encoder(message)
-        except Exception as e:
-            logger.error(f"Erro ao codificar mensagem: {e}")
-
-        msglen = len(message)
+        encoded = self.encoder(message)
+        msglen = len(encoded)
         try:
             self.connection.sendall(self.encoder(struct.pack("!Q", msglen)))
         except Exception as e:
@@ -202,8 +199,8 @@ class Client(threading.Thread):
 
         if block:
             try:
-                self.connection.sendall(message)
-                logger.debug(f"Mensagem bloqueada enviada: {message[:50]}...")
+                self.connection.sendall(encoded)
+                logger.debug(f"Mensagem bloqueada enviada: {encoded[:50]}...")
                 return
             except Exception as e:
                 logger.error(f"Erro ao enviar mensagem bloqueada: {e}")
@@ -211,14 +208,14 @@ class Client(threading.Thread):
         offset = 0
         while offset < msglen:
             try:
-                sent = self.connection.send(message[offset:offset + sent_bytes])
+                sent = self.connection.send(encoded[offset:offset + sent_bytes])
                 if not sent:
                     raise RuntimeError('Conexão interrompida')
                 offset += sent
             except Exception as e:
                 logger.error(f"Erro ao enviar mensagem: {e}")
                 return
-        logger.debug(f"Mensagem enviada: {message[:50]}...")
+        logger.debug(f"Mensagem enviada: {encoded[:50]}...")
 
     def sync_crypt_key(self):
         try:
@@ -247,10 +244,11 @@ class Client(threading.Thread):
                 self.connection = socket.socket(*self.conn_type)
 
                 if self.conn_type in [Types.TCP_IPV4, Types.TCP_IPV6]:
-                    try:
-                        self.connection = self.ssl_context.wrap_socket(self.connection, server_hostname=self.HOST)
-                    except Exception as e:
-                        logger.error(f"Erro ao envolver socket com SSL: {e}")
+                    if self.ssl_context:
+                        try:
+                            self.connection = self.ssl_context.wrap_socket(self.connection, server_hostname=self.HOST)
+                        except Exception as e:
+                            logger.error(f"Erro ao envolver socket com SSL: {e}")
 
                     self.connection.connect((self.HOST, self.PORT))
                     logger.info(f"Conectado ao servidor {self.HOST}:{self.PORT} via TCP.")
@@ -265,16 +263,14 @@ class Client(threading.Thread):
 
                 elif self.conn_type in [Types.UDP_IPV4, Types.UDP_IPV6]:
                     logger.info(f"Conectado ao servidor {self.HOST}:{self.PORT} via UDP.")
-                    pass # UDP doesn't really "connect" in the same way
 
                 self.__running = True
+                return
+
             if not ignore_err:
-                raise RuntimeError("Conexão já estabelecida") #This will not be raised as connection is checked at the beginning
+                raise RuntimeError("Conexão já estabelecida")
+        except RuntimeError:
+            raise
         except Exception as e:
             self.__running = False
             logger.error(f"Erro ao conectar ao servidor: {e}")
-
-
-if __name__ == "__main__":
-    client = Client()
-    client.connect(False)

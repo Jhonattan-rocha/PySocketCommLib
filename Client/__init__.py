@@ -1,2 +1,2 @@
-from Client.asyncli.client import Client as AsyncClient
-from Client.threadcli.client import Client as ThreadClient
+from .asyncli.client import Client as AsyncClient
+from .threadcli.client import Client as ThreadClient
