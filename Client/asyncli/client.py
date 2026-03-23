@@ -4,6 +4,7 @@ import struct
 import uuid
 import logging
 from ...Abstracts.Auth import Auth
+from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
 from ...Events import Events
@@ -137,32 +138,12 @@ class Client:
                 return
         logger.debug(f"Mensagem enviada: {encoded[:50]}...")
 
-    async def __extract_number(self, data):
-        if isinstance(data, (int, float)):
-            return data
-
-        if isinstance(data, str):
-            try:
-                return int(data)
-            except Exception:
-                pass
-
-        if isinstance(data, (bytes, bytearray)):
-            try:
-                return int(data)
-            except Exception:
-                pass
-            try:
-                return struct.unpack("!Q", data)[0]
-            except struct.error:
-                pass
-
     async def receive_message(self, recv_bytes: int = 2048, block: bool = False):
         try:
             lng_bytes = await self.reader.read(8)
             if not lng_bytes:
                 return b""
-            length = await self.__extract_number(self.decoder(lng_bytes))
+            length = extract_message_length(self.decoder(lng_bytes))
         except Exception as e:
             logger.error(f"Erro ao receber o tamanho da mensagem: {e}")
             return b""

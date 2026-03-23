@@ -6,6 +6,7 @@ import uuid
 import logging
 from queue import Queue
 from ...Abstracts.Auth import Auth
+from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
 from ...Events import Events
@@ -88,31 +89,11 @@ class Client(threading.Thread):
         logger.debug(f"Arquivo recebido.")
         return file
 
-    def __extract_number(self, data):
-        if isinstance(data, (int, float)):
-            return data
-
-        if isinstance(data, str):
-            try:
-                return int(data)
-            except Exception:
-                pass
-
-        if isinstance(data, (bytes, bytearray)):
-            try:
-                return int(data)
-            except Exception:
-                pass
-            try:
-                return struct.unpack("!Q", data)[0]
-            except struct.error:
-                pass
-
     def receive_message(self, recv_bytes: int = 2048, block: bool = False) -> bytes:
         raw_msglen = self.connection.recv(8)
         if not raw_msglen:
             return b""
-        msglen = self.__extract_number(self.decoder(raw_msglen))
+        msglen = extract_message_length(self.decoder(raw_msglen))
 
         if block:
             message = self.connection.recv(msglen)

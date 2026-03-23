@@ -2,15 +2,15 @@ import socket
 import ssl
 import struct
 import threading
-import sys
 from queue import Queue
 from ...Abstracts.Auth import Auth
+from ...Abstracts.ConnectionContext import ThreadConnectionContext
+from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
 from ...Events import Events
-from ...Options import Server_ops, Client_ops, SSLContextOps
+from ...Options import Server_ops, SSLContextOps
 from ...Crypt import Crypt
-from ...Client import ThreadClient
 from ...Connection_type.Types import Types
 from ...Files import File
 from ...TaskManager import TaskManager
@@ -19,6 +19,7 @@ import logging
 logging.basicConfig(level=logging.INFO, filename="./server_thread.txt",
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class Server(threading.Thread):
     def __init__(self, Options: Server_ops) -> None:
@@ -37,7 +38,7 @@ class Server(threading.Thread):
         self.configureConnection = {}
         self.server_socket: socket.socket | None = None
         self.hitory_udp_message: Queue[tuple] = Queue(Options.MAX_HISTORY_UDP_MESSAGES)
-        self.__clients: list[ThreadClient] = []
+        self.__clients: list[ThreadConnectionContext] = []
         self.__running: bool = True
         self.crypt: Crypt | None = None
         self.ssl_context: ssl.SSLContext | None = None
@@ -74,44 +75,24 @@ class Server(threading.Thread):
         self.ssl_context.load_cert_chain(certfile=ssl_ops.CERTFILE, keyfile=ssl_ops.KEYFILE)
         logger.info("Configuração SSL aplicada.")
 
-    def send_file(self, client: socket.socket | ssl.SSLSocket, file: File, bytes_block_length: int = 2048) -> None:
+    def send_file(self, ctx: ThreadConnectionContext, file: File, bytes_block_length: int = 2048) -> None:
         file.compress_file()
-        self.send_message(client, b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
-        logger.debug(f"Arquivo enviado para o cliente {client.getpeername() if hasattr(client, 'getpeername') else client}: {file.path}")
+        self.send_message(ctx.connection, b"".join([chunk for chunk in file.read(bytes_block_length)]), bytes_block_length)
+        logger.debug(f"Arquivo enviado para {ctx.address}: {file.path}")
 
-    def receive_file(self, client: socket.socket | ssl.SSLSocket, bytes_block_length: int = 2048) -> File:
+    def receive_file(self, ctx: ThreadConnectionContext, bytes_block_length: int = 2048) -> File:
         file = File()
-        bytes_recv = self.receive_message(client, bytes_block_length)
+        bytes_recv = self.receive_message(ctx.connection, bytes_block_length)
         file.setBytes(bytes_recv)
         file.decompress_bytes()
-        logger.debug(f"Arquivo recebido do cliente {client.getpeername() if hasattr(client, 'getpeername') else client}")
+        logger.debug(f"Arquivo recebido do cliente {ctx.address}")
         return file
-
-    def __extract_number(self, data):
-        if isinstance(data, (int, float)):
-            return data
-
-        if isinstance(data, str):
-            try:
-                return int(data)
-            except Exception:
-                pass
-
-        if isinstance(data, (bytes, bytearray)):
-            try:
-                return int(data)
-            except Exception:
-                pass
-            try:
-                return struct.unpack("!Q", data)[0]
-            except struct.error:
-                pass
 
     def receive_message(self, client: socket.socket | ssl.SSLSocket, recv_bytes: int = 2048, block: bool = False) -> bytes:
         raw_msglen = client.recv(8)
         if not raw_msglen:
             return b""
-        msglen = self.__extract_number(self.decoder(raw_msglen))
+        msglen = extract_message_length(self.decoder(raw_msglen))
 
         if block:
             message = client.recv(msglen)
@@ -183,8 +164,8 @@ class Server(threading.Thread):
     def send_message_all_clients(self, message: bytes, sent_bytes: int = 2048):
         logger.info("Enviando mensagem para todos os clientes.")
         try:
-            for client in self.__clients:
-                self.send_message(client.connection, message, sent_bytes)
+            for ctx in self.__clients:
+                self.send_message(ctx.connection, message, sent_bytes)
         except Exception as e:
             logger.error(f"Erro ao enviar mensagem para todos os clientes: {e}")
 
@@ -226,10 +207,14 @@ class Server(threading.Thread):
     def is_running(self) -> bool:
         return self.__running
 
-    def save_clients(self, client: ThreadClient) -> None:
-        if client not in self.__clients:
-            self.__clients.append(client)
-            logger.info(f"Cliente conectado: {client.connection.getpeername() if hasattr(client.connection, 'getpeername') else client.connection}, UUID: {client.uuid}")
+    def get_clients(self) -> list[ThreadConnectionContext]:
+        """Retorna a lista de contextos de conexão ativos."""
+        return list(self.__clients)
+
+    def save_clients(self, ctx: ThreadConnectionContext) -> None:
+        if ctx not in self.__clients:
+            self.__clients.append(ctx)
+            logger.info(f"Cliente conectado: {ctx.address}, UUID: {ctx.uuid}")
 
     def sync_crypt_key(self, client: socket.socket | ssl.SSLSocket):
         try:
@@ -244,20 +229,21 @@ class Server(threading.Thread):
     def break_server(self):
         logger.info("Servidor sendo interrompido...")
         self.__running = False
-        for client in self.__clients:
-            client.disconnect()
+        for ctx in self.__clients:
+            ctx.disconnect()
         if self.server_socket:
             try:
                 self.server_socket.close()
             except Exception:
                 pass
 
-    def get_client(self, uuid: str = "") -> ThreadClient:
+    def get_client(self, uuid: str = "") -> ThreadConnectionContext | None:
         if not uuid and len(self.__clients) == 1:
-            return self.__clients.pop()
-        for client in self.__clients:
-            if str(client.uuid) == uuid:
-                return client
+            return self.__clients[0]
+        for ctx in self.__clients:
+            if ctx.uuid == uuid:
+                return ctx
+        return None
 
     def run(self) -> None:
         with socket.socket(*self.conn_type) as server_socket:
@@ -280,20 +266,17 @@ class Server(threading.Thread):
                             except Exception as ex:
                                 logger.error(f"Erro ao envolver socket com SSL/TLS: {ex}")
 
-                        cliente = ThreadClient(Client_ops(host=self.HOST, port=self.PORT, ssl_ops=self.server_options.ssl_ops,
-                                                          encrypt_configs=self.server_options.encrypt_configs,
-                                                          conn_type=self.conn_type))
-                        cliente.connection = client
+                        ctx = ThreadConnectionContext(connection=client, address=address)
 
                         try:
-                            if self.auth and not self.auth.validate_token(cliente):
-                                cliente.disconnect()
+                            if self.auth and not self.auth.validate_token(ctx):
+                                ctx.disconnect()
                                 logger.warning(f"Cliente {address} desconectado por falha na autenticação.")
                                 continue
                         except Exception as e:
                             logger.error(f"Erro durante a autenticação do cliente {address}: {e}")
 
-                        self.save_clients(cliente)
+                        self.save_clients(ctx)
 
                     except KeyboardInterrupt:
                         logger.info("Servidor TCP interrompido por KeyboardInterrupt.")

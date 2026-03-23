@@ -4,13 +4,14 @@ import struct
 import logging
 from typing import Optional, List, Dict, Any
 from ...Abstracts.Auth import Auth
+from ...Abstracts.ConnectionContext import AsyncConnectionContext
+from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
 from ...Events import Events
 from ...Files import File
-from ...Options import Client_ops, SSLContextOps, Server_ops
+from ...Options import SSLContextOps, Server_ops
 from ...Crypt import Crypt
-from ...Client import AsyncClient
 from ..helpers.rateLimit import TokenBucket as AsyncTokenBucket
 from ...TaskManager import AsyncTaskManager
 
@@ -54,7 +55,7 @@ class AsyncServer:
         self.task_manager = AsyncTaskManager()
         self.server: Optional[asyncio.Server] = None
         self.configure_connection: Dict[str, Any] = {}
-        self.__clients: List[AsyncClient] = []
+        self.__clients: List[AsyncConnectionContext] = []
         self.__running: bool = False
         self.crypt: Optional[Crypt] = None
         self.ssl_context: Optional[ssl.SSLContext] = None
@@ -122,8 +123,8 @@ class AsyncServer:
 
     async def send_message_all_clients(self, message: bytes, sent_bytes: int = 2048):
         logger.info("Enviando mensagem para todos os clientes.")
-        for client in self.__clients:
-            await self.send_message(message, sent_bytes, client.writer)
+        for ctx in self.__clients:
+            await self.send_message(message, sent_bytes, ctx.writer)
 
     async def send_message(self, message: bytes, sent_bytes: int = 2048,
                            writer: asyncio.StreamWriter = None, block: bool = False):
@@ -161,50 +162,26 @@ class AsyncServer:
                 logger.error(f"Erro ao enviar mensagem para {writer.get_extra_info('peername')}: {e}")
                 return
 
-    def __extract_number(self, data):
-        if isinstance(data, (int, float)):
-            return data
-
-        if isinstance(data, str):
-            try:
-                return int(data)
-            except Exception:
-                pass
-
-        if isinstance(data, (bytes, bytearray)):
-            try:
-                return int(data)
-            except Exception:
-                pass
-            try:
-                return struct.unpack("!Q", data)[0]
-            except struct.error:
-                pass
-
     async def receive_message(self, recv_bytes: int = 2048,
                               reader: asyncio.StreamReader = None, block: bool = False):
-        client = None
-        for cli in self.__clients:
-            if cli.reader == reader:
-                client = cli
-                break
+        # Localiza o contexto pelo reader para aplicar rate limiting
+        ctx = next((c for c in self.__clients if c.reader == reader), None)
 
-        if client is not None:
-            uuid = str(client.uuid)
-            if uuid not in self.rate_limits:
-                self.rate_limits[uuid] = AsyncTokenBucket(rate=2, capacity=5)
+        if ctx is not None:
+            if ctx.uuid not in self.rate_limits:
+                self.rate_limits[ctx.uuid] = AsyncTokenBucket(rate=2, capacity=5)
 
-            bucket = self.rate_limits[uuid]
+            bucket = self.rate_limits[ctx.uuid]
             if not await bucket.allow():
-                logger.warning(f"Rate limit excedido para o cliente {uuid}")
-                await self.send_message(b"Rate limit excedido. Aguarde.", writer=client.writer)
+                logger.warning(f"Rate limit excedido para o cliente {ctx.uuid}")
+                await self.send_message(b"Rate limit excedido. Aguarde.", writer=ctx.writer)
                 return b""
 
         try:
             length_bytes = await reader.read(8)
             if not length_bytes:
                 return b""
-            length = self.__extract_number(self.decoder(length_bytes))
+            length = extract_message_length(self.decoder(length_bytes))
         except Exception as e:
             logger.error(f"Erro ao receber tamanho da mensagem de {reader.get_extra_info('peername')}: {e}")
             return b""
@@ -221,7 +198,7 @@ class AsyncServer:
                     await self.events.async_executor(self.events.scan, dec)
                 return dec
             except Exception as e:
-                logger.error(f"Erro ao decriptar mensagem bloqueada de {reader.get_extra_info('peername')}: {e}")
+                logger.error(f"Erro ao receber mensagem bloqueada de {reader.get_extra_info('peername')}: {e}")
                 return b""
 
         chunks = []
@@ -255,10 +232,14 @@ class AsyncServer:
     def is_running(self) -> bool:
         return self.__running
 
-    async def save_clients(self, client: AsyncClient) -> None:
-        if client not in self.__clients:
-            self.__clients.append(client)
-            logger.info(f"Cliente conectado: {client.writer.get_extra_info('peername')}, UUID: {client.uuid}")
+    def get_clients(self) -> List[AsyncConnectionContext]:
+        """Retorna a lista de contextos de conexão ativos."""
+        return list(self.__clients)
+
+    async def save_clients(self, ctx: AsyncConnectionContext) -> None:
+        if ctx not in self.__clients:
+            self.__clients.append(ctx)
+            logger.info(f"Cliente conectado: {ctx.address}, UUID: {ctx.uuid}")
 
     async def sync_crypt_key(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         try:
@@ -275,42 +256,38 @@ class AsyncServer:
         except Exception as e:
             logger.error(f"Erro na sincronização de chaves com {writer.get_extra_info('peername')}: {e}")
 
-    async def get_client(self, uuid: str = "") -> Optional[AsyncClient]:
+    async def get_client(self, uuid: str = "") -> Optional[AsyncConnectionContext]:
         if not uuid and len(self.__clients) == 1:
             return self.__clients[0]
-        for client in self.__clients:
-            if str(client.uuid) == uuid:
-                return client
+        for ctx in self.__clients:
+            if ctx.uuid == uuid:
+                return ctx
         return None
 
     async def check_is_close(self):
         while self.__running:
-            closed = [cli for cli in self.__clients if cli.writer.is_closing()]
-            for cli in closed:
-                self.__clients.remove(cli)
-                logger.info(f"Cliente removido (conexão encerrada): {cli.uuid}")
+            closed = [ctx for ctx in self.__clients if ctx.is_closing()]
+            for ctx in closed:
+                self.__clients.remove(ctx)
+                logger.info(f"Cliente removido (conexão encerrada): {ctx.uuid}")
             await asyncio.sleep(10)
 
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         address = writer.get_extra_info('peername')
         logger.info(f"Nova conexão: {address}")
-        client = None
+        ctx = None
         try:
-            client = AsyncClient(Client_ops(host=self.HOST, port=self.PORT,
-                                            ssl_ops=self.server_options.ssl_ops,
-                                            encrypt_configs=self.server_options.encrypt_configs))
-            client.reader = reader
-            client.writer = writer
+            ctx = AsyncConnectionContext(reader=reader, writer=writer, address=address)
 
             try:
-                if self.auth and not self.auth.validate_token(client):
-                    await client.disconnect()
+                if self.auth and not self.auth.validate_token(ctx):
+                    await ctx.disconnect()
                     logger.warning(f"Cliente {address} desconectado: falha na autenticação.")
                     return
             except Exception as e:
                 logger.error(f"Erro durante a autenticação do cliente {address}: {e}")
 
-            await self.save_clients(client)
+            await self.save_clients(ctx)
 
             # Loop de mensagens — mantém a conexão viva e dispara eventos
             while not writer.is_closing() and self.__running:
@@ -327,9 +304,9 @@ class AsyncServer:
         except Exception as e:
             logger.error(f"Erro ao lidar com cliente {address}: {e}")
         finally:
-            if client is not None and client in self.__clients:
-                self.__clients.remove(client)
-                logger.info(f"Cliente desconectado: {address}, UUID: {client.uuid}")
+            if ctx is not None and ctx in self.__clients:
+                self.__clients.remove(ctx)
+                logger.info(f"Cliente desconectado: {address}, UUID: {ctx.uuid}")
             if not writer.is_closing():
                 writer.close()
             logger.info(f"Handler de {address} finalizado.")
@@ -341,8 +318,8 @@ class AsyncServer:
             return
 
         self.__running = False
-        for client in self.__clients:
-            await client.disconnect()
+        for ctx in self.__clients:
+            await ctx.disconnect()
 
         self.server.close()
         await self.server.wait_closed()
