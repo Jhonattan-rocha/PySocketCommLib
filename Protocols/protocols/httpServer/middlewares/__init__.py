@@ -7,3 +7,4 @@ from PySocketCommLib.Protocols.protocols.httpServer.middlewares.middlewareContro
 from PySocketCommLib.Protocols.protocols.httpServer.middlewares.SegurityMiddleware import SecurityMiddleware
 from PySocketCommLib.Protocols.protocols.httpServer.middlewares.cacheControllMiddleware import CacheControlMiddleware
 from PySocketCommLib.Protocols.protocols.httpServer.middlewares.HttpVersionMiddleware import HTTPVersionMiddleware
+from .authMiddleware import AuthMiddleware

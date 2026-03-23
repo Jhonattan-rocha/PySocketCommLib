@@ -35,6 +35,15 @@ class AsyncHttpServerProtocol:
         self.startup_tasks = []  # Lista de funções de inicialização
         self.shutdown_tasks = []  # Lista de funções de encerramento
         self.websocket_handlers: Dict[str, Callable] = {}  # path → handler(scope, receive, send)
+        self._context: Dict[str, Any] = {}  # contexto de aplicação compartilhado entre handlers
+
+    def set_context(self, key: str, value: Any) -> None:
+        """Armazena um valor no contexto de aplicação (ex: db, auth, config)."""
+        self._context[key] = value
+
+    def get_context(self, key: str, default: Any = None) -> Any:
+        """Recupera um valor do contexto de aplicação."""
+        return self._context.get(key, default)
 
     def on_startup(self, func: Callable):
         """Registra uma função a ser chamada na inicialização."""
@@ -133,6 +142,9 @@ class AsyncHttpServerProtocol:
         """
         Suporte ao ciclo de vida ASGI (lifespan, http, websocket).
         """
+        # Injeta o contexto de aplicação em todo scope — acessível via scope["app"]
+        scope["app"] = self._context
+
         if scope['type'] == 'lifespan':
             async with self.lifespan(self):  # Inicia o ciclo de vida corretamente
                 while True:
@@ -214,13 +226,27 @@ class AsyncHttpServerProtocol:
                 params = [raw_path, query_params, vars, body_data]
                 func = function_data["function"]
 
+                # Detecta quais kwargs o handler aceita para injeção opcional
+                sig = inspect.signature(func)
+                sig_params = sig.parameters
+                accepts_var_kw = any(
+                    p.kind == inspect.Parameter.VAR_KEYWORD
+                    for p in sig_params.values()
+                )
+                call_kwargs: Dict[str, Any] = {"params": params}
+                if "context" in sig_params or accepts_var_kw:
+                    call_kwargs["context"] = self._context
+                if "scope" in sig_params or accepts_var_kw:
+                    call_kwargs["scope"] = scope
+
                 response = Response()
-                
+
                 if inspect.iscoroutinefunction(func):
-                    response = await func(params=params)
+                    response = await func(**call_kwargs)
                 else:
+                    from functools import partial
                     loop = asyncio.get_running_loop()
-                    response = await loop.run_in_executor(None, func, params)
+                    response = await loop.run_in_executor(None, partial(func, **call_kwargs))
 
                 if isinstance(response, Response):
                     await response.send_asgi(send)

@@ -6,3 +6,8 @@ from .protocols.httpServer.Responses.FileResponse import FileResponse
 from .protocols.httpServer.Responses.Response import Response
 from .protocols.httpServer.Responses.RedirectResponse import RedirectResponse
 from .protocols.httpServer.Responses.JSONResponse import JSONResponse
+from .protocols.httpServer.middlewares import (
+    AuthMiddleware, MiddlewareController, CORSMiddleware, SecurityMiddleware,
+    GzipMiddleware, LoggingMiddleware, RateLimiterMiddleware,
+    ErrorHandlerMiddleware, CacheControlMiddleware, HTTPVersionMiddleware,
+)
