@@ -6,3 +6,4 @@ from .SyncCrypts import SyncCrypts
 from .ThreadTask import ThreadTask
 from .ConnectionContext import AsyncConnectionContext, ThreadConnectionContext
 from .utils import extract_message_length
+from .IOPipeline import IOMiddleware, AsyncIOMiddleware, IOPipeline, AsyncIOPipeline

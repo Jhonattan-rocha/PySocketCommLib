@@ -5,6 +5,7 @@ import threading
 from queue import Queue
 from ...Abstracts.Auth import Auth
 from ...Abstracts.ConnectionContext import ThreadConnectionContext
+from ...Abstracts.IOPipeline import IOPipeline
 from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
@@ -13,6 +14,7 @@ from ...Options import Server_ops, SSLContextOps
 from ...Crypt import Crypt
 from ...Connection_type.Types import Types
 from ...Files import File
+from ...Pipeline import CodecMiddleware, CryptMiddleware, EventsMiddleware
 from ...TaskManager import TaskManager
 import logging
 
@@ -55,6 +57,11 @@ class Server(threading.Thread):
         if not self.auth:
             self.auth = self._create_auth_instance()
 
+        self.pipeline = IOPipeline()
+        self.pipeline.add(CodecMiddleware(self.encoder, self.decoder))
+        self.pipeline.add(CryptMiddleware(self.crypt))
+        self.pipeline.add(EventsMiddleware(self.events))
+
         logger.info(f"Servidor inicializado em {self.HOST}:{self.PORT} com tipo de conexão: {self.conn_type}")
 
     def _create_auth_instance(self):
@@ -96,16 +103,7 @@ class Server(threading.Thread):
 
         if block:
             message = client.recv(msglen)
-            try:
-                raw = self.decoder(message)
-                dec_message = self.crypt.sync_crypt.decrypt_message(raw) if self.crypt and self.crypt.sync_crypt else raw
-                if self.events.size() > 0:
-                    self.events.scan(dec_message)
-                logger.debug(f"Mensagem bloqueada recebida do cliente {client.getpeername() if hasattr(client, 'getpeername') else client}: {dec_message[:50]}...")
-                return dec_message
-            except Exception as e:
-                logger.error(f"Erro ao decriptar mensagem bloqueada: {e}")
-                return self.decoder(message)
+            return self.pipeline.process_inbound(message)
 
         chunks = []
         bytes_received = 0
@@ -116,27 +114,11 @@ class Server(threading.Thread):
             chunks.append(chunk)
             bytes_received += len(chunk)
 
-        message = b"".join(chunks)
-        try:
-            raw = self.decoder(message)
-            dec_message = self.crypt.sync_crypt.decrypt_message(raw) if self.crypt and self.crypt.sync_crypt else raw
-            if self.events.size() > 0:
-                self.events.scan(dec_message)
-            logger.debug(f"Mensagem recebida do cliente {client.getpeername() if hasattr(client, 'getpeername') else client}: {dec_message[:50]}...")
-            return dec_message
-        except Exception as e:
-            logger.error(f"Erro ao decriptar mensagem: {e}")
-            return self.decoder(message)
+        return self.pipeline.process_inbound(b"".join(chunks))
 
     def send_message_udp(self, client_address, message: bytes, sent_bytes: int = 2048):
         self.hitory_udp_message.put((client_address, message))
-        if self.crypt and self.crypt.sync_crypt:
-            try:
-                message = self.crypt.sync_crypt.encrypt_message(message)
-            except Exception as e:
-                logger.error(f"Erro ao criptografar mensagem UDP: {e}")
-
-        encoded = self.encoder(message)
+        encoded = self.pipeline.process_outbound(message)
         self.server_socket.sendto(encoded, client_address)
         logger.debug(f"Mensagem UDP enviada para {client_address}: {encoded[:50]}...")
 
@@ -150,16 +132,10 @@ class Server(threading.Thread):
         if not data:
             return b"", address
 
-        try:
-            raw = self.decoder(data)
-            dec_message = self.crypt.sync_crypt.decrypt_message(raw) if self.crypt and self.crypt.sync_crypt else raw
-            if self.events.size() > 0:
-                self.events.scan(dec_message)
-            logger.debug(f"Mensagem UDP recebida de {address}: {dec_message[:50]}...")
-            return dec_message, address
-        except Exception as e:
-            logger.error(f"Erro ao decriptar mensagem UDP: {e}")
-            return self.decoder(data), address
+        dec_message = self.pipeline.process_inbound(data)
+        self.hitory_udp_message.put((address, dec_message))
+        logger.debug(f"Mensagem UDP recebida de {address}: {dec_message[:50]}...")
+        return dec_message, address
 
     def send_message_all_clients(self, message: bytes, sent_bytes: int = 2048):
         logger.info("Enviando mensagem para todos os clientes.")
@@ -170,13 +146,7 @@ class Server(threading.Thread):
             logger.error(f"Erro ao enviar mensagem para todos os clientes: {e}")
 
     def send_message(self, client: socket.socket | ssl.SSLSocket, message: bytes, sent_bytes: int = 2048, block: bool = False) -> None:
-        if self.crypt and self.crypt.sync_crypt:
-            try:
-                message = self.crypt.sync_crypt.encrypt_message(message)
-            except Exception as e:
-                logger.error(f"Erro ao criptografar mensagem: {e}")
-
-        encoded = self.encoder(message)
+        encoded = self.pipeline.process_outbound(message)
         msglen = len(encoded)
         try:
             client.sendall(self.encoder(struct.pack("!Q", msglen)))

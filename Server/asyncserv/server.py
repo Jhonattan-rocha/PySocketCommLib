@@ -5,6 +5,7 @@ import logging
 from typing import Optional, List, Dict, Any
 from ...Abstracts.Auth import Auth
 from ...Abstracts.ConnectionContext import AsyncConnectionContext
+from ...Abstracts.IOPipeline import AsyncIOPipeline
 from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
@@ -12,6 +13,7 @@ from ...Events import Events
 from ...Files import File
 from ...Options import SSLContextOps, Server_ops
 from ...Crypt import Crypt
+from ...Pipeline import CodecMiddleware, AsyncCryptMiddleware, AsyncEventsMiddleware
 from ..helpers.rateLimit import TokenBucket as AsyncTokenBucket
 from ...TaskManager import AsyncTaskManager
 
@@ -78,6 +80,11 @@ class AsyncServer:
         if not self.auth:
             self.auth = self._create_auth_instance()
 
+        self.pipeline = AsyncIOPipeline()
+        self.pipeline.add(CodecMiddleware(self.encoder, self.decoder))
+        self.pipeline.add(AsyncCryptMiddleware(self.crypt))
+        self.pipeline.add(AsyncEventsMiddleware(self.events))
+
         logger.info(f"AsyncServer inicializado em {self.HOST}:{self.PORT}")
 
     def _create_auth_instance(self) -> Auth:
@@ -128,13 +135,7 @@ class AsyncServer:
 
     async def send_message(self, message: bytes, sent_bytes: int = 2048,
                            writer: asyncio.StreamWriter = None, block: bool = False):
-        if self.crypt and self.crypt.sync_crypt:
-            try:
-                message = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.encrypt_message, message)
-            except Exception as e:
-                logger.error(f"Erro ao criptografar mensagem: {e}")
-
-        encoded = self.encoder(message)
+        encoded = await self.pipeline.process_outbound(message)
         lng = len(encoded)
 
         try:
@@ -189,14 +190,7 @@ class AsyncServer:
         if block:
             try:
                 message_bytes = await reader.read(length)
-                raw = self.decoder(message_bytes)
-                if self.crypt and self.crypt.sync_crypt:
-                    dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, raw)
-                else:
-                    dec = raw
-                if await self.events.async_executor(self.events.size) > 0:
-                    await self.events.async_executor(self.events.scan, dec)
-                return dec
+                return await self.pipeline.process_inbound(message_bytes)
             except Exception as e:
                 logger.error(f"Erro ao receber mensagem bloqueada de {reader.get_extra_info('peername')}: {e}")
                 return b""
@@ -215,19 +209,7 @@ class AsyncServer:
             chunks.append(chunk)
             bytes_received += len(chunk)
 
-        res = b"".join(chunks)
-        raw = self.decoder(res)
-        try:
-            if self.crypt and self.crypt.sync_crypt:
-                dec = await self.crypt.sync_crypt.async_executor(self.crypt.sync_crypt.decrypt_message, raw)
-            else:
-                dec = raw
-            if await self.events.async_executor(self.events.size) > 0:
-                await self.events.async_executor(self.events.scan, dec)
-            return dec
-        except Exception as e:
-            logger.error(f"Erro ao decriptar mensagem de {reader.get_extra_info('peername')}: {e}")
-            return raw
+        return await self.pipeline.process_inbound(b"".join(chunks))
 
     def is_running(self) -> bool:
         return self.__running
