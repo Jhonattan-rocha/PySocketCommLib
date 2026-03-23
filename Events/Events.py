@@ -56,6 +56,18 @@ class Events(AsyncExecutorMixin):
                     daemon=True
                 ).start()
 
+    def emit(self, flag: str, *args) -> None:
+        """
+        Dispara diretamente o callback registrado para um flag, sem parsing de bytes.
+
+        Útil em contextos HTTP onde não há payload com o padrão de evento embutido.
+        O callback é executado em uma thread daemon (fire-and-forget).
+        """
+        with self.__lock:
+            callback = self.__events.get(flag)
+        if callback:
+            threading.Thread(target=callback, args=args, daemon=True).start()
+
     def size(self) -> int:
         return len(self.__events)
 

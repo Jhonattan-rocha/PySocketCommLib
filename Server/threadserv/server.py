@@ -6,6 +6,7 @@ from queue import Queue
 from ...Abstracts.Auth import Auth
 from ...Abstracts.ConnectionContext import ThreadConnectionContext
 from ...Abstracts.IOPipeline import IOPipeline
+from .ConnectionTask import ThreadConnectionTask
 from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
@@ -199,8 +200,7 @@ class Server(threading.Thread):
     def break_server(self):
         logger.info("Servidor sendo interrompido...")
         self.__running = False
-        for ctx in self.__clients:
-            ctx.disconnect()
+        self.taskManager.stop_all_tasks()
         if self.server_socket:
             try:
                 self.server_socket.close()
@@ -247,6 +247,7 @@ class Server(threading.Thread):
                             logger.error(f"Erro durante a autenticação do cliente {address}: {e}")
 
                         self.save_clients(ctx)
+                        self.taskManager.register_task(ThreadConnectionTask(ctx))
 
                     except KeyboardInterrupt:
                         logger.info("Servidor TCP interrompido por KeyboardInterrupt.")

@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 from ...Abstracts.Auth import Auth
 from ...Abstracts.ConnectionContext import AsyncConnectionContext
 from ...Abstracts.IOPipeline import AsyncIOPipeline
+from .ConnectionTask import AsyncConnectionTask
 from ...Abstracts.utils import extract_message_length
 from ...Auth.NoAuth import NoAuth
 from ...Auth.SimpleAuth import SimpleTokenAuth
@@ -270,6 +271,7 @@ class AsyncServer:
                 logger.error(f"Erro durante a autenticação do cliente {address}: {e}")
 
             await self.save_clients(ctx)
+            await self.task_manager.register_task(AsyncConnectionTask(ctx))
 
             # Loop de mensagens — mantém a conexão viva e dispara eventos
             while not writer.is_closing() and self.__running:
@@ -286,9 +288,11 @@ class AsyncServer:
         except Exception as e:
             logger.error(f"Erro ao lidar com cliente {address}: {e}")
         finally:
-            if ctx is not None and ctx in self.__clients:
-                self.__clients.remove(ctx)
-                logger.info(f"Cliente desconectado: {address}, UUID: {ctx.uuid}")
+            if ctx is not None:
+                if ctx in self.__clients:
+                    self.__clients.remove(ctx)
+                    logger.info(f"Cliente desconectado: {address}, UUID: {ctx.uuid}")
+                await self.task_manager.unregister_task(ctx.uuid)
             if not writer.is_closing():
                 writer.close()
             logger.info(f"Handler de {address} finalizado.")
@@ -300,8 +304,7 @@ class AsyncServer:
             return
 
         self.__running = False
-        for ctx in self.__clients:
-            await ctx.disconnect()
+        await self.task_manager.stop_all_tasks()
 
         self.server.close()
         await self.server.wait_closed()

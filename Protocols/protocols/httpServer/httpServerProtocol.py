@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 from .Responses import FileResponse
 from .Responses import Response
 from .Router.Router import Router
+from ....Events import Events
 
 class AsyncHttpServerProtocol:
     def __init__(self, host: str = 'localhost', port: int = 8080, static_dir: str = "./static", use_https: bool = False, certfile: str = "", keyfile: str = "", lifespan: Callable = None, max_workers: int = 100) -> None:
@@ -36,6 +37,7 @@ class AsyncHttpServerProtocol:
         self.shutdown_tasks = []  # Lista de funções de encerramento
         self.websocket_handlers: Dict[str, Callable] = {}  # path → handler(scope, receive, send)
         self._context: Dict[str, Any] = {}  # contexto de aplicação compartilhado entre handlers
+        self.events = Events()  # sistema de eventos compartilhado entre handlers e ciclo de vida
 
     def set_context(self, key: str, value: Any) -> None:
         """Armazena um valor no contexto de aplicação (ex: db, auth, config)."""
@@ -44,6 +46,18 @@ class AsyncHttpServerProtocol:
     def get_context(self, key: str, default: Any = None) -> Any:
         """Recupera um valor do contexto de aplicação."""
         return self._context.get(key, default)
+
+    def on(self, flag: str, callback: Callable) -> None:
+        """Registra um handler para um evento (ex: 'http.request', 'user.login')."""
+        self.events.on(flag, callback)
+
+    def off(self, flag: str) -> None:
+        """Remove o handler de um evento."""
+        self.events.off(flag)
+
+    def emit(self, flag: str, *args) -> None:
+        """Dispara um evento diretamente (fire-and-forget em thread daemon)."""
+        self.events.emit(flag, *args)
 
     def on_startup(self, func: Callable):
         """Registra uma função a ser chamada na inicialização."""
@@ -142,8 +156,9 @@ class AsyncHttpServerProtocol:
         """
         Suporte ao ciclo de vida ASGI (lifespan, http, websocket).
         """
-        # Injeta o contexto de aplicação em todo scope — acessível via scope["app"]
+        # Injeta o contexto de aplicação e emit em todo scope
         scope["app"] = self._context
+        scope["emit"] = self.events.emit
 
         if scope['type'] == 'lifespan':
             async with self.lifespan(self):  # Inicia o ciclo de vida corretamente
@@ -189,11 +204,13 @@ class AsyncHttpServerProtocol:
 
     async def handle_asgi_request(self, scope: dict, receive: Callable, send: Callable):
         """Garante que toda requisição receba uma resposta"""
+        method = scope.get("method", "")
+        raw_path = scope.get("raw_path", b"/").decode("utf-8")
         try:
-            method = scope["method"]
-            raw_path = scope.get("raw_path", b"/").decode("utf-8")
             query_string = scope.get("query_string", b"").decode("utf-8")
             query_params = dict([param.split("=") for param in query_string.split("&") if "=" in param])
+
+            self.events.emit("http.request", method, raw_path)
 
             if self.is_static_file(raw_path):
                 await self.serve_static_file_asgi(scope, receive, send, raw_path)
@@ -238,6 +255,8 @@ class AsyncHttpServerProtocol:
                     call_kwargs["context"] = self._context
                 if "scope" in sig_params or accepts_var_kw:
                     call_kwargs["scope"] = scope
+                if "emit" in sig_params or accepts_var_kw:
+                    call_kwargs["emit"] = self.events.emit
 
                 response = Response()
 
@@ -249,9 +268,10 @@ class AsyncHttpServerProtocol:
                     response = await loop.run_in_executor(None, partial(func, **call_kwargs))
 
                 if isinstance(response, Response):
+                    self.events.emit("http.response", method, raw_path, response.status if hasattr(response, "status") else 200)
                     await response.send_asgi(send)
                     return
-                
+
                 if not response:
                     return
 
@@ -261,6 +281,7 @@ class AsyncHttpServerProtocol:
 
         except Exception as e:
             self.logger.error(f"Erro ao processar requisição: {e}")
+            self.events.emit("http.error", method, raw_path, str(e))
             response = Response(status=500, body=f"Internal Server Error: {e}".encode("utf-8"))
             await response.send_asgi(send)
 

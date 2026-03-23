@@ -27,4 +27,11 @@ class TaskManager:
 
     def stop_task(self, uuid: str) -> None:
         task = self.get_task(uuid)
-        task.stop()
+        if task:
+            task.stop()
+
+    def unregister_task(self, uuid: str) -> None:
+        """Remove a tarefa do registro sem chamar stop()."""
+        task = self.get_task(uuid)
+        if task and task in self.__tasks:
+            self.__tasks.remove(task)

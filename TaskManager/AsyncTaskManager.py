@@ -28,5 +28,12 @@ class AsyncTaskManager:
     
     async def stop_task(self, uuid: str) -> None:
         task = await self.get_task(uuid)
-        await task.stop()
+        if task:
+            await task.stop()
+
+    async def unregister_task(self, uuid: str) -> None:
+        """Remove a tarefa do registro sem chamar stop()."""
+        task = await self.get_task(uuid)
+        if task and task in self.__tasks:
+            self.__tasks.remove(task)
     
