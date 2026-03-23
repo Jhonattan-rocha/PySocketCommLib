@@ -28,14 +28,16 @@ from .health.checker import HealthChecker
 from .health.readiness import ReadinessChecker
 from .log_utils.structured_logger import StructuredLogger
 from .endpoints.health_endpoints import HealthEndpoints
+from .server_monitor import ServerMonitor
 
 __version__ = "1.0.0"
 __all__ = [
     "MetricsCollector",
-    "PerformanceTracker", 
+    "PerformanceTracker",
     "ConnectionMonitor",
     "HealthChecker",
     "ReadinessChecker",
     "StructuredLogger",
-    "HealthEndpoints"
+    "HealthEndpoints",
+    "ServerMonitor",
 ]

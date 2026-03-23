@@ -272,6 +272,7 @@ class AsyncServer:
 
             await self.save_clients(ctx)
             await self.task_manager.register_task(AsyncConnectionTask(ctx))
+            self.events.emit("server.connect", ctx.uuid, ctx.address)
 
             # Loop de mensagens — mantém a conexão viva e dispara eventos
             while not writer.is_closing() and self.__running:
@@ -293,6 +294,7 @@ class AsyncServer:
                     self.__clients.remove(ctx)
                     logger.info(f"Cliente desconectado: {address}, UUID: {ctx.uuid}")
                 await self.task_manager.unregister_task(ctx.uuid)
+                self.events.emit("server.disconnect", ctx.uuid, ctx.address)
             if not writer.is_closing():
                 writer.close()
             logger.info(f"Handler de {address} finalizado.")

@@ -248,6 +248,7 @@ class Server(threading.Thread):
 
                         self.save_clients(ctx)
                         self.taskManager.register_task(ThreadConnectionTask(ctx))
+                        self.events.emit("server.connect", ctx.uuid, ctx.address)
 
                     except KeyboardInterrupt:
                         logger.info("Servidor TCP interrompido por KeyboardInterrupt.")
