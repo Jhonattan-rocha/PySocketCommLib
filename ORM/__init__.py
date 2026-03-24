@@ -10,6 +10,12 @@ from .dialetecs.mysql import MySQLDialect, MySQLConnection
 from .dialetecs.psql import PostgreSQLDialect, PsqlConnection
 from .dialetecs.sqlite import SqliteDialect, SqliteConnection
 from .drivers.psql import PostgreSQLSocketClient
+from .drivers.mysql import MySQLSocketClient
+from .migrations import (
+    Migration, MigrationManager,
+    CreateTable, DropTable, AddColumn, DropColumn,
+    RenameColumn, AlterColumn, RunSQL,
+)
 from .models.model import BaseModel
 from .pools import AsyncConnectionPool, ConnectionPool
 from .querys import Delete, Insert, Select, Update

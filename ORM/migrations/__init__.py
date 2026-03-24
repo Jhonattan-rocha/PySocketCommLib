@@ -1,14 +1,20 @@
 """Database migration system for PySocketCommLib ORM."""
 
-from PySocketCommLib.ORM.migrations.migration import Migration, MigrationManager
-from PySocketCommLib.ORM.migrations.operations import CreateTable, DropTable, AddColumn, DropColumn, AlterColumn
+from .migration import Migration, MigrationManager
+from .operations import (
+    CreateTable, DropTable,
+    AddColumn, DropColumn, RenameColumn,
+    AlterColumn, RunSQL,
+)
 
 __all__ = [
     "Migration",
-    "MigrationManager", 
+    "MigrationManager",
     "CreateTable",
     "DropTable",
     "AddColumn",
     "DropColumn",
-    "AlterColumn"
+    "RenameColumn",
+    "AlterColumn",
+    "RunSQL",
 ]
