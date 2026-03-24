@@ -42,6 +42,9 @@ dev = [
 Homepage = "https://github.com/Jhonattan-rocha/PySocketCommLib"
 "Bug Tracker" = "https://github.com/Jhonattan-rocha/PySocketCommLib/issues"
 
+[project.scripts]
+pysocketcomm = "PySocketCommLib.cli:main"
+
 [tool.setuptools.packages.find]
 exclude = ["tests*", "examples*", "backup_imports*"]
 

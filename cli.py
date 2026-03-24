@@ -1,171 +1,325 @@
 #!/usr/bin/env python3
-"""CLI para PySocketCommLib."""
+"""
+PySocketCommLib CLI — ferramenta de linha de comando.
+
+Comandos disponíveis:
+    pysocketcomm info                   Informações sobre a biblioteca
+    pysocketcomm db migrate  [opts]     Aplicar migrations pendentes
+    pysocketcomm db rollback [opts]     Reverter N migrations
+    pysocketcomm db status   [opts]     Listar migrations aplicadas/pendentes
+    pysocketcomm db new-migration NAME  Criar arquivo de migration vazio
+
+Opções de conexão (para comandos db):
+    --driver    sqlite | psql | mysql   (padrão: sqlite)
+    --database  Nome/caminho do banco   (obrigatório)
+    --host      Host do servidor        (padrão: localhost)
+    --port      Porta                   (padrão: dialeto-específico)
+    --user      Usuário
+    --password  Senha
+    --dir       Diretório de migrations (padrão: ./migrations)
+"""
 
 import sys
-import os
 import argparse
 from pathlib import Path
 
-# Adicionar diretório do projeto ao path
-project_root = Path(__file__).parent.absolute()
-sys.path.insert(0, str(project_root))
+# Garante que o pacote é importável quando executado diretamente
+sys.path.insert(0, str(Path(__file__).parent.parent.absolute()))
 
-# Imports locais
-try:
-    from config import load_config, Config
-    from Server.asyncserv.server import Server_ops
-    from Options.Ops import Server_ops as ServerOptions
-except ImportError as e:
-    print(f"Erro ao importar módulos: {e}")
-    print("Certifique-se de que todos os módulos estão disponíveis.")
-    sys.exit(1)
+__version__ = "0.2.0"
 
-# Versão do projeto
-__version__ = "1.0.0"
 
-def create_parser():
-    """Cria o parser de argumentos."""
+# ---------------------------------------------------------------------------
+# Conexão
+# ---------------------------------------------------------------------------
+
+def _make_connection(args):
+    """Cria e conecta ao banco de dados de acordo com --driver."""
+    driver = getattr(args, 'driver', 'sqlite')
+
+    if driver == 'sqlite':
+        from PySocketCommLib.ORM.dialetecs.sqlite import SqliteConnection
+        conn = SqliteConnection(database=args.database)
+
+    elif driver == 'psql':
+        from PySocketCommLib.ORM.dialetecs.psql import PsqlConnection
+        port = getattr(args, 'port', None) or 5432
+        conn = PsqlConnection(
+            host=getattr(args, 'host', 'localhost'),
+            port=int(port),
+            user=getattr(args, 'user', None),
+            password=getattr(args, 'password', None),
+            database=args.database,
+        )
+
+    elif driver == 'mysql':
+        from PySocketCommLib.ORM.dialetecs.mysql import MySQLConnection
+        port = getattr(args, 'port', None) or 3306
+        conn = MySQLConnection(
+            host=getattr(args, 'host', 'localhost'),
+            port=int(port),
+            user=getattr(args, 'user', None),
+            password=getattr(args, 'password', None),
+            database=args.database,
+        )
+
+    else:
+        print(f"Driver desconhecido: '{driver}'. Use sqlite, psql ou mysql.")
+        sys.exit(1)
+
+    if not conn.connect():
+        print(f"Falha ao conectar ao banco '{args.database}' usando driver '{driver}'.")
+        sys.exit(1)
+
+    return conn
+
+
+# ---------------------------------------------------------------------------
+# Comando: info
+# ---------------------------------------------------------------------------
+
+def cmd_info(_args):
+    from PySocketCommLib import __version__ as lib_version
+    print(f"PySocketCommLib {lib_version}")
+    print()
+    print("Componentes disponíveis:")
+    components = [
+        ("Servidores",    "AsyncServer, ThreadServer"),
+        ("Clientes",      "AsyncClient, ThreadClient"),
+        ("HTTP",          "AsyncHttpServerProtocol (ASGI)"),
+        ("Auth",          "NoAuth, SimpleTokenAuth, HttpAuth, SimpleTokenHttpAuth"),
+        ("Pipeline",      "CodecMiddleware, CryptMiddleware, EventsMiddleware"),
+        ("ORM",           "BaseModel + dialetos: SQLite, PostgreSQL, MySQL"),
+        ("Migrations",    "MigrationManager, CreateTable, AddColumn, …"),
+        ("Pool",          "ConnectionPool, AsyncConnectionPool"),
+        ("Monitoring",    "ServerMonitor, MetricsCollector, HealthChecker"),
+        ("Criptografia",  "Crypt (AES + RSA)"),
+        ("Arquivos",      "File (gzip, transfer)"),
+        ("Eventos",       "Events"),
+    ]
+    col = max(len(c[0]) for c in components) + 2
+    for name, detail in components:
+        print(f"  {name:<{col}}{detail}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Comando: db
+# ---------------------------------------------------------------------------
+
+def _db_connection_args(parser):
+    """Adiciona argumentos de conexão a um subparser."""
+    parser.add_argument('--driver',   default='sqlite',
+                        choices=['sqlite', 'psql', 'mysql'],
+                        help='Driver do banco de dados (padrão: sqlite)')
+    parser.add_argument('--database', required=True,
+                        help='Nome do banco ou caminho do arquivo SQLite')
+    parser.add_argument('--host',     default='localhost',
+                        help='Host do servidor (padrão: localhost)')
+    parser.add_argument('--port',     type=int, default=None,
+                        help='Porta (padrão: 5432 psql / 3306 mysql)')
+    parser.add_argument('--user',     default=None, help='Usuário')
+    parser.add_argument('--password', default=None, help='Senha')
+    parser.add_argument('--dir',      default='migrations',
+                        help='Diretório de migrations (padrão: ./migrations)')
+
+
+def cmd_db_migrate(args):
+    from PySocketCommLib.ORM.migrations import MigrationManager
+    conn = _make_connection(args)
+    try:
+        manager = MigrationManager(conn, migrations_dir=args.dir)
+        migrations = manager.load_migrations_from_directory()
+        if not migrations:
+            print(f"Nenhum arquivo de migration encontrado em '{args.dir}'.")
+            return 0
+        manager.apply_migrations(migrations)
+        return 0
+    finally:
+        conn.disconnect()
+
+
+def cmd_db_rollback(args):
+    from PySocketCommLib.ORM.migrations import MigrationManager
+    conn = _make_connection(args)
+    try:
+        manager = MigrationManager(conn, migrations_dir=args.dir)
+        migrations = manager.load_migrations_from_directory()
+        manager.rollback_migrations(migrations, count=args.count)
+        return 0
+    finally:
+        conn.disconnect()
+
+
+def cmd_db_status(args):
+    from PySocketCommLib.ORM.migrations import MigrationManager
+    conn = _make_connection(args)
+    try:
+        manager = MigrationManager(conn, migrations_dir=args.dir)
+        migrations = manager.load_migrations_from_directory()
+        applied = set(manager.get_applied_migrations())
+        pending = [m for m in migrations if m.name not in applied]
+
+        print(f"Migrations aplicadas ({len(applied)}):")
+        for name in sorted(applied):
+            print(f"  [x] {name}")
+
+        print(f"\nMigrations pendentes ({len(pending)}):")
+        for m in pending:
+            print(f"  [ ] {m.name}")
+
+        return 0
+    finally:
+        conn.disconnect()
+
+
+def cmd_db_new_migration(args):
+    from PySocketCommLib.ORM.migrations import MigrationManager
+    from PySocketCommLib.ORM.abstracts.connection_types import Connection
+
+    # MigrationManager só precisa do diretório para criar o arquivo,
+    # mas o construtor exige uma conexão para criar a tabela de controle.
+    # Usamos a conexão apenas se --database for fornecido.
+    if args.database:
+        conn = _make_connection(args)
+        try:
+            manager = MigrationManager(conn, migrations_dir=args.dir)
+            filepath = manager.create_migration_file(args.migration_name)
+        finally:
+            conn.disconnect()
+    else:
+        # Sem conexão: cria o arquivo diretamente
+        from datetime import datetime
+        mig_dir = Path(args.dir)
+        mig_dir.mkdir(exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = mig_dir / f"{timestamp}_{args.migration_name}.py"
+        content = f'''"""Migration: {args.migration_name}
+
+Generated: {datetime.now().isoformat()}
+"""
+
+from PySocketCommLib.ORM.migrations.operations import (
+    CreateTable, DropTable, AddColumn, DropColumn,
+    RenameColumn, AlterColumn, RunSQL,
+)
+from PySocketCommLib.ORM.migrations.migration import Migration
+from PySocketCommLib.ORM.abstracts.field_types import (
+    IntegerField, TextField, FloatField, BooleanField,
+    DateTimeField, DecimalField, ForeignKeyField,
+)
+
+operations = [
+    # Adicione suas operações aqui.
+]
+
+dependencies = []
+
+migration = Migration("{args.migration_name}", operations, dependencies)
+'''
+        filepath.write_text(content, encoding='utf-8')
+        print(f"[migration] Arquivo criado: {filepath}")
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Parser principal
+# ---------------------------------------------------------------------------
+
+def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description='PySocketCommLib - Biblioteca de comunicação por sockets',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        prog='pysocketcomm',
+        description='PySocketCommLib — ferramenta de linha de comando',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
     )
-    
-    parser.add_argument(
-        '--version', 
-        action='version', 
-        version=f'PySocketCommLib {__version__}'
-    )
-    
-    subparsers = parser.add_subparsers(dest='command', help='Comandos disponíveis')
-    
-    # Comando server
-    server_parser = subparsers.add_parser('server', help='Gerenciar servidor')
-    server_parser.add_argument('--start', action='store_true', help='Iniciar servidor')
-    server_parser.add_argument('--stop', action='store_true', help='Parar servidor')
-    server_parser.add_argument('--config', type=str, help='Arquivo de configuração')
-    server_parser.add_argument('--host', type=str, default='localhost', help='Host do servidor')
-    server_parser.add_argument('--port', type=int, default=8080, help='Porta do servidor')
-    
-    # Comando config
-    config_parser = subparsers.add_parser('config', help='Gerenciar configuração')
-    config_parser.add_argument('--show', action='store_true', help='Mostrar configuração atual')
-    config_parser.add_argument('--create', type=str, help='Criar arquivo de configuração')
-    config_parser.add_argument('--validate', type=str, help='Validar arquivo de configuração')
-    
+    parser.add_argument('--version', action='version',
+                        version=f'PySocketCommLib {__version__}')
+
+    sub = parser.add_subparsers(dest='command', metavar='COMMAND')
+
+    # info
+    sub.add_parser('info', help='Informações sobre a biblioteca')
+
+    # db
+    db_parser = sub.add_parser('db', help='Gerenciamento de banco de dados')
+    db_sub = db_parser.add_subparsers(dest='db_command', metavar='DB_COMMAND')
+
+    # db migrate
+    p = db_sub.add_parser('migrate', help='Aplicar migrations pendentes')
+    _db_connection_args(p)
+
+    # db rollback
+    p = db_sub.add_parser('rollback', help='Reverter N migrations')
+    _db_connection_args(p)
+    p.add_argument('--count', type=int, default=1,
+                   help='Número de migrations a reverter (padrão: 1)')
+
+    # db status
+    p = db_sub.add_parser('status', help='Mostrar status das migrations')
+    _db_connection_args(p)
+
+    # db new-migration
+    p = db_sub.add_parser('new-migration', help='Criar arquivo de migration vazio')
+    p.add_argument('migration_name', help='Nome da migration')
+    p.add_argument('--dir', default='migrations',
+                   help='Diretório de migrations (padrão: ./migrations)')
+    p.add_argument('--driver',   default='sqlite',
+                   choices=['sqlite', 'psql', 'mysql'])
+    p.add_argument('--database', default=None,
+                   help='Banco para registrar a migration (opcional)')
+    p.add_argument('--host',     default='localhost')
+    p.add_argument('--port',     type=int, default=None)
+    p.add_argument('--user',     default=None)
+    p.add_argument('--password', default=None)
+
     return parser
 
-def handle_server_command(args):
-    """Manipula comandos do servidor."""
-    if args.start:
-        print(f"🚀 Iniciando servidor em {args.host}:{args.port}")
-        
-        # Carregar configuração se especificada
-        config = None
-        if args.config:
-            try:
-                config = load_config(args.config)
-                print(f"📋 Configuração carregada de: {args.config}")
-            except Exception as e:
-                print(f"❌ Erro ao carregar configuração: {e}")
-                return 1
-        
-        # Criar opções do servidor
-        try:
-            server_options = ServerOptions(
-                host=args.host,
-                port=args.port,
-                config=config
-            )
-            print("✅ Servidor configurado com sucesso")
-            print("💡 Implementação do servidor será adicionada em versões futuras")
-            return 0
-        except Exception as e:
-            print(f"❌ Erro ao configurar servidor: {e}")
-            return 1
-    
-    elif args.stop:
-        print("🛑 Parando servidor...")
-        print("💡 Implementação será adicionada em versões futuras")
-        return 0
-    
-    else:
-        print("❓ Especifique --start ou --stop")
-        return 1
 
-def handle_config_command(args):
-    """Manipula comandos de configuração."""
-    if args.show:
-        try:
-            config = Config()
-            print("📋 Configuração atual:")
-            print(f"  Host padrão: {config.get('server.host', 'localhost')}")
-            print(f"  Porta padrão: {config.get('server.port', 8080)}")
-            print(f"  Debug: {config.get('debug', False)}")
-            return 0
-        except Exception as e:
-            print(f"❌ Erro ao mostrar configuração: {e}")
-            return 1
-    
-    elif args.create:
-        try:
-            config_file = Path(args.create)
-            default_config = {
-                "server": {
-                    "host": "localhost",
-                    "port": 8080,
-                    "max_connections": 100
-                },
-                "logging": {
-                    "level": "INFO",
-                    "file": "server.log"
-                },
-                "debug": False
-            }
-            
-            config = Config(default_config)
-            config.save_to_file(str(config_file))
-            print(f"✅ Arquivo de configuração criado: {config_file}")
-            return 0
-        except Exception as e:
-            print(f"❌ Erro ao criar configuração: {e}")
-            return 1
-    
-    elif args.validate:
-        try:
-            config = load_config(args.validate)
-            print(f"✅ Configuração válida: {args.validate}")
-            return 0
-        except Exception as e:
-            print(f"❌ Configuração inválida: {e}")
-            return 1
-    
-    else:
-        print("❓ Especifique --show, --create ou --validate")
-        return 1
+# ---------------------------------------------------------------------------
+# Entrypoint
+# ---------------------------------------------------------------------------
 
-def main():
-    """Função principal."""
+def main() -> int:
     parser = create_parser()
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return 0
-    
+
     try:
-        if args.command == 'server':
-            return handle_server_command(args)
-        elif args.command == 'config':
-            return handle_config_command(args)
-        else:
-            print(f"❌ Comando desconhecido: {args.command}")
+        if args.command == 'info':
+            return cmd_info(args)
+
+        if args.command == 'db':
+            if not args.db_command:
+                # mostra ajuda do subgrupo db
+                parser.parse_args(['db', '--help'])
+                return 0
+            dispatch = {
+                'migrate':       cmd_db_migrate,
+                'rollback':      cmd_db_rollback,
+                'status':        cmd_db_status,
+                'new-migration': cmd_db_new_migration,
+            }
+            handler = dispatch.get(args.db_command)
+            if handler:
+                return handler(args)
+            print(f"Subcomando db desconhecido: '{args.db_command}'")
             return 1
+
+        print(f"Comando desconhecido: '{args.command}'")
+        return 1
+
     except KeyboardInterrupt:
-        print("\n🛑 Operação cancelada pelo usuário")
+        print("\nOperação cancelada.")
         return 1
     except Exception as e:
-        print(f"❌ Erro inesperado: {e}")
+        print(f"Erro: {e}")
         return 1
+
 
 if __name__ == '__main__':
     sys.exit(main())

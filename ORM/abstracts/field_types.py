@@ -61,6 +61,7 @@ class ForeignKeyField(BaseField):
         reference_column: str = "id",
         on_delete: str = "CASCADE",
         on_update: str = "CASCADE",
+        to_model=None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -68,6 +69,9 @@ class ForeignKeyField(BaseField):
         self.reference_column = reference_column
         self.on_delete = on_delete
         self.on_update = on_update
+        # Modelo relacionado para uso em select_related().
+        # Recebe a classe BaseModel correspondente à tabela referenciada.
+        self.to_model = to_model
 
     def get_sql_type(self) -> str:
         return "INTEGER"

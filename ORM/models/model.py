@@ -1,6 +1,6 @@
 import asyncio
 from ..cache import MemoryCache
-from ..abstracts.field_types import BaseField
+from ..abstracts.field_types import BaseField, ForeignKeyField
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from typing import Tuple, Dict, List, Any, Optional
@@ -322,6 +322,85 @@ class BaseModel:
         """Versão assíncrona de filter_update()."""
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, lambda: cls.filter_update(data, **conditions))
+
+    # -------------------------------------------------------------------------
+    # Carregamento de relacionamentos (select_related)
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def select_related(cls, *field_names: str, **conditions) -> List[Dict[str, Any]]:
+        """
+        Retorna registros com objetos relacionados (FK) pré-carregados.
+
+        Realiza apenas 1 query por FK field (batch via IN), evitando o problema
+        N+1 de queries.
+
+        Requer que os ``ForeignKeyField`` relevantes tenham ``to_model`` definido::
+
+            class Post(BaseModel):
+                author_id = ForeignKeyField("user", "id", to_model=User)
+
+        Uso::
+
+            posts = Post.select_related("author_id", status__eq="published")
+            for post in posts:
+                user = post["author_id_related"]   # dict do User relacionado
+
+        Args:
+            *field_names: Nomes dos campos FK a carregar.
+            **conditions: Filtros aplicados ao SELECT principal (mesma sintaxe de filter()).
+
+        Returns:
+            Lista de dicts; cada dict tem ``<field_name>_related`` para cada FK carregado.
+        """
+        if not cls.connection:
+            raise Exception("Conexão não definida. Chame set_connection().")
+
+        rows = cls.filter(**conditions) if conditions else cls.select()
+        if not rows:
+            return rows
+
+        fields, _ = cls.get_fields()
+        rows = [dict(row) for row in rows]  # cópia para não mutar os dicts originais
+
+        for fname in field_names:
+            field = fields.get(fname)
+            if not isinstance(field, ForeignKeyField) or field.to_model is None:
+                for row in rows:
+                    row[f"{fname}_related"] = None
+                continue
+
+            col = field.db_column_name if field.db_column_name else fname
+            fk_values = list({row[col] for row in rows if row.get(col) is not None})
+
+            if not fk_values:
+                for row in rows:
+                    row[f"{fname}_related"] = None
+                continue
+
+            # Batch: 1 query com IN para todos os valores FK
+            where, params = field.to_model.build_where_clause(
+                {f"{field.reference_column}__in": fk_values}
+            )
+            related_rows = field.to_model.select(
+                where_condition=where, where_params=params
+            )
+            related_map = {r[field.reference_column]: r for r in (related_rows or [])}
+
+            for row in rows:
+                fk_val = row.get(col)
+                row[f"{fname}_related"] = related_map.get(fk_val)
+
+        return rows
+
+    @classmethod
+    async def async_select_related(cls, *field_names: str,
+                                   **conditions) -> List[Dict[str, Any]]:
+        """Versão assíncrona de select_related()."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, lambda: cls.select_related(*field_names, **conditions)
+        )
 
     @classmethod
     async def async_get(cls, **conditions):
