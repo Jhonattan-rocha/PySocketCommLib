@@ -16,9 +16,12 @@ class BaseModel:
     _cache = MemoryCache()
 
     @classmethod
-    def build_where_clause(cls, conditions: dict) -> Tuple[str, tuple]:
+    def build_where_clause(cls, conditions: dict, param_offset: int = 0) -> Tuple[str, tuple]:
         """
         Constrói uma cláusula WHERE parametrizada, segura contra SQL injection.
+
+        param_offset — desloca a numeração dos placeholders PostgreSQL ($N).
+        Use param_offset=len(data) ao combinar com SET params em UPDATE.
 
         Retorna uma tupla (cláusula_sql, params) onde os valores nunca são
         interpolados diretamente na string SQL.
@@ -26,13 +29,15 @@ class BaseModel:
         clause_parts = []
         params = []
 
-        # O placeholder depende do dialeto (? para SQLite, $1 $2... para PostgreSQL)
+        # O placeholder depende do dialeto
         def placeholder(index: int) -> str:
             if cls.dialect is None:
                 return "?"
             dialect_name = type(cls.dialect).__name__.lower()
             if "postgres" in dialect_name or "psql" in dialect_name:
-                return f"${index}"
+                return f"${index + param_offset}"
+            if "mysql" in dialect_name:
+                return "%s"
             return "?"
 
         param_index = 1
@@ -84,6 +89,45 @@ class BaseModel:
     def filter(cls, **conditions):
         where_clause, params = cls.build_where_clause(conditions)
         return cls.select(where_condition=where_clause, where_params=params)
+
+    @classmethod
+    def filter_delete(cls, **conditions):
+        """
+        Deleta registros que correspondem às condições — type-safe, sem SQL cru.
+
+        Exemplo::
+
+            User.filter_delete(status__eq="inactive")
+        """
+        if not conditions:
+            raise ValueError("filter_delete requer ao menos uma condição para evitar deleção total.")
+        if not cls.connection:
+            raise Exception("Conexão não definida. Chame set_connection().")
+        where_clause, params = cls.build_where_clause(conditions)
+        sql = cls.delete_sql(where_clause)
+        cls._cache.clear_prefix(cls.get_table_name())
+        cls.connection.run(sql, params if params else None)
+
+    @classmethod
+    def filter_update(cls, data: Dict[str, Any], **conditions):
+        """
+        Atualiza registros que correspondem às condições — type-safe, sem SQL cru.
+
+        Os placeholders WHERE são numerados a partir de len(data)+1 para
+        PostgreSQL ($N), garantindo params corretos em: SET $1…$N WHERE $N+1…
+
+        Exemplo::
+
+            User.filter_update({"status": "active"}, id__eq=42)
+        """
+        if not conditions:
+            raise ValueError("filter_update requer ao menos uma condição para evitar atualização total.")
+        if not cls.connection:
+            raise Exception("Conexão não definida. Chame set_connection().")
+        where_clause, where_params = cls.build_where_clause(conditions, param_offset=len(data))
+        sql, set_params = cls.update_sql(data, where_clause)
+        cls._cache.clear_prefix(cls.get_table_name())
+        cls.connection.run(sql, set_params + where_params)
 
     @classmethod
     def get(cls, **conditions):
@@ -266,6 +310,18 @@ class BaseModel:
         """Versão assíncrona de filter()."""
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: cls.filter(**conditions))
+
+    @classmethod
+    async def async_filter_delete(cls, **conditions) -> None:
+        """Versão assíncrona de filter_delete()."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, lambda: cls.filter_delete(**conditions))
+
+    @classmethod
+    async def async_filter_update(cls, data: Dict[str, Any], **conditions) -> None:
+        """Versão assíncrona de filter_update()."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, lambda: cls.filter_update(data, **conditions))
 
     @classmethod
     async def async_get(cls, **conditions):

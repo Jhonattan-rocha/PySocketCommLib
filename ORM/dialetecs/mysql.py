@@ -1,6 +1,8 @@
 from ..abstracts.dialetecs import SQLDialect
-from ..abstracts.field_types import BaseField
-from typing import Dict, List, Any, Tuple
+from ..abstracts.connection_types import Connection
+from ..abstracts.field_types import BaseField, ForeignKeyField
+from ..drivers.mysql import MySQLSocketClient
+from typing import Dict, List, Any, Tuple, Optional
 
 class MySQLDialect(SQLDialect):
     """Generates SQL for MySQL databases."""
@@ -37,17 +39,91 @@ class MySQLDialect(SQLDialect):
         return ""
 
     def insert(self, table_name: str, data: Dict[str, Any]) -> Tuple[str, tuple]:
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join(['%s'] * len(data))  # MySQL uses %s as placeholder
-        sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
-        params = tuple(data.values())
-        return sql, params
+        quoted_table = self.quote_identifier(table_name)
+        columns = ', '.join(self.quote_identifier(k) for k in data.keys())
+        placeholders = ', '.join(self.placeholder(len(data)))
+        sql = f"INSERT INTO {quoted_table} ({columns}) VALUES ({placeholders})"
+        return sql, tuple(data.values())
 
     def update(self, table_name: str, data: Dict[str, Any], where_condition: str) -> Tuple[str, tuple]:
-        set_clause = ', '.join([f"{key} = %s" for key in data.keys()])  # MySQL uses %s as placeholder
-        sql = f"UPDATE {table_name} SET {set_clause} WHERE {where_condition}"
-        params = tuple(data.values())
-        return sql, params
+        quoted_table = self.quote_identifier(table_name)
+        set_clause = ', '.join(
+            f"{self.quote_identifier(k)} = %s" for k in data.keys()
+        )
+        sql = f"UPDATE {quoted_table} SET {set_clause} WHERE {where_condition}"
+        return sql, tuple(data.values())
 
     def delete(self, table_name: str, where_condition: str) -> str:
-        return f"DELETE FROM {table_name} WHERE {where_condition}"
+        return f"DELETE FROM {self.quote_identifier(table_name)} WHERE {where_condition}"
+
+    def select(self, table_name: str, columns: List[str],
+               where_condition: Optional[str] = None,
+               order_by: Optional[List[str]] = None,
+               limit: Optional[int] = None,
+               offset: Optional[int] = None,
+               joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
+        quoted_table = self.quote_identifier(table_name)
+        select_cols = ', '.join(
+            self.quote_identifier(c) if c != '*' else '*' for c in columns
+        ) if columns else '*'
+        sql = f"SELECT {select_cols} FROM {quoted_table}"
+
+        if joins:
+            for join_info in joins:
+                join_table = self.quote_identifier(join_info['table'])
+                join_type = join_info.get('type', 'INNER')
+                sql += f" {join_type} JOIN {join_table} ON {join_info['condition']}"
+
+        if where_condition:
+            sql += f" WHERE {where_condition}"
+
+        if order_by:
+            sql += f" ORDER BY {', '.join(self.quote_identifier(c) for c in order_by)}"
+
+        if limit is not None:
+            sql += f" LIMIT {limit}"
+
+        if offset is not None:
+            sql += f" OFFSET {offset}"
+
+        return sql, ()
+
+    def quote_identifier(self, identifier: str) -> str:
+        return f"`{identifier}`"
+
+    def placeholder(self, data_len: int) -> List[str]:
+        return ['%s'] * data_len
+
+    def parser(self, result):
+        # MySQLSocketClient.run() already returns list[dict]
+        return result if result else []
+
+
+class MySQLConnection(Connection):
+    """Conexão MySQL usando MySQLSocketClient (sockets raw)."""
+
+    def connect(self) -> bool:
+        try:
+            db = MySQLSocketClient(
+                host=self.host, port=self.port,
+                username=self.user, password=self.password,
+                database=self.database,
+            )
+            if db.connect():
+                self._conn = db
+                self.dialect = MySQLDialect()
+                return True
+            return False
+        except Exception as e:
+            print(f"MySQL connection failed: {e}")
+            return False
+
+    def disconnect(self) -> None:
+        if self._conn:
+            self._conn.disconnect()
+            self._conn = None
+
+    def run(self, sql: str, params: Optional[tuple] = None) -> Any:
+        if not self._conn:
+            raise Exception("Conexão MySQL não estabelecida. Chame connect() primeiro.")
+        return self._conn.run(sql, params)

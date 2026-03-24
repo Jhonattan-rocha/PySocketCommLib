@@ -6,7 +6,7 @@ from .abstracts.querys import BaseQuery
 from .abstracts.dialetecs import SQLDialect
 from .abstracts.connection_types import Connection
 from .cache import MemoryCache
-from .dialetecs.mysql import MySQLDialect
+from .dialetecs.mysql import MySQLDialect, MySQLConnection
 from .dialetecs.psql import PostgreSQLDialect, PsqlConnection
 from .dialetecs.sqlite import SqliteDialect, SqliteConnection
 from .drivers.psql import PostgreSQLSocketClient
