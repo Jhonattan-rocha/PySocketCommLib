@@ -21,7 +21,7 @@ from .drivers.mysql import MySQLSocketClient
 from .migrations import (
     Migration, MigrationManager,
     CreateTable, DropTable, AddColumn, DropColumn,
-    RenameColumn, AlterColumn, RunSQL,
+    RenameColumn, RenameTable, AlterColumn, AddIndex, DropIndex, RunSQL,
 )
 from .models.model import BaseModel
 from .pools import AsyncConnectionPool, ConnectionPool

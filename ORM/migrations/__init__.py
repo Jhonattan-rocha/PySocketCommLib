@@ -3,8 +3,8 @@
 from .migration import Migration, MigrationManager
 from .operations import (
     CreateTable, DropTable,
-    AddColumn, DropColumn, RenameColumn,
-    AlterColumn, RunSQL,
+    AddColumn, DropColumn, RenameColumn, RenameTable,
+    AlterColumn, AddIndex, DropIndex, RunSQL,
 )
 
 __all__ = [
@@ -15,6 +15,9 @@ __all__ = [
     "AddColumn",
     "DropColumn",
     "RenameColumn",
+    "RenameTable",
     "AlterColumn",
+    "AddIndex",
+    "DropIndex",
     "RunSQL",
 ]
