@@ -1,6 +1,13 @@
 from .abstracts.field_types import (
-    BaseField, BooleanField, TextField, FloatField, IntegerField,
-    DateTimeField, DecimalField, ForeignKeyField, JSONField, UUIDField,
+    BaseField,
+    IntegerField, SmallIntegerField, BigIntegerField, AutoField, PositiveIntegerField,
+    TextField, CharField,
+    FloatField, DecimalField,
+    BooleanField,
+    DateTimeField,
+    JSONField, UUIDField, BinaryField,
+    EnumField,
+    ForeignKeyField,
 )
 from .abstracts.querys import BaseQuery
 from .abstracts.dialetecs import SQLDialect

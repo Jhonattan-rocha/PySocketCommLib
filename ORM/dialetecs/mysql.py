@@ -24,14 +24,25 @@ class MySQLDialect(SQLDialect):
         return f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(column_definitions)}{primary_key_constraint})"
 
     def get_sql_type(self, field: BaseField) -> str:
+        sql_type = field.get_sql_type()
+        # INTEGER com primary_key → INT AUTO_INCREMENT no MySQL
+        if sql_type in ("INTEGER", "AUTOFIELD") and field.primary_key:
+            return "INT AUTO_INCREMENT"
         mapping = {
-            "INTEGER": "INT",
-            "TEXT": "VARCHAR(255)",
-            "REAL": "FLOAT",
-            "BOOLEAN": "TINYINT(1)",
-            "TIMESTAMP": "DATETIME"
+            "INTEGER":   "INT",
+            "SMALLINT":  "SMALLINT",
+            "BIGINT":    "BIGINT",
+            "AUTOFIELD": "INT AUTO_INCREMENT",
+            "TEXT":      "TEXT",
+            "REAL":      "FLOAT",
+            "DECIMAL":   "DECIMAL",
+            "BOOLEAN":   "TINYINT(1)",
+            "TIMESTAMP": "DATETIME",
+            "JSONB":     "JSON",
+            "UUID":      "VARCHAR(36)",
+            "BINARY":    "BLOB",
         }
-        return mapping.get(field.get_sql_type(), field.get_sql_type())
+        return mapping.get(sql_type, sql_type)
 
     def get_primary_key_constraint(self, primary_keys: List[str]) -> str:
         if primary_keys:

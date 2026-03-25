@@ -78,11 +78,18 @@ class SqliteDialect(SQLDialect):
 
     def get_sql_type(self, field: BaseField) -> str:
         mapping = {
-            "INTEGER": "INTEGER",
-            "TEXT": "TEXT",
-            "REAL": "REAL",
-            "BOOLEAN": "INTEGER", # SQLite uses INTEGER to store boolean
-            "TIMESTAMP": "TEXT" # SQLite doesn't have native DATETIME, using TEXT for simplicity
+            "INTEGER":    "INTEGER",
+            "SMALLINT":   "INTEGER",
+            "BIGINT":     "INTEGER",
+            "AUTOFIELD":  "INTEGER",   # INTEGER PRIMARY KEY é auto-increment no SQLite
+            "TEXT":       "TEXT",
+            "REAL":       "REAL",
+            "DECIMAL":    "REAL",
+            "BOOLEAN":    "INTEGER",   # SQLite não tem BOOLEAN nativo
+            "TIMESTAMP":  "TEXT",      # SQLite não tem DATETIME nativo
+            "JSONB":      "TEXT",
+            "UUID":       "TEXT",
+            "BINARY":     "BLOB",
         }
         return mapping.get(field.get_sql_type(), field.get_sql_type())
 

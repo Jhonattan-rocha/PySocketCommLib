@@ -79,15 +79,22 @@ class PostgreSQLDialect(SQLDialect):
 
 
     def get_sql_type(self, field: BaseField) -> str:
+        sql_type = field.get_sql_type()
         mapping = {
-            "INTEGER": "SERIAL" if field.primary_key else "INTEGER", # SERIAL for auto-increment PKs
-            "TEXT": "TEXT",
-            "REAL": "REAL",
-            "BOOLEAN": "BOOLEAN",
+            "INTEGER":   "SERIAL" if field.primary_key else "INTEGER",
+            "SMALLINT":  "SMALLINT",
+            "BIGINT":    "BIGINT",
+            "AUTOFIELD": "SERIAL",
+            "TEXT":      "TEXT",
+            "REAL":      "REAL",
+            "DECIMAL":   "DECIMAL",
+            "BOOLEAN":   "BOOLEAN",
             "TIMESTAMP": "TIMESTAMP",
-            "JSONB": "JSONB" # Ensure JSONB is mapped
+            "JSONB":     "JSONB",
+            "UUID":      "UUID",
+            "BINARY":    "BYTEA",
         }
-        return mapping.get(field.get_sql_type(), field.get_sql_type()) # Fallback to field's type if not in mapping
+        return mapping.get(sql_type, sql_type)
 
     def get_primary_key_constraint(self, primary_keys: List[str]) -> str:
         if primary_keys:

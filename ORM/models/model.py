@@ -1,6 +1,7 @@
 import asyncio
+from datetime import datetime
 from ..cache import MemoryCache
-from ..abstracts.field_types import BaseField, ForeignKeyField
+from ..abstracts.field_types import BaseField, ForeignKeyField, DateTimeField
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from typing import Tuple, Dict, List, Any, Optional
@@ -109,6 +110,121 @@ class BaseModel:
         cls.connection.run(sql, params if params else None)
 
     @classmethod
+    def create(cls, **kwargs) -> 'BaseModel':
+        """Cria uma instância, salva no banco e a retorna."""
+        instance = cls(**kwargs)
+        instance.save()
+        return instance
+
+    @classmethod
+    def count(cls, **conditions) -> int:
+        """Retorna o número de registros que correspondem às condições."""
+        if not cls.connection:
+            raise Exception("Conexão não definida. Chame set_connection().")
+        table = cls.dialect.quote_identifier(cls.get_table_name())
+        if conditions:
+            where, params = cls.build_where_clause(conditions)
+            sql = f"SELECT COUNT(*) AS cnt FROM {table} WHERE {where}"
+        else:
+            sql = f"SELECT COUNT(*) AS cnt FROM {table}"
+            params = ()
+        result = cls.connection.run(sql, params if params else None)
+        return cls._extract_scalar(result, default=0)
+
+    @classmethod
+    def exists(cls, **conditions) -> bool:
+        """Retorna True se existir ao menos um registro correspondente."""
+        return cls.count(**conditions) > 0
+
+    @classmethod
+    def first(cls, **conditions) -> Optional[Dict[str, Any]]:
+        """Retorna o primeiro registro correspondente (LIMIT 1)."""
+        if conditions:
+            where, params = cls.build_where_clause(conditions)
+            rows = cls.select(where_condition=where, where_params=params, limit=1)
+        else:
+            rows = cls.select(limit=1)
+        return rows[0] if rows else None
+
+    @classmethod
+    def last(cls, **conditions) -> Optional[Dict[str, Any]]:
+        """Retorna o último registro por PK (ORDER BY pk DESC LIMIT 1)."""
+        if not cls.connection:
+            raise Exception("Conexão não definida. Chame set_connection().")
+        _, pks = cls.get_fields()
+        table = cls.dialect.quote_identifier(cls.get_table_name())
+        if conditions:
+            where, params = cls.build_where_clause(conditions)
+            sql = f"SELECT * FROM {table} WHERE {where}"
+        else:
+            sql = f"SELECT * FROM {table}"
+            params = ()
+        if pks:
+            quoted_pk = cls.dialect.quote_identifier(pks[0])
+            sql += f" ORDER BY {quoted_pk} DESC"
+        sql += " LIMIT 1"
+        result = cls.connection.run(sql, params if params else None)
+        if not result:
+            return None
+        if isinstance(result, list):
+            return result[0] if result else None
+        return None
+
+    @classmethod
+    def bulk_insert(cls, records: List[Dict[str, Any]]) -> None:
+        """
+        Insere múltiplos registros.
+
+        Cada item da lista deve ser um dict ``{coluna: valor}``.
+        Executa um INSERT por registro (para compatibilidade máxima entre dialetos).
+        """
+        if not records:
+            return
+        if not cls.connection:
+            raise Exception("Conexão não definida. Chame set_connection().")
+        cls._cache.clear_prefix(cls.get_table_name())
+        for record in records:
+            sql, params = cls.insert_sql(record)
+            cls.connection.run(sql, params)
+
+    def refresh(self) -> None:
+        """Recarrega os valores desta instância a partir do banco de dados."""
+        fields, pks = self.__class__.get_fields()
+        if not pks:
+            raise ValueError("refresh() requer um campo primary_key definido no modelo.")
+        pk_col = pks[0]
+        pk_attr = next(
+            (attr for attr, f in fields.items() if (f.db_column_name or attr) == pk_col),
+            None,
+        )
+        if pk_attr is None:
+            return
+        pk_value = getattr(self, pk_attr)
+        result = self.__class__.get(**{pk_col: pk_value})
+        if result:
+            for attr_name, field in fields.items():
+                col = field.db_column_name if field.db_column_name else attr_name
+                value = result.get(col) if col in result else result.get(attr_name)
+                if value is not None:
+                    setattr(self, attr_name, value)
+
+    @classmethod
+    def _extract_scalar(cls, result, default=None):
+        """Extrai o primeiro valor escalar de um resultado de query."""
+        if not result:
+            return default
+        if isinstance(result, list):
+            if result and isinstance(result[0], dict):
+                return list(result[0].values())[0]
+            if result and isinstance(result[0], (list, tuple)):
+                return result[0][0]
+        if isinstance(result, tuple):  # PostgreSQL driver raw: (rows, cols)
+            rows, _ = result
+            if rows:
+                return rows[0][0]
+        return default
+
+    @classmethod
     def filter_update(cls, data: Dict[str, Any], **conditions):
         """
         Atualiza registros que correspondem às condições — type-safe, sem SQL cru.
@@ -211,7 +327,7 @@ class BaseModel:
         return cls.dialect.insert(table_name, data)
 
     def save(self):
-        """Saves (inserts or updates) the model instance to the database."""
+        """Saves (inserts) the model instance to the database, running field validation."""
         self.clear_cache()
         if not self.__class__.connection:
             raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
@@ -220,7 +336,17 @@ class BaseModel:
         data_to_insert = {}
         for name, field in fields.items():
             db_column_name = field.db_column_name if field.db_column_name else name
-            data_to_insert[db_column_name] = getattr(self, name)
+
+            # auto_now / auto_now_add handling
+            if isinstance(field, DateTimeField):
+                if field.auto_now:
+                    setattr(self, name, datetime.now())
+                elif field.auto_now_add and getattr(self, name) is None:
+                    setattr(self, name, datetime.now())
+
+            value = getattr(self, name)
+            field.validate(value)
+            data_to_insert[db_column_name] = value
 
         sql, params = self.__class__.insert_sql(data_to_insert)
         self.__class__.connection.run(sql, params)
@@ -316,6 +442,35 @@ class BaseModel:
         """Versão assíncrona de filter_delete()."""
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, lambda: cls.filter_delete(**conditions))
+
+    @classmethod
+    async def async_count(cls, **conditions) -> int:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: cls.count(**conditions))
+
+    @classmethod
+    async def async_exists(cls, **conditions) -> bool:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: cls.exists(**conditions))
+
+    @classmethod
+    async def async_first(cls, **conditions) -> Optional[Dict[str, Any]]:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: cls.first(**conditions))
+
+    @classmethod
+    async def async_last(cls, **conditions) -> Optional[Dict[str, Any]]:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: cls.last(**conditions))
+
+    @classmethod
+    async def async_bulk_insert(cls, records: List[Dict[str, Any]]) -> None:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, lambda: cls.bulk_insert(records))
+
+    async def async_refresh(self) -> None:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.refresh)
 
     @classmethod
     async def async_filter_update(cls, data: Dict[str, Any], **conditions) -> None:

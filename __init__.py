@@ -26,9 +26,16 @@ from .Monitoring import ServerMonitor, MetricsCollector, ConnectionMonitor, Heal
 
 # ORM components
 from .ORM import (
-    BaseModel, BaseField, IntegerField, TextField, FloatField,
-    BooleanField, DateTimeField, DecimalField, ForeignKeyField,
-    JSONField, UUIDField, Select, Insert, Update, Delete
+    BaseModel, BaseField,
+    IntegerField, SmallIntegerField, BigIntegerField, AutoField, PositiveIntegerField,
+    TextField, CharField,
+    FloatField, DecimalField,
+    BooleanField,
+    DateTimeField,
+    JSONField, UUIDField, BinaryField,
+    EnumField,
+    ForeignKeyField,
+    Select, Insert, Update, Delete,
 )
 
 # Connection types
