@@ -407,23 +407,25 @@ class BaseModel:
     @classmethod
     def select_sql(cls, columns: List[str] = None, where_condition: Optional[str] = None,
                    where_params: Optional[tuple] = None, order_by: Optional[List[str]] = None,
-                   limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
+                   limit: Optional[int] = None, offset: Optional[int] = None,
+                   joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
         """Generates SELECT SQL and parameters for the model."""
         if cls.dialect is None:
             raise ValueError("No SQL dialect defined for the model. Ensure connection is set.")
         table_name = cls.get_table_name()
         columns_to_select = columns if columns else ["*"]
-        sql, _ = cls.dialect.select(table_name, columns_to_select, where_condition, order_by, limit, joins)
+        sql, _ = cls.dialect.select(table_name, columns_to_select, where_condition, order_by, limit, offset, joins)
         return sql, where_params or ()
 
     @classmethod
     def select(cls, columns: List[str] = None, where_condition: Optional[str] = None,
                where_params: Optional[tuple] = None, order_by: Optional[List[str]] = None,
-               limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
+               limit: Optional[int] = None, offset: Optional[int] = None,
+               joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
         """Selects records based on various conditions."""
         if not cls.connection:
             raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
-        sql, params = cls.select_sql(columns, where_condition, where_params, order_by, limit, joins)
+        sql, params = cls.select_sql(columns, where_condition, where_params, order_by, limit, offset, joins)
         return cls.connection.run(sql, params if params else None)
 
     def to_dict(self) -> dict:

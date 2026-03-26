@@ -3,7 +3,7 @@ from ..abstracts.field_types import BaseField
 from ..abstracts.connection_types import Connection
 from ...exceptions import ConnectionError as OrmConnectionError
 import sqlite3
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 class SqliteConnection(Connection):
     """Concrete Connection class for SQLite, using sqlite3 module."""
@@ -112,21 +112,70 @@ class SqliteDialect(SQLDialect):
             return f", PRIMARY KEY ({', '.join(quoted)})"
         return ""
 
+    def quote_identifier(self, identifier: str) -> str:
+        if '.' in identifier:
+            table, col = identifier.split('.', 1)
+            return f'"{table}"."{col}"'
+        return f'"{identifier}"'
+
+    def placeholder(self, data_len: int) -> List[str]:
+        return ['?'] * data_len
+
+    def parser(self, result):
+        # SqliteConnection.run() already returns list[dict]
+        return result if result else []
+
     def insert(self, table_name: str, data: Dict[str, Any]) -> Tuple[str, tuple]:
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join(['?'] * len(data))  # SQLite uses ? as placeholder
-        sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
-        params = tuple(data.values())
-        return sql, params
+        quoted_table = self.quote_identifier(table_name)
+        columns = ', '.join(self.quote_identifier(k) for k in data.keys())
+        placeholders = ', '.join(['?'] * len(data))
+        return f"INSERT INTO {quoted_table} ({columns}) VALUES ({placeholders})", tuple(data.values())
 
     def update(self, table_name: str, data: Dict[str, Any], where_condition: str) -> Tuple[str, tuple]:
-        set_clause = ', '.join([f"{key} = ?" for key in data.keys()])  # SQLite uses ? as placeholder
-        sql = f"UPDATE {table_name} SET {set_clause} WHERE {where_condition}"
-        params = tuple(data.values())
-        return sql, params
+        quoted_table = self.quote_identifier(table_name)
+        set_clause = ', '.join(f"{self.quote_identifier(k)} = ?" for k in data.keys())
+        return f"UPDATE {quoted_table} SET {set_clause} WHERE {where_condition}", tuple(data.values())
 
     def delete(self, table_name: str, where_condition: str) -> str:
-        return f"DELETE FROM {table_name} WHERE {where_condition}"
+        return f"DELETE FROM {self.quote_identifier(table_name)} WHERE {where_condition}"
+
+    def select(
+        self,
+        table_name: str,
+        columns: List[str],
+        where_condition: Optional[str] = None,
+        order_by: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        joins: Optional[List[Dict[str, str]]] = None,
+    ) -> Tuple[str, tuple]:
+        quoted_table = self.quote_identifier(table_name)
+        select_cols = (
+            ', '.join(self.quote_identifier(c) if c != '*' else '*' for c in columns)
+            if columns else '*'
+        )
+        sql = f"SELECT {select_cols} FROM {quoted_table}"
+
+        if joins:
+            for j in joins:
+                join_table = self.quote_identifier(j['table'])
+                join_type = j.get('type', 'INNER').upper()
+                sql += f" {join_type} JOIN {join_table} ON {j['condition']}"
+
+        if where_condition:
+            sql += f" WHERE {where_condition}"
+
+        if order_by:
+            sql += f" ORDER BY {', '.join(self._quote_order_item(c) for c in order_by)}"
+
+        if limit is not None:
+            sql += f" LIMIT {limit}"
+
+        if offset is not None:
+            sql += f" OFFSET {offset}"
+
+        return sql, ()
+
 
     def upsert(
         self,

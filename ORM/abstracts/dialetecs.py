@@ -57,6 +57,20 @@ class SQLDialect(ABC):
         """Abstract method to serialize results."""
         pass
 
+    def _quote_order_item(self, item: str) -> str:
+        """
+        Quote the column name in an ORDER BY expression, preserving ASC/DESC.
+
+        Examples:
+            "name"       → '"name"'   (double-quoted for psql)
+            "name DESC"  → '"name" DESC'
+            "name ASC"   → '"name" ASC'
+        """
+        parts = item.rsplit(' ', 1)
+        if len(parts) == 2 and parts[1].upper() in ('ASC', 'DESC'):
+            return f"{self.quote_identifier(parts[0])} {parts[1].upper()}"
+        return self.quote_identifier(item)
+
     @abstractmethod
     def upsert(
         self,

@@ -162,7 +162,10 @@ class PostgreSQLDialect(SQLDialect):
 
     def select(self, table_name: str, columns: List[str], where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, offset: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
         quoted_table_name = self.quote_identifier(table_name)
-        select_columns = ', '.join([self.quote_identifier(col) for col in columns]) if columns else "*" # Quote column names, default to *
+        select_columns = (
+            ', '.join(self.quote_identifier(c) if c != '*' else '*' for c in columns)
+            if columns else '*'
+        )
         sql = f"SELECT {select_columns} FROM {quoted_table_name}"
         params = []
 
@@ -178,8 +181,7 @@ class PostgreSQLDialect(SQLDialect):
             # Params for WHERE clause would need to be handled based on condition type, skipping for now for simplicity in this base example
 
         if order_by:
-            quoted_order_by = [self.quote_identifier(col) for col in order_by] # Quote order by columns
-            sql += f" ORDER BY {', '.join(quoted_order_by)}"
+            sql += f" ORDER BY {', '.join(self._quote_order_item(c) for c in order_by)}"
 
         if limit is not None:
             sql += f" LIMIT {limit}"
@@ -191,7 +193,10 @@ class PostgreSQLDialect(SQLDialect):
 
 
     def quote_identifier(self, identifier: str) -> str:
-        return f'"{identifier}"' # Double quotes for PostgreSQL identifiers
+        if '.' in identifier:
+            table, col = identifier.split('.', 1)
+            return f'"{table}"."{col}"'
+        return f'"{identifier}"'
 
     def placeholder(self, data_len: int) -> list[str]:
         return [f'${i}' for i in range(1, data_len+1)]

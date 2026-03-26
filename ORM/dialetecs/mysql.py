@@ -116,7 +116,7 @@ class MySQLDialect(SQLDialect):
             sql += f" WHERE {where_condition}"
 
         if order_by:
-            sql += f" ORDER BY {', '.join(self.quote_identifier(c) for c in order_by)}"
+            sql += f" ORDER BY {', '.join(self._quote_order_item(c) for c in order_by)}"
 
         if limit is not None:
             sql += f" LIMIT {limit}"
@@ -127,7 +127,10 @@ class MySQLDialect(SQLDialect):
         return sql, ()
 
     def quote_identifier(self, identifier: str) -> str:
-        return f"`{identifier}`"
+        if '.' in identifier:
+            table, col = identifier.split('.', 1)
+            return f'`{table}`.`{col}`'
+        return f'`{identifier}`'
 
     def placeholder(self, data_len: int) -> List[str]:
         return ['%s'] * data_len
