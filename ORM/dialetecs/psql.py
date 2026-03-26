@@ -2,6 +2,7 @@ from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from ..drivers.psql import PostgreSQLSocketClient
 from ..abstracts.field_types import BaseField, ForeignKeyField
+from ...exceptions import ConnectionError as OrmConnectionError
 from typing import Any, Dict, List, Tuple, Optional
 import uuid
 
@@ -27,7 +28,7 @@ class PsqlConnection(Connection):
 
     def run(self, sql: str, params: Optional[tuple] = None) -> Any:
         if not self._conn:
-            raise Exception("Database connection is not established. Call connect() first.")
+            raise OrmConnectionError("Database connection is not established. Call connect() first.")
         query_signature = sql
         new_statement_name = uuid.uuid4().__str__()
         prepared_statement_name = self._prepared_statement_cache.get(query_signature)
@@ -38,9 +39,21 @@ class PsqlConnection(Connection):
         if prepared_statement_name:
             return self._conn.execute_prepared_statement(prepared_statement_name, [str(param) for param in params])
         else:
-            self._conn.prepare_statement(new_statement_name, sql, None) 
-            self._prepared_statement_cache[query_signature] = new_statement_name 
+            self._conn.prepare_statement(new_statement_name, sql, None)
+            self._prepared_statement_cache[query_signature] = new_statement_name
             return self._conn.execute_prepared_statement(new_statement_name, [str(param) for param in params])
+
+    def begin(self) -> None:
+        if self._conn:
+            self._conn.begin()
+
+    def commit(self) -> None:
+        if self._conn:
+            self._conn.commit()
+
+    def rollback(self) -> None:
+        if self._conn:
+            self._conn.rollback()
 
 class PostgreSQLDialect(SQLDialect):
     """Generates SQL for PostgreSQL databases."""
@@ -120,6 +133,32 @@ class PostgreSQLDialect(SQLDialect):
     def delete(self, table_name: str, where_condition: str) -> str:
         quoted_table_name = self.quote_identifier(table_name)
         return f"DELETE FROM {quoted_table_name} WHERE {where_condition}"
+
+    def upsert(
+        self,
+        table_name: str,
+        data: Dict[str, Any],
+        conflict_columns: List[str],
+        update_columns: Optional[List[str]] = None,
+    ) -> Tuple[str, tuple]:
+        """PostgreSQL: INSERT … ON CONFLICT (cols) DO UPDATE SET … EXCLUDED …"""
+        quoted_table = self.quote_identifier(table_name)
+        cols = list(data.keys())
+        quoted_cols = ', '.join(self.quote_identifier(c) for c in cols)
+        placeholders = ', '.join(self.placeholder(len(cols)))
+
+        to_update = update_columns or [c for c in cols if c not in conflict_columns]
+        conflict_targets = ', '.join(self.quote_identifier(c) for c in conflict_columns)
+        set_clause = ', '.join(
+            f"{self.quote_identifier(c)} = EXCLUDED.{self.quote_identifier(c)}"
+            for c in to_update
+        )
+
+        sql = (
+            f"INSERT INTO {quoted_table} ({quoted_cols}) VALUES ({placeholders})\n"
+            f"ON CONFLICT ({conflict_targets}) DO UPDATE SET {set_clause}"
+        )
+        return sql, tuple(data.values())
 
     def select(self, table_name: str, columns: List[str], where_condition: Optional[str] = None, order_by: Optional[List[str]] = None, limit: Optional[int] = None, offset: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> Tuple[str, tuple]:
         quoted_table_name = self.quote_identifier(table_name)

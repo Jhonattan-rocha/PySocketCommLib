@@ -32,10 +32,25 @@ dependencies = [
 # Banco PostgreSQL (driver customizado via socket, mas psycopg2 ainda é usado para fallback)
 postgres = ["psycopg2-binary>=2.9.0"]
 
+# Cache Redis
+redis = ["redis>=4.0.0"]
+
+# Monitoramento de sistema (CPU, memória, disco)
+monitoring = ["psutil>=5.9.0"]
+
+# Todas as dependências opcionais de uma vez
+all = [
+    "psycopg2-binary>=2.9.0",
+    "redis>=4.0.0",
+    "psutil>=5.9.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
+    "psutil>=5.9.0",
+    "redis>=4.0.0",
 ]
 
 [project.urls]

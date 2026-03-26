@@ -9,8 +9,14 @@ Implementa verificações de saúde do sistema para monitorar:
 
 import asyncio
 import time
-import psutil
 import threading
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    PSUTIL_AVAILABLE = False
 from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -211,6 +217,14 @@ class HealthChecker:
     # Verificações padrão
     def _check_system_resources(self) -> HealthCheckResult:
         """Verifica recursos do sistema"""
+        if not PSUTIL_AVAILABLE:
+            return HealthCheckResult(
+                name="system_resources",
+                status=HealthStatus.UNKNOWN if hasattr(HealthStatus, 'UNKNOWN') else HealthStatus.DEGRADED,
+                message="psutil not installed — install with: pip install PySocketCommLib[monitoring]",
+                duration_ms=0,
+                timestamp=time.time(),
+            )
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
@@ -250,6 +264,14 @@ class HealthChecker:
     
     def _check_disk_space(self) -> HealthCheckResult:
         """Verifica espaço em disco"""
+        if not PSUTIL_AVAILABLE:
+            return HealthCheckResult(
+                name="disk_space",
+                status=HealthStatus.DEGRADED,
+                message="psutil not installed — install with: pip install PySocketCommLib[monitoring]",
+                duration_ms=0,
+                timestamp=time.time(),
+            )
         try:
             disk = psutil.disk_usage('/')
             free_percent = (disk.free / disk.total) * 100
@@ -290,6 +312,14 @@ class HealthChecker:
     
     def _check_memory_usage(self) -> HealthCheckResult:
         """Verifica uso detalhado de memória"""
+        if not PSUTIL_AVAILABLE:
+            return HealthCheckResult(
+                name="memory_usage",
+                status=HealthStatus.DEGRADED,
+                message="psutil not installed — install with: pip install PySocketCommLib[monitoring]",
+                duration_ms=0,
+                timestamp=time.time(),
+            )
         try:
             memory = psutil.virtual_memory()
             swap = psutil.swap_memory()

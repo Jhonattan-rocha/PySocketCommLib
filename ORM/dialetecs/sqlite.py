@@ -1,6 +1,7 @@
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.field_types import BaseField
 from ..abstracts.connection_types import Connection
+from ...exceptions import ConnectionError as OrmConnectionError
 import sqlite3
 from typing import List, Dict, Any, Tuple
 
@@ -34,7 +35,7 @@ class SqliteConnection(Connection):
     def run(self, sql: str, params: tuple = None):
         """Executes SQL queries on the SQLite database using sqlite3."""
         if not self._conn:
-            raise Exception("Database connection not established. Call connect() first.")
+            raise OrmConnectionError("Database connection not established. Call connect() first.")
         cursor = self._conn.cursor()
         try:
             if params:
@@ -52,6 +53,18 @@ class SqliteConnection(Connection):
             self._conn.rollback() # Rollback in case of error to maintain data integrity
             print(f"Error executing SQL on SQLite: {e}\nSQL: {sql}\nParams: {params}")
             raise # Re-raise the exception for the caller to handle
+
+    def begin(self) -> None:
+        if self._conn:
+            self._conn.isolation_level = 'DEFERRED'
+
+    def commit(self) -> None:
+        if self._conn:
+            self._conn.commit()
+
+    def rollback(self) -> None:
+        if self._conn:
+            self._conn.rollback()
 
     @property
     def connection(self):
@@ -95,7 +108,8 @@ class SqliteDialect(SQLDialect):
 
     def get_primary_key_constraint(self, primary_keys: List[str]) -> str:
         if primary_keys:
-            return f", PRIMARY KEY ({', '.join(primary_keys)})"
+            quoted = [self.quote_identifier(k) for k in primary_keys]
+            return f", PRIMARY KEY ({', '.join(quoted)})"
         return ""
 
     def insert(self, table_name: str, data: Dict[str, Any]) -> Tuple[str, tuple]:
@@ -113,3 +127,29 @@ class SqliteDialect(SQLDialect):
 
     def delete(self, table_name: str, where_condition: str) -> str:
         return f"DELETE FROM {table_name} WHERE {where_condition}"
+
+    def upsert(
+        self,
+        table_name: str,
+        data: Dict[str, Any],
+        conflict_columns: List[str],
+        update_columns: Optional[List[str]] = None,
+    ) -> Tuple[str, tuple]:
+        """SQLite 3.24+: INSERT … ON CONFLICT (cols) DO UPDATE SET …"""
+        quoted_table = self.quote_identifier(table_name)
+        cols = list(data.keys())
+        quoted_cols = ', '.join(self.quote_identifier(c) for c in cols)
+        placeholders = ', '.join(['?'] * len(cols))
+
+        to_update = update_columns or [c for c in cols if c not in conflict_columns]
+        conflict_targets = ', '.join(self.quote_identifier(c) for c in conflict_columns)
+        set_clause = ', '.join(
+            f"{self.quote_identifier(c)} = excluded.{self.quote_identifier(c)}"
+            for c in to_update
+        )
+
+        sql = (
+            f"INSERT INTO {quoted_table} ({quoted_cols}) VALUES ({placeholders})\n"
+            f"ON CONFLICT ({conflict_targets}) DO UPDATE SET {set_clause}"
+        )
+        return sql, tuple(data.values())

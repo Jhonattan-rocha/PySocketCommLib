@@ -41,6 +41,15 @@ from .ORM import (
 # Connection types
 from .Connection_type import Types
 
+# Exceptions
+from .exceptions import (
+    PySocketCommError,
+    ORMError, ConnectionError as OrmConnectionError, QueryError,
+    MissingWhereClauseError, ValidationError,
+    MigrationError, UnmetDependencyError, CircularDependencyError,
+    NetworkError, AuthError, EncryptionError, ProtocolError,
+)
+
 __all__ = [
     # Core
     "AsyncServer", "ThreadServer", "AsyncClient", "ThreadClient",
@@ -59,4 +68,10 @@ __all__ = [
     "BaseModel", "BaseField", "IntegerField", "TextField", "FloatField",
     "BooleanField", "DateTimeField", "DecimalField", "ForeignKeyField",
     "JSONField", "UUIDField", "Select", "Insert", "Update", "Delete",
+    # Exceptions
+    "PySocketCommError",
+    "ORMError", "OrmConnectionError", "QueryError",
+    "MissingWhereClauseError", "ValidationError",
+    "MigrationError", "UnmetDependencyError", "CircularDependencyError",
+    "NetworkError", "AuthError", "EncryptionError", "ProtocolError",
 ]

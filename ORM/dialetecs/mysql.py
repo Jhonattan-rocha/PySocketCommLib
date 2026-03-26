@@ -2,6 +2,7 @@ from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from ..abstracts.field_types import BaseField, ForeignKeyField
 from ..drivers.mysql import MySQLSocketClient
+from ...exceptions import ConnectionError as OrmConnectionError
 from typing import Dict, List, Any, Tuple, Optional
 
 class MySQLDialect(SQLDialect):
@@ -46,7 +47,8 @@ class MySQLDialect(SQLDialect):
 
     def get_primary_key_constraint(self, primary_keys: List[str]) -> str:
         if primary_keys:
-            return f", PRIMARY KEY ({', '.join(primary_keys)})"
+            quoted = [self.quote_identifier(k) for k in primary_keys]
+            return f", PRIMARY KEY ({', '.join(quoted)})"
         return ""
 
     def insert(self, table_name: str, data: Dict[str, Any]) -> Tuple[str, tuple]:
@@ -66,6 +68,31 @@ class MySQLDialect(SQLDialect):
 
     def delete(self, table_name: str, where_condition: str) -> str:
         return f"DELETE FROM {self.quote_identifier(table_name)} WHERE {where_condition}"
+
+    def upsert(
+        self,
+        table_name: str,
+        data: Dict[str, Any],
+        conflict_columns: List[str],
+        update_columns: Optional[List[str]] = None,
+    ) -> Tuple[str, tuple]:
+        """MySQL: INSERT … ON DUPLICATE KEY UPDATE col = VALUES(col) …"""
+        quoted_table = self.quote_identifier(table_name)
+        cols = list(data.keys())
+        quoted_cols = ', '.join(self.quote_identifier(c) for c in cols)
+        placeholders = ', '.join(self.placeholder(len(cols)))
+
+        to_update = update_columns or [c for c in cols if c not in conflict_columns]
+        set_clause = ', '.join(
+            f"{self.quote_identifier(c)} = VALUES({self.quote_identifier(c)})"
+            for c in to_update
+        )
+
+        sql = (
+            f"INSERT INTO {quoted_table} ({quoted_cols}) VALUES ({placeholders})\n"
+            f"ON DUPLICATE KEY UPDATE {set_clause}"
+        )
+        return sql, tuple(data.values())
 
     def select(self, table_name: str, columns: List[str],
                where_condition: Optional[str] = None,
@@ -136,5 +163,17 @@ class MySQLConnection(Connection):
 
     def run(self, sql: str, params: Optional[tuple] = None) -> Any:
         if not self._conn:
-            raise Exception("Conexão MySQL não estabelecida. Chame connect() primeiro.")
+            raise OrmConnectionError("Conexão MySQL não estabelecida. Chame connect() primeiro.")
         return self._conn.run(sql, params)
+
+    def begin(self) -> None:
+        if self._conn:
+            self._conn.begin()
+
+    def commit(self) -> None:
+        if self._conn:
+            self._conn.commit()
+
+    def rollback(self) -> None:
+        if self._conn:
+            self._conn.rollback()

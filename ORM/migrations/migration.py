@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Optional
 
 from .operations import Operation
 from ..abstracts.connection_types import Connection
+from ...exceptions import UnmetDependencyError, CircularDependencyError, MigrationError
 
 
 class Migration:
@@ -31,8 +32,17 @@ class Migration:
         dialect = connection.dialect
         for operation in self.operations:
             sql = operation.get_sql(dialect)
-            if sql and not sql.startswith('--'):
-                connection.run(sql)
+            if not sql or sql.startswith('--'):
+                continue
+            try:
+                for stmt in sql.split(';'):
+                    stmt = stmt.strip()
+                    if stmt:
+                        connection.run(stmt)
+            except Exception as exc:
+                raise MigrationError(
+                    f"Falha ao aplicar '{self.name}': {exc}"
+                ) from exc
 
     def rollback(self, connection: Connection) -> None:
         """Desfaz as operações da migration em ordem inversa."""
@@ -40,8 +50,17 @@ class Migration:
         for operation in reversed(self.operations):
             reverse_op = operation.get_reverse_operation()
             sql = reverse_op.get_sql(dialect)
-            if sql and not sql.startswith('--'):
-                connection.run(sql)
+            if not sql or sql.startswith('--'):
+                continue
+            try:
+                for stmt in sql.split(';'):
+                    stmt = stmt.strip()
+                    if stmt:
+                        connection.run(stmt)
+            except Exception as exc:
+                raise MigrationError(
+                    f"Falha ao reverter '{self.name}': {exc}"
+                ) from exc
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -149,10 +168,7 @@ class MigrationManager:
         applied = set(self.get_applied_migrations())
         for dep in migration.dependencies:
             if dep not in applied:
-                raise ValueError(
-                    f"Migration '{migration.name}' depende de '{dep}' "
-                    f"que ainda não foi aplicada."
-                )
+                raise UnmetDependencyError(migration.name, dep)
 
         migration.apply(self.connection)
         self._record_migration(migration)
@@ -224,9 +240,7 @@ class MigrationManager:
             ]
             if not ready:
                 names = [m.name for m in remaining]
-                raise ValueError(
-                    f"Dependência circular ou ausente nas migrations: {names}"
-                )
+                raise CircularDependencyError(names)
             for m in ready:
                 sorted_migrations.append(m)
                 remaining.remove(m)

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List, Any
+from ...exceptions import ValidationError
 
 
 class BaseField(ABC):
@@ -43,15 +44,18 @@ class BaseField(ABC):
         """
         Valida o valor antes do INSERT/UPDATE.
         Subclasses devem chamar super().validate(value) para manter as verificações base.
-        Levanta ValueError se inválido.
+        Levanta ValidationError se inválido.
         """
+        field_name = self.db_column_name or "<unnamed>"
         if not self.nullable and value is None:
-            raise ValueError(
-                f"Campo '{self.db_column_name or '<unnamed>'}' não pode ser NULL."
+            raise ValidationError(
+                f"Campo '{field_name}' não pode ser NULL.",
+                field_name=field_name,
             )
         if self.choices is not None and value is not None and value not in self.choices:
-            raise ValueError(
-                f"Valor '{value}' inválido. Opções: {self.choices}"
+            raise ValidationError(
+                f"Valor '{value}' inválido para '{field_name}'. Opções: {self.choices}",
+                field_name=field_name,
             )
 
 
@@ -100,8 +104,9 @@ class PositiveIntegerField(IntegerField):
     def validate(self, value: Any) -> None:
         super().validate(value)
         if value is not None and value < 0:
-            raise ValueError(
-                f"PositiveIntegerField não aceita valores negativos: {value}"
+            raise ValidationError(
+                f"PositiveIntegerField não aceita valores negativos: {value}",
+                field_name=self.db_column_name or "<unnamed>",
             )
 
 
@@ -130,8 +135,9 @@ class CharField(BaseField):
     def validate(self, value: Any) -> None:
         super().validate(value)
         if value is not None and len(str(value)) > self.max_length:
-            raise ValueError(
-                f"Valor excede o comprimento máximo de {self.max_length}: '{value}'"
+            raise ValidationError(
+                f"Valor excede o comprimento máximo de {self.max_length}: '{value}'",
+                field_name=self.db_column_name or "<unnamed>",
             )
 
 
@@ -163,7 +169,10 @@ class BooleanField(BaseField):
     def validate(self, value: Any) -> None:
         super().validate(value)
         if value is not None and not isinstance(value, (bool, int)):
-            raise ValueError(f"BooleanField espera True/False/0/1, recebeu: {value!r}")
+            raise ValidationError(
+                f"BooleanField espera True/False/0/1, recebeu: {value!r}",
+                field_name=self.db_column_name or "<unnamed>",
+            )
 
 
 # ---------------------------------------------------------------------------

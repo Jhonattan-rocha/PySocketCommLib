@@ -1,5 +1,12 @@
 # Dependências obrigatórias
 cryptography>=41.0.0
 
-# Dependências opcionais
-# psycopg2-binary>=2.9.0  # Suporte a PostgreSQL: pip install PySocketCommLib[postgres]
+# Dependências opcionais — instale conforme o que for usar:
+# pip install PySocketCommLib[postgres]   → suporte a PostgreSQL
+# pip install PySocketCommLib[redis]      → cache Redis
+# pip install PySocketCommLib[monitoring] → métricas de sistema (CPU/memória/disco)
+# pip install PySocketCommLib[all]        → todas as opcionais de uma vez
+#
+# psycopg2-binary>=2.9.0
+# redis>=4.0.0
+# psutil>=5.9.0

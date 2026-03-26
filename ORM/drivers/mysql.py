@@ -4,6 +4,8 @@ import struct
 import hashlib
 import logging
 
+from ...exceptions import ConnectionError as OrmConnectionError, QueryError, ProtocolError
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +66,7 @@ class MySQLSocketClient:
         while len(buf) < n:
             chunk = self.sock.recv(n - len(buf))
             if not chunk:
-                raise RuntimeError("Conexão fechada pelo servidor MySQL.")
+                raise OrmConnectionError("Conexão fechada pelo servidor MySQL.")
             buf += chunk
         return buf
 
@@ -182,7 +184,7 @@ class MySQLSocketClient:
             error_code = struct.unpack('<H', data[1:3])[0]
             msg_offset = 9 if len(data) > 3 and data[3:4] == b'#' else 3
             msg = data[msg_offset:].decode('utf-8', errors='replace')
-            raise RuntimeError(f"MySQL error {error_code}: {msg}")
+            raise QueryError(f"MySQL error {error_code}: {msg}")
         return False
 
     # ------------------------------------------------------------------
@@ -207,7 +209,7 @@ class MySQLSocketClient:
             # Server greeting
             data = self._read_packet()
             if data[0] == 0xff:
-                raise RuntimeError("Servidor enviou erro durante o handshake.")
+                raise ProtocolError("Servidor enviou erro durante o handshake.")
 
             hs = self._parse_handshake(data)
             self.server_version = hs['server_version']
@@ -255,7 +257,7 @@ class MySQLSocketClient:
 
     def run(self, query_string: str, params: tuple = None):
         if not self.sock:
-            raise RuntimeError("Conexão não estabelecida. Chame connect() primeiro.")
+            raise OrmConnectionError("Conexão não estabelecida. Chame connect() primeiro.")
 
         if params:
             query_string = self._substitute_params(query_string, params)

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from .connection_types import Connection
 from .dialetecs import SQLDialect
+from ...exceptions import QueryError
 from typing import List, Optional, Dict, Tuple, Any
 
 class BaseQuery(ABC):
@@ -13,7 +14,7 @@ class BaseQuery(ABC):
         self.client: Connection = getattr(self.__class__, 'connection', None)
         self.dialect: SQLDialect = getattr(self.__class__, 'dialect', None)
         if self.client is None or self.dialect is None:
-            raise RuntimeError("Connection or dialect not set. Use set_connection first.")
+            raise QueryError("Connection or dialect not set. Use set_connection first.")
 
     @classmethod
     def set_connection(cls, connection: Connection):

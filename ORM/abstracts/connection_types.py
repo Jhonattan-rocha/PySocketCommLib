@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from ..abstracts.dialetecs import SQLDialect
-from typing import Optional, Any
+from typing import Optional, Any, Generator
+
 
 class Connection(ABC):
     """
@@ -31,6 +33,43 @@ class Connection(ABC):
     def run(self, sql: str, params: Optional[tuple] = None) -> Any:
         """Abstract method to execute a SQL query."""
         pass
+
+    # ------------------------------------------------------------------
+    # Transaction control — subclasses override to use native API.
+    # Default implementations use raw SQL so every driver works out-of-the-box.
+    # ------------------------------------------------------------------
+
+    def begin(self) -> None:
+        """Start an explicit transaction."""
+        self.run("BEGIN")
+
+    def commit(self) -> None:
+        """Commit the current transaction."""
+        self.run("COMMIT")
+
+    def rollback(self) -> None:
+        """Roll back the current transaction."""
+        self.run("ROLLBACK")
+
+    @contextmanager
+    def transaction(self) -> Generator[None, None, None]:
+        """
+        Context manager for atomic database operations.
+
+        Usage::
+
+            with connection.transaction():
+                connection.run("INSERT INTO ...")
+                connection.run("UPDATE ...")
+            # auto-commit on success, auto-rollback on exception
+        """
+        self.begin()
+        try:
+            yield
+            self.commit()
+        except Exception:
+            self.rollback()
+            raise
 
     @property
     def connection(self):

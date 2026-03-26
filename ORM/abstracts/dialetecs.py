@@ -56,3 +56,26 @@ class SQLDialect(ABC):
     def parser(self, result: tuple):
         """Abstract method to serialize results."""
         pass
+
+    @abstractmethod
+    def upsert(
+        self,
+        table_name: str,
+        data: Dict[str, Any],
+        conflict_columns: List[str],
+        update_columns: Optional[List[str]] = None,
+    ) -> Tuple[str, tuple]:
+        """
+        Generate an INSERT … ON CONFLICT … DO UPDATE (upsert) statement.
+
+        Args:
+            table_name:        Target table.
+            data:              Column → value mapping for the INSERT.
+            conflict_columns:  Columns that define uniqueness (PK or unique index).
+            update_columns:    Columns to overwrite on conflict.
+                               Defaults to all columns that are NOT in conflict_columns.
+
+        Returns:
+            (sql, params) ready for connection.run().
+        """
+        pass

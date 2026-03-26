@@ -1,5 +1,6 @@
 from ..abstracts.querys import BaseQuery
 from ..abstracts.connection_types import Connection
+from ...exceptions import MissingWhereClauseError
 from typing import Any, List, Tuple, Optional
 
 
@@ -37,7 +38,7 @@ class Delete(BaseQuery):
 
     def to_sql(self, force: bool = False) -> Tuple[str, Optional[tuple]]:
         if not self._where_parts and not force:
-            raise ValueError(
+            raise MissingWhereClauseError(
                 "DELETE sem cláusula WHERE removeria TODOS os registros. "
                 "Adicione .where() ou use .run(force=True) para confirmar a intenção."
             )

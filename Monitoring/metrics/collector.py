@@ -6,8 +6,14 @@ Implementa padrão singleton para garantir coleta unificada em toda a aplicaçã
 
 import time
 import threading
-import psutil
 from collections import defaultdict, deque
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    PSUTIL_AVAILABLE = False
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
@@ -83,23 +89,24 @@ class MetricsCollector:
         """Coleta métricas do sistema em thread separada."""
         while not self._stop_collection.wait(self._collection_interval):
             try:
-                # Métricas de CPU
-                cpu_percent = psutil.cpu_percent(interval=None)
-                self.record_gauge('system_cpu_percent', cpu_percent)
-                
-                # Métricas de memória
-                memory = psutil.virtual_memory()
-                self.record_gauge('system_memory_percent', memory.percent)
-                self.record_gauge('system_memory_used_bytes', memory.used)
-                self.record_gauge('system_memory_available_bytes', memory.available)
-                
-                # Métricas de disco
-                disk = psutil.disk_usage('/')
-                self.record_gauge('system_disk_percent', disk.percent)
-                self.record_gauge('system_disk_used_bytes', disk.used)
-                self.record_gauge('system_disk_free_bytes', disk.free)
-                
-                # Uptime
+                if PSUTIL_AVAILABLE:
+                    # Métricas de CPU
+                    cpu_percent = psutil.cpu_percent(interval=None)
+                    self.record_gauge('system_cpu_percent', cpu_percent)
+
+                    # Métricas de memória
+                    memory = psutil.virtual_memory()
+                    self.record_gauge('system_memory_percent', memory.percent)
+                    self.record_gauge('system_memory_used_bytes', memory.used)
+                    self.record_gauge('system_memory_available_bytes', memory.available)
+
+                    # Métricas de disco
+                    disk = psutil.disk_usage('/')
+                    self.record_gauge('system_disk_percent', disk.percent)
+                    self.record_gauge('system_disk_used_bytes', disk.used)
+                    self.record_gauge('system_disk_free_bytes', disk.free)
+
+                # Uptime (não depende de psutil)
                 uptime = time.time() - self._start_time
                 self.record_gauge('system_uptime_seconds', uptime)
                 

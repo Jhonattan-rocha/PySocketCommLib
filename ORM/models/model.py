@@ -1,10 +1,12 @@
 import asyncio
+from contextlib import contextmanager
 from datetime import datetime
 from ..cache import MemoryCache
 from ..abstracts.field_types import BaseField, ForeignKeyField, DateTimeField
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
-from typing import Tuple, Dict, List, Any, Optional
+from ...exceptions import ConnectionError as OrmConnectionError, ValidationError
+from typing import Tuple, Dict, List, Any, Optional, Generator
 
 
 class BaseModel:
@@ -103,7 +105,7 @@ class BaseModel:
         if not conditions:
             raise ValueError("filter_delete requer ao menos uma condição para evitar deleção total.")
         if not cls.connection:
-            raise Exception("Conexão não definida. Chame set_connection().")
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
         where_clause, params = cls.build_where_clause(conditions)
         sql = cls.delete_sql(where_clause)
         cls._cache.clear_prefix(cls.get_table_name())
@@ -120,7 +122,7 @@ class BaseModel:
     def count(cls, **conditions) -> int:
         """Retorna o número de registros que correspondem às condições."""
         if not cls.connection:
-            raise Exception("Conexão não definida. Chame set_connection().")
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
         table = cls.dialect.quote_identifier(cls.get_table_name())
         if conditions:
             where, params = cls.build_where_clause(conditions)
@@ -150,7 +152,7 @@ class BaseModel:
     def last(cls, **conditions) -> Optional[Dict[str, Any]]:
         """Retorna o último registro por PK (ORDER BY pk DESC LIMIT 1)."""
         if not cls.connection:
-            raise Exception("Conexão não definida. Chame set_connection().")
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
         _, pks = cls.get_fields()
         table = cls.dialect.quote_identifier(cls.get_table_name())
         if conditions:
@@ -181,7 +183,7 @@ class BaseModel:
         if not records:
             return
         if not cls.connection:
-            raise Exception("Conexão não definida. Chame set_connection().")
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
         cls._cache.clear_prefix(cls.get_table_name())
         for record in records:
             sql, params = cls.insert_sql(record)
@@ -239,7 +241,7 @@ class BaseModel:
         if not conditions:
             raise ValueError("filter_update requer ao menos uma condição para evitar atualização total.")
         if not cls.connection:
-            raise Exception("Conexão não definida. Chame set_connection().")
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
         where_clause, where_params = cls.build_where_clause(conditions, param_offset=len(data))
         sql, set_params = cls.update_sql(data, where_clause)
         cls._cache.clear_prefix(cls.get_table_name())
@@ -262,7 +264,25 @@ class BaseModel:
     def set_connection(cls, connection: Connection):
         """Sets the connection to be used by the model."""
         cls.connection = connection
-        cls.dialect = connection.dialect  # Set dialect from connection
+        cls.dialect = connection.dialect
+
+    @classmethod
+    @contextmanager
+    def transaction(cls) -> Generator[None, None, None]:
+        """
+        Context manager for atomic model operations.
+
+        Usage::
+
+            with MyModel.transaction():
+                MyModel.create(name="Alice")
+                MyModel.create(name="Bob")
+            # auto-commit on success, auto-rollback on exception
+        """
+        if cls.connection is None:
+            raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
+        with cls.connection.transaction():
+            yield
 
     @classmethod
     def get_table_name(cls):
@@ -297,7 +317,7 @@ class BaseModel:
     def create_table(cls):
         """Creates the table in the database."""
         if not cls.connection:
-            raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
+            raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql = cls.create_table_sql()
         cls.connection.run(sql)
 
@@ -330,7 +350,7 @@ class BaseModel:
         """Saves (inserts) the model instance to the database, running field validation."""
         self.clear_cache()
         if not self.__class__.connection:
-            raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
+            raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
 
         fields, primary_keys = self.__class__.get_fields()
         data_to_insert = {}
@@ -363,7 +383,7 @@ class BaseModel:
     def delete(cls, where_condition: str):
         """Deletes records based on a WHERE condition."""
         if not cls.connection:
-            raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
+            raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql = cls.delete_sql(where_condition)
         cls.connection.run(sql)
 
@@ -380,7 +400,7 @@ class BaseModel:
         """Updates records based on a WHERE condition."""
         cls._cache.clear_prefix(cls.get_table_name())
         if not cls.connection:
-            raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
+            raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.update_sql(data, where_condition)
         cls.connection.run(sql, params)
 
@@ -402,7 +422,7 @@ class BaseModel:
                limit: Optional[int] = None, joins: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, Any]]:
         """Selects records based on various conditions."""
         if not cls.connection:
-            raise Exception("No database connection set. Call set_connection() on the BaseModel subclass.")
+            raise OrmConnectionError("No database connection set. Call set_connection() on the BaseModel subclass.")
         sql, params = cls.select_sql(columns, where_condition, where_params, order_by, limit, joins)
         return cls.connection.run(sql, params if params else None)
 
@@ -468,6 +488,55 @@ class BaseModel:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, lambda: cls.bulk_insert(records))
 
+    @classmethod
+    def upsert(
+        cls,
+        data: Dict[str, Any],
+        conflict_columns: List[str],
+        update_columns: Optional[List[str]] = None,
+    ) -> Any:
+        """
+        INSERT … ON CONFLICT … DO UPDATE (upsert).
+
+        Insere o registro; se houver conflito nas ``conflict_columns`` (PK ou
+        unique), atualiza as ``update_columns`` em vez de lançar erro.
+
+        Args:
+            data:              Dicionário ``{coluna: valor}`` para inserir.
+            conflict_columns:  Colunas que definem o conflito (PK / unique index).
+            update_columns:    Colunas a sobrescrever no conflito.
+                               Padrão: todas as colunas que não estão em
+                               ``conflict_columns``.
+
+        Example::
+
+            User.upsert(
+                {"email": "a@b.com", "name": "Alice", "login_count": 1},
+                conflict_columns=["email"],
+                update_columns=["name", "login_count"],
+            )
+        """
+        if not cls.connection:
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
+        cls._cache.clear_prefix(cls.get_table_name())
+        sql, params = cls.dialect.upsert(
+            cls.get_table_name(), data, conflict_columns, update_columns
+        )
+        return cls.connection.run(sql, params)
+
+    @classmethod
+    async def async_upsert(
+        cls,
+        data: Dict[str, Any],
+        conflict_columns: List[str],
+        update_columns: Optional[List[str]] = None,
+    ) -> Any:
+        """Versão assíncrona de upsert()."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, lambda: cls.upsert(data, conflict_columns, update_columns)
+        )
+
     async def async_refresh(self) -> None:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self.refresh)
@@ -509,7 +578,7 @@ class BaseModel:
             Lista de dicts; cada dict tem ``<field_name>_related`` para cada FK carregado.
         """
         if not cls.connection:
-            raise Exception("Conexão não definida. Chame set_connection().")
+            raise OrmConnectionError("Conexão não definida. Chame set_connection().")
 
         rows = cls.filter(**conditions) if conditions else cls.select()
         if not rows:

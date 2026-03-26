@@ -1,5 +1,6 @@
 from ..abstracts.querys import BaseQuery
 from ..abstracts.connection_types import Connection
+from ...exceptions import MissingWhereClauseError
 from typing import Dict, Any, List, Tuple
 
 
@@ -42,7 +43,7 @@ class Update(BaseQuery):
 
     def to_sql(self, force: bool = False) -> Tuple[str, tuple]:
         if not self._where_parts and not force:
-            raise ValueError(
+            raise MissingWhereClauseError(
                 "UPDATE sem cláusula WHERE atualizaria TODOS os registros. "
                 "Adicione .where() ou use .run(force=True) para confirmar a intenção."
             )
