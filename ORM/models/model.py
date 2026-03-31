@@ -5,6 +5,7 @@ from ..cache import MemoryCache
 from ..abstracts.field_types import BaseField, ForeignKeyField, DateTimeField
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
+from ..querys.page import Page
 from ...exceptions import ConnectionError as OrmConnectionError, ValidationError
 from typing import Tuple, Dict, List, Any, Optional, Generator
 
@@ -137,6 +138,69 @@ class BaseModel:
     def exists(cls, **conditions) -> bool:
         """Retorna True se existir ao menos um registro correspondente."""
         return cls.count(**conditions) > 0
+
+    @classmethod
+    def paginate(
+        cls,
+        page: int = 1,
+        page_size: int = 20,
+        order_by: Optional[List[str]] = None,
+        **conditions,
+    ) -> Page:
+        """
+        Retorna uma página de registros com metadados de navegação.
+
+        Args:
+            page:      Página atual (começa em 1).
+            page_size: Máximo de registros por página.
+            order_by:  Lista de colunas para ORDER BY, ex: ``["name ASC", "id DESC"]``.
+            **conditions: Filtros iguais aos de ``filter()`` (campo__lookup=valor).
+
+        Returns:
+            :class:`~ORM.querys.page.Page` com ``data``, ``total``,
+            ``total_pages``, ``has_next``, ``has_prev``.
+
+        Example::
+
+            result = User.paginate(page=2, page_size=10, active=True)
+            for user in result.data:
+                print(user["name"])
+            print(f"{result.page}/{result.total_pages}")
+        """
+        page = max(1, page)
+        page_size = max(1, page_size)
+        offset = (page - 1) * page_size
+
+        total = cls.count(**conditions)
+
+        if conditions:
+            where, params = cls.build_where_clause(conditions)
+            data = cls.select(
+                where_condition=where,
+                where_params=params,
+                order_by=order_by,
+                limit=page_size,
+                offset=offset,
+            )
+        else:
+            data = cls.select(order_by=order_by, limit=page_size, offset=offset)
+
+        return Page(data=data or [], page=page, page_size=page_size, total=total)
+
+    @classmethod
+    async def async_paginate(
+        cls,
+        page: int = 1,
+        page_size: int = 20,
+        order_by: Optional[List[str]] = None,
+        **conditions,
+    ) -> Page:
+        """Versão assíncrona de paginate()."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: cls.paginate(page, page_size, order_by, **conditions),
+        )
 
     @classmethod
     def first(cls, **conditions) -> Optional[Dict[str, Any]]:

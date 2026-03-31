@@ -1,6 +1,7 @@
 from ..abstracts.querys import BaseQuery
 from ..abstracts.connection_types import Connection
-from typing import Any, List, Tuple
+from .page import Page
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class Select(BaseQuery):
@@ -159,3 +160,73 @@ class Select(BaseQuery):
         sql, params = self.to_sql()
         result = self.client.run(sql, params)
         return self.client.dialect.parser(result) if result else result
+
+    def paginate(self, page: int = 1, page_size: int = 20) -> Page:
+        """
+        Execute a paginated query and return a :class:`Page` result.
+
+        Runs two queries: one COUNT(*) to get the total and one SELECT
+        with LIMIT/OFFSET for the current page.
+
+        Note: WHERE conditions added via ``.where()`` must be written as
+        literal SQL strings (e.g. ``"active = 1"``). For parameterized
+        conditions use ``BaseModel.paginate()`` instead.
+
+        Example::
+
+            result = (
+                Select("users", client=conn)
+                .where("active = 1")
+                .order_by("name")
+                .paginate(page=2, page_size=15)
+            )
+            print(result.total_pages, result.has_next)
+        """
+        page = max(1, page)
+        page_size = max(1, page_size)
+        where_str = ' '.join(self._where_parts) if self._where_parts else None
+
+        # --- COUNT query (no ORDER BY / LIMIT / OFFSET) ---
+        quoted_table = self.dialect.quote_identifier(self._from_clause)
+        join_sql = ''
+        if self._joins_clause:
+            for j in self._joins_clause:
+                join_table = self.dialect.quote_identifier(j['table'])
+                join_type = j.get('type', 'INNER').upper()
+                join_sql += f" {join_type} JOIN {join_table} ON {j['condition']}"
+
+        count_sql = f"SELECT COUNT(*) AS _total FROM {quoted_table}{join_sql}"
+        if where_str:
+            count_sql += f" WHERE {where_str}"
+
+        count_result = self.client.run(count_sql, None)
+        total = self._extract_count(count_result)
+
+        # --- DATA query ---
+        self._limit_clause = page_size
+        self._offset_clause = (page - 1) * page_size
+        data = self.run()
+
+        return Page(
+            data=data if isinstance(data, list) else [],
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+
+    @staticmethod
+    def _extract_count(result) -> int:
+        """Extract a scalar integer from a COUNT query result."""
+        if not result:
+            return 0
+        if isinstance(result, list) and result:
+            row = result[0]
+            if isinstance(row, dict):
+                return int(list(row.values())[0])
+            if isinstance(row, (list, tuple)):
+                return int(row[0])
+        if isinstance(result, tuple):   # PostgreSQL raw: (rows, cols)
+            rows, _ = result
+            if rows:
+                return int(rows[0][0])
+        return 0

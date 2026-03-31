@@ -1,15 +1,20 @@
+import logging
+import sqlite3
+from typing import List, Dict, Any, Tuple, Optional
+
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.field_types import BaseField
 from ..abstracts.connection_types import Connection
 from ...exceptions import ConnectionError as OrmConnectionError
-import sqlite3
-from typing import List, Dict, Any, Tuple, Optional
+
+logger = logging.getLogger(__name__)
 
 class SqliteConnection(Connection):
     """Concrete Connection class for SQLite, using sqlite3 module."""
-    def __init__(self, database: str): # SQLite only needs database file path
-        super().__init__(host=None, port=None, user=None, password=None, database=database) # Host, port, user, password are not relevant for SQLite
-        self.dialect = SqliteDialect() # Assign the SQLite dialect
+    def __init__(self, database: str):
+        super().__init__(host=None, port=None, user=None, password=None, database=database)
+        self.dialect = SqliteDialect()
+        self._in_transaction: bool = False
 
     def connect(self):
         """Connects to the SQLite database using sqlite3."""
@@ -39,32 +44,41 @@ class SqliteConnection(Connection):
         cursor = self._conn.cursor()
         try:
             if params:
-                cursor.execute(sql, params) # Execute with parameters to prevent SQL injection
+                cursor.execute(sql, params)
             else:
                 cursor.execute(sql)
-            if sql.lstrip().upper().startswith("SELECT"): # Handle SELECT queries and return results
+            if sql.lstrip().upper().startswith("SELECT"):
                 results = cursor.fetchall()
-                column_names = [description[0] for description in cursor.description] # Get column names
-                return [dict(zip(column_names, row)) for row in results] # Return list of dictionaries
+                column_names = [description[0] for description in cursor.description]
+                return [dict(zip(column_names, row)) for row in results]
             else:
-                self._conn.commit() # Commit changes for INSERT, UPDATE, DELETE
-                return True # Indicate successful execution for non-SELECT queries
+                # Only auto-commit when NOT inside an explicit transaction.
+                if not self._in_transaction:
+                    self._conn.commit()
+                return True
         except sqlite3.Error as e:
-            self._conn.rollback() # Rollback in case of error to maintain data integrity
+            if not self._in_transaction:
+                self._conn.rollback()
             print(f"Error executing SQL on SQLite: {e}\nSQL: {sql}\nParams: {params}")
-            raise # Re-raise the exception for the caller to handle
+            raise
 
     def begin(self) -> None:
         if self._conn:
+            self._in_transaction = True
             self._conn.isolation_level = 'DEFERRED'
+            self._conn.execute("BEGIN")
 
     def commit(self) -> None:
         if self._conn:
             self._conn.commit()
+            self._in_transaction = False
+            self._conn.isolation_level = ''   # restore autocommit mode
 
     def rollback(self) -> None:
         if self._conn:
             self._conn.rollback()
+            self._in_transaction = False
+            self._conn.isolation_level = ''
 
     @property
     def connection(self):

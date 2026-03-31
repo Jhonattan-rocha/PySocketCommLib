@@ -170,12 +170,16 @@ class MigrationManager:
             if dep not in applied:
                 raise UnmetDependencyError(migration.name, dep)
 
-        migration.apply(self.connection)
+        # Wrap in a transaction so multi-statement operations (e.g. SQLite
+        # recreate-table) are atomic — failure rolls back all statements.
+        with self.connection.transaction():
+            migration.apply(self.connection)
         self._record_migration(migration)
         print(f"[migration] Aplicada: {migration.name}")
 
     def rollback_migration(self, migration: Migration) -> None:
-        migration.rollback(self.connection)
+        with self.connection.transaction():
+            migration.rollback(self.connection)
         self._delete_migration_record(migration.name)
         print(f"[migration] Revertida: {migration.name}")
 

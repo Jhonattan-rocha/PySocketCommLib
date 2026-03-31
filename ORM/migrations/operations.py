@@ -1,7 +1,7 @@
 """Database migration operations."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.field_types import BaseField
@@ -173,20 +173,40 @@ class AlterColumn(Operation):
     """Change a column's type or constraints.
 
     PostgreSQL: emits separate statements for TYPE, NULL/NOT NULL, and DEFAULT,
-    joined by semicolons. Execute each statement individually via
-    ``for stmt in op.get_sql(dialect).split(';') if stmt.strip()``.
+    joined by semicolons.
 
     MySQL: uses MODIFY COLUMN with the full column definition.
 
-    SQLite: ALTER COLUMN is not supported natively — a comment is returned.
+    SQLite: ALTER COLUMN is not natively supported. When ``all_fields`` is
+    provided the operation automatically performs the standard recreate-table
+    workaround (4 statements joined by semicolons):
+
+    1. ``CREATE TABLE "__tmp_<table>"`` with the updated schema
+    2. ``INSERT INTO "__tmp_<table>" … SELECT … FROM "<table>"``
+    3. ``DROP TABLE "<table>"``
+    4. ``ALTER TABLE "__tmp_<table>" RENAME TO "<table>"``
+
+    The caller (``Migration.apply``) splits on ``;`` and runs each statement
+    individually — they must all run inside the same transaction so a failure
+    triggers a full rollback.  ``MigrationManager`` handles this automatically.
+
+    Without ``all_fields`` a SQL comment is returned (no-op with a warning).
     """
 
-    def __init__(self, table_name: str, column_name: str,
-                 old_field: BaseField, new_field: BaseField):
+    def __init__(
+        self,
+        table_name: str,
+        column_name: str,
+        old_field: BaseField,
+        new_field: BaseField,
+        all_fields: Optional[Dict[str, BaseField]] = None,
+    ):
         self.table_name = table_name
         self.column_name = column_name
         self.old_field = old_field
         self.new_field = new_field
+        # Full schema of the table — required for SQLite recreate-table.
+        self.all_fields = all_fields
 
     def get_sql(self, dialect: SQLDialect) -> str:
         dialect_name = type(dialect).__name__.lower()
@@ -226,17 +246,67 @@ class AlterColumn(Operation):
             return f"ALTER TABLE {quoted_table} MODIFY COLUMN {col_def}"
 
         else:
-            # SQLite does not support ALTER COLUMN natively
-            return (
-                f"-- SQLite does not support ALTER COLUMN: "
-                f"{self.table_name}.{self.column_name} — "
-                f"recreate the table manually."
-            )
+            # SQLite
+            if not self.all_fields:
+                return (
+                    f"-- SQLite: pass all_fields to AlterColumn to enable automatic "
+                    f"table recreation for {self.table_name}.{self.column_name}"
+                )
+            return self._sqlite_recreate(dialect)
+
+    def _sqlite_recreate(self, dialect: SQLDialect) -> str:
+        """
+        Implement ALTER COLUMN on SQLite via the standard recreate-table pattern:
+        create temp → copy → drop original → rename temp.
+        """
+        tmp_name = f"__tmp_{self.table_name}"
+        quoted_table = dialect.quote_identifier(self.table_name)
+        quoted_tmp = dialect.quote_identifier(tmp_name)
+
+        # Build new schema: same columns, but replace the altered one.
+        new_schema: Dict[str, BaseField] = {
+            name: (self.new_field if name == self.column_name else field)
+            for name, field in self.all_fields.items()
+        }
+
+        col_defs = [
+            self._field_definition(dialect, name, field)
+            for name, field in new_schema.items()
+        ]
+        pk_cols = self._primary_keys_from_fields(new_schema)
+        pk_constraint = dialect.get_primary_key_constraint(pk_cols)
+
+        # Column list for INSERT … SELECT (use original names so types cast correctly)
+        quoted_cols = ', '.join(
+            dialect.quote_identifier(f.db_column_name or name)
+            for name, f in self.all_fields.items()
+        )
+
+        stmts = [
+            # 1. Create temp table with updated schema
+            f"CREATE TABLE {quoted_tmp} ({', '.join(col_defs)}{pk_constraint})",
+            # 2. Copy all existing rows
+            f"INSERT INTO {quoted_tmp} ({quoted_cols}) SELECT {quoted_cols} FROM {quoted_table}",
+            # 3. Drop the original table
+            f"DROP TABLE {quoted_table}",
+            # 4. Rename temp to original
+            f"ALTER TABLE {quoted_tmp} RENAME TO {self.table_name}",
+        ]
+        return ";\n".join(stmts)
 
     def get_reverse_operation(self) -> 'AlterColumn':
         return AlterColumn(
-            self.table_name, self.column_name,
-            old_field=self.new_field, new_field=self.old_field,
+            self.table_name,
+            self.column_name,
+            old_field=self.new_field,
+            new_field=self.old_field,
+            all_fields=(
+                {
+                    name: (self.old_field if name == self.column_name else f)
+                    for name, f in self.all_fields.items()
+                }
+                if self.all_fields else None
+            ),
         )
 
 

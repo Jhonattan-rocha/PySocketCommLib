@@ -35,7 +35,7 @@ from .ORM import (
     JSONField, UUIDField, BinaryField,
     EnumField,
     ForeignKeyField,
-    Select, Insert, Update, Delete,
+    Select, Insert, Update, Delete, Page,
 )
 
 # Connection types
