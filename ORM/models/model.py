@@ -22,6 +22,15 @@ class BaseModel:
     connection: Connection = None  # Connection instance to be set
     _cache = MemoryCache()
 
+    # Registry of all concrete BaseModel subclasses, used by makemigrations.
+    _registry: List[type] = []
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # Only register concrete subclasses (skip abstract intermediaries that
+        # leave dialect/connection as None and don't define __tablename__).
+        BaseModel._registry.append(cls)
+
     @classmethod
     def build_where_clause(cls, conditions: dict, param_offset: int = 0) -> Tuple[str, tuple]:
         """

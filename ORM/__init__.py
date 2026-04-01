@@ -22,6 +22,7 @@ from .migrations import (
     Migration, MigrationManager,
     CreateTable, DropTable, AddColumn, DropColumn,
     RenameColumn, RenameTable, AlterColumn, AddIndex, DropIndex, RunSQL,
+    generate_operations, inspect_tables, ColumnInfo,
 )
 from .models.model import BaseModel
 from .pools import AsyncConnectionPool, ConnectionPool

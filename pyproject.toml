@@ -63,6 +63,9 @@ pysocketcomm = "PySocketCommLib.cli:main"
 [tool.setuptools.packages.find]
 exclude = ["tests*", "examples*", "backup_imports*"]
 
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

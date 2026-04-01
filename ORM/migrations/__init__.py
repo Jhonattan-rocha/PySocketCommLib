@@ -6,6 +6,8 @@ from .operations import (
     AddColumn, DropColumn, RenameColumn, RenameTable,
     AlterColumn, AddIndex, DropIndex, RunSQL,
 )
+from .generator import generate_operations
+from .inspector import inspect_tables, ColumnInfo
 
 __all__ = [
     "Migration",
@@ -20,4 +22,7 @@ __all__ = [
     "AddIndex",
     "DropIndex",
     "RunSQL",
+    "generate_operations",
+    "inspect_tables",
+    "ColumnInfo",
 ]
