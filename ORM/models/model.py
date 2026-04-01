@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import contextmanager
 from datetime import datetime
 from ..cache import MemoryCache
@@ -8,6 +9,8 @@ from ..abstracts.connection_types import Connection
 from ..querys.page import Page
 from ...exceptions import ConnectionError as OrmConnectionError, ValidationError
 from typing import Tuple, Dict, List, Any, Optional, Generator
+
+logger = logging.getLogger(__name__)
 
 
 class BaseModel:
@@ -110,6 +113,7 @@ class BaseModel:
         where_clause, params = cls.build_where_clause(conditions)
         sql = cls.delete_sql(where_clause)
         cls._cache.clear_prefix(cls.get_table_name())
+        logger.debug("filter_delete() on %s WHERE %s", cls.get_table_name(), where_clause)
         cls.connection.run(sql, params if params else None)
 
     @classmethod
@@ -249,6 +253,7 @@ class BaseModel:
         if not cls.connection:
             raise OrmConnectionError("Conexão não definida. Chame set_connection().")
         cls._cache.clear_prefix(cls.get_table_name())
+        logger.debug("bulk_insert() %d records into %s", len(records), cls.get_table_name())
         for record in records:
             sql, params = cls.insert_sql(record)
             cls.connection.run(sql, params)
@@ -309,6 +314,7 @@ class BaseModel:
         where_clause, where_params = cls.build_where_clause(conditions, param_offset=len(data))
         sql, set_params = cls.update_sql(data, where_clause)
         cls._cache.clear_prefix(cls.get_table_name())
+        logger.debug("filter_update() on %s WHERE %s", cls.get_table_name(), where_clause)
         cls.connection.run(sql, set_params + where_params)
 
     @classmethod
@@ -433,6 +439,7 @@ class BaseModel:
             data_to_insert[db_column_name] = value
 
         sql, params = self.__class__.insert_sql(data_to_insert)
+        logger.debug("save() INSERT on %s", self.__class__.get_table_name())
         self.__class__.connection.run(sql, params)
 
     @classmethod
@@ -588,6 +595,7 @@ class BaseModel:
         sql, params = cls.dialect.upsert(
             cls.get_table_name(), data, conflict_columns, update_columns
         )
+        logger.debug("upsert() on %s conflict=%s", cls.get_table_name(), conflict_columns)
         return cls.connection.run(sql, params)
 
     @classmethod

@@ -1,10 +1,14 @@
+import logging
+import uuid
+from typing import Any, Dict, List, Tuple, Optional
+
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from ..drivers.psql import PostgreSQLSocketClient
 from ..abstracts.field_types import BaseField, ForeignKeyField
 from ...exceptions import ConnectionError as OrmConnectionError
-from typing import Any, Dict, List, Tuple, Optional
-import uuid
+
+logger = logging.getLogger(__name__)
 
 class PsqlConnection(Connection):
     def connect(self):
@@ -16,8 +20,8 @@ class PsqlConnection(Connection):
                 return True
             else:
                 return False # Connect method in mock client already returns bool, consistent return
-        except Exception as e: # Catch any exceptions during connection
-            print(f"Connection failed: {e}") # Log detailed error
+        except Exception as e:
+            logger.error("PostgreSQL connection failed: %s", e)
             return False
 
 

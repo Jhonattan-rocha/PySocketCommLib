@@ -1,9 +1,13 @@
+import logging
+from typing import Dict, List, Any, Tuple, Optional
+
 from ..abstracts.dialetecs import SQLDialect
 from ..abstracts.connection_types import Connection
 from ..abstracts.field_types import BaseField, ForeignKeyField
 from ..drivers.mysql import MySQLSocketClient
 from ...exceptions import ConnectionError as OrmConnectionError
-from typing import Dict, List, Any, Tuple, Optional
+
+logger = logging.getLogger(__name__)
 
 class MySQLDialect(SQLDialect):
     """Generates SQL for MySQL databases."""
@@ -156,7 +160,7 @@ class MySQLConnection(Connection):
                 return True
             return False
         except Exception as e:
-            print(f"MySQL connection failed: {e}")
+            logger.error("MySQL connection failed: %s", e)
             return False
 
     def disconnect(self) -> None:

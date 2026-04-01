@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -10,6 +11,8 @@ from typing import List, Dict, Any, Optional
 from .operations import Operation
 from ..abstracts.connection_types import Connection
 from ...exceptions import UnmetDependencyError, CircularDependencyError, MigrationError
+
+logger = logging.getLogger(__name__)
 
 
 class Migration:
@@ -175,18 +178,18 @@ class MigrationManager:
         with self.connection.transaction():
             migration.apply(self.connection)
         self._record_migration(migration)
-        print(f"[migration] Aplicada: {migration.name}")
+        logger.info("Migration applied: %s", migration.name)
 
     def rollback_migration(self, migration: Migration) -> None:
         with self.connection.transaction():
             migration.rollback(self.connection)
         self._delete_migration_record(migration.name)
-        print(f"[migration] Revertida: {migration.name}")
+        logger.info("Migration rolled back: %s", migration.name)
 
     def apply_migrations(self, migrations: List[Migration]) -> None:
         pending = self.get_pending_migrations(migrations)
         if not pending:
-            print("[migration] Nenhuma migration pendente.")
+            logger.info("No pending migrations.")
             return
         for m in self._sort_by_dependencies(pending):
             self.apply_migration(m)
@@ -195,14 +198,14 @@ class MigrationManager:
                             count: int = 1) -> None:
         applied = self.get_applied_migrations()
         if not applied:
-            print("[migration] Nenhuma migration para reverter.")
+            logger.info("No migrations to roll back.")
             return
         migration_map = {m.name: m for m in migrations}
         for name in reversed(applied[-count:]):
             if name in migration_map:
                 self.rollback_migration(migration_map[name])
             else:
-                print(f"[migration] Aviso: '{name}' não encontrada nas migrations disponíveis.")
+                logger.warning("Migration '%s' not found in available migrations — skipping rollback.", name)
 
     # ------------------------------------------------------------------
     # Record keeping (dialect-aware placeholders)
@@ -293,7 +296,7 @@ dependencies = {deps_repr}
 migration = Migration("{name}", operations, dependencies)
 '''
         filepath.write_text(content, encoding='utf-8')
-        print(f"[migration] Arquivo criado: {filepath}")
+        logger.info("Migration file created: %s", filepath)
         return str(filepath)
 
     def load_migrations_from_directory(self) -> List[Migration]:
@@ -309,5 +312,5 @@ migration = Migration("{name}", operations, dependencies)
                 if hasattr(module, 'migration'):
                     migrations.append(module.migration)
             except Exception as e:
-                print(f"[migration] Falha ao carregar {file_path}: {e}")
+                logger.error("Failed to load migration file %s: %s", file_path, e)
         return migrations

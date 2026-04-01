@@ -26,3 +26,4 @@ from .migrations import (
 from .models.model import BaseModel
 from .pools import AsyncConnectionPool, ConnectionPool
 from .querys import Delete, Insert, Select, Update, Page
+from .log import setup_logging

@@ -19,11 +19,11 @@ class SqliteConnection(Connection):
     def connect(self):
         """Connects to the SQLite database using sqlite3."""
         try:
-            print(f"Connecting to SQLite database: {self.database}")
-            self._conn = sqlite3.connect(self.database) # Establishes connection using sqlite3
+            logger.debug("Connecting to SQLite database: %s", self.database)
+            self._conn = sqlite3.connect(self.database)
             return True
         except sqlite3.Error as e:
-            print(f"Error connecting to SQLite database: {e}")
+            logger.error("Error connecting to SQLite database: %s", e)
             return False
 
     def disconnect(self):
@@ -31,9 +31,9 @@ class SqliteConnection(Connection):
         if self._conn:
             try:
                 self._conn.close()
-                print("Disconnecting from SQLite")
+                logger.debug("Disconnected from SQLite database: %s", self.database)
             except sqlite3.Error as e:
-                print(f"Error disconnecting from SQLite database: {e}")
+                logger.error("Error disconnecting from SQLite database: %s", e)
             finally:
                 self._conn = None
 
@@ -59,7 +59,7 @@ class SqliteConnection(Connection):
         except sqlite3.Error as e:
             if not self._in_transaction:
                 self._conn.rollback()
-            print(f"Error executing SQL on SQLite: {e}\nSQL: {sql}\nParams: {params}")
+            logger.error("Error executing SQL on SQLite: %s | SQL: %s | Params: %s", e, sql, params)
             raise
 
     def begin(self) -> None:
